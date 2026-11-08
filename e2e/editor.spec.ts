@@ -60,10 +60,11 @@ async function buildCorvette(page: Page) {
 }
 
 test("2.32 build a valid 10-part ship from an empty canvas, save, reload: still there", async ({ page }) => {
+  test.setTimeout(90_000); // many placements, rendered with software WebGL on CI
   const errors = await open(page);
   await buildCorvette(page);
   await expect(page.getByTestId("stat-parts")).toHaveText("10");
-  await expect(page.getByTestId("issue-count")).toContainText("0 errors");
+  await expect(page.getByTestId("issue-count")).toContainText("0 errors", { timeout: 15_000 });
   await page.getByTestId("btn-save").click();
   await expect(page.getByTestId("toasts")).toContainText("Saved");
   const mass = await page.getByTestId("stat-mass").textContent();

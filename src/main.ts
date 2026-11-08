@@ -299,11 +299,11 @@ async function main(): Promise<void> {
     /** Uids of the controlled ship's parts. */
     partUids: () => flight.controlledShip?.parts.map((p) => p.uid) ?? [],
     debrisCount: () => flight.world?.debris.length ?? 0,
-    /** Ids of ships on other teams. */
+    /** Ids of ships on other teams (drones excluded). */
     enemies: () =>
       flight.world
         ?.allShips()
-        .filter((s) => s.team !== flight.controlledShip?.team)
+        .filter((s) => s.team !== flight.controlledShip?.team && !s.drone)
         .map((s) => s.id) ?? [],
   };
   Object.assign(window, { __game: debug, __editor: editor });
