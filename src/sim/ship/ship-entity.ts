@@ -44,6 +44,21 @@ import {
   type PartInstance,
 } from "./ship";
 
+/** A drone's tie to the ship that launched it (spec §9.7). */
+export interface DroneLink {
+  readonly mother: string;
+  readonly hangarUid: string;
+  readonly role: "attack" | "pd" | "decoy";
+  readonly launchTick: number;
+}
+
+/** Drone behaviour from its parts: a decoy emitter makes a decoy, a PD turret a PD escort, else attack. */
+export function droneRole(parts: readonly PartInstance[]): DroneLink["role"] {
+  if (parts.some((p) => p.def.def.decoy)) return "decoy";
+  if (parts.some((p) => p.def.def.weapon?.kind === "pd")) return "pd";
+  return "attack";
+}
+
 /** Relative mass change that triggers a mass-property recompute (spec §6.1). */
 export const MASS_RECOMPUTE_THRESHOLD = 0.005;
 
@@ -133,6 +148,18 @@ export class Ship {
   /** Set once defeat conditions are met (spec §8.1); never cleared. */
   defeated = false;
   defeatReason: "command-destroyed" | "incapacitated" | null = null;
+  /** PD turrets also fire at ships when no missiles or drones are in reach (spec §9.6). */
+  pdEngageShips = false;
+  /** Set for drones (spec §9.7). */
+  drone: DroneLink | null = null;
+  /** Drone that lost fuel, link or decoy lifetime: no control, no weapons (spec §9.7). Never cleared. */
+  inert = false;
+  inertReason: "no-fuel" | "out-of-range" | "mother-lost" | "expired" | null = null;
+  /** Drones each hangar still has to launch, and seconds until it can launch the next one. */
+  readonly hangarPending = new Map<string, number>();
+  readonly hangarCooldown = new Map<string, number>();
+  /** Drones of this ship still under control (set by the world each tick); they keep it in the fight. */
+  liveDrones = 0;
   /** Instant heat (J) added since the last heat update, e.g. per-shot heat. */
   private pendingHeat = 0;
   /** Destroyed parts that explode, processed by the world after damage (spec §8). */
@@ -622,16 +649,31 @@ export class Ship {
   }
 
   /** Blast damage to this ship's parts around a point (ship frame), falling off linearly with distance. */
-  applyBlast(center: Vec2, radius: number, damage: number, exceptUid?: string): string[] {
-    const destroyed: string[] = [];
+  /**
+   * Blast damage to intact parts within `radius` of `center` (ship frame), falling off linearly, after
+   * armor. `factorOf` scales each part's share, e.g. for shelter behind wrecks.
+   */
+  applyBlast(
+    center: Vec2,
+    radius: number,
+    damage: number,
+    exceptUid?: string,
+    factorOf?: (p: PartInstance, dist: number) => number,
+  ): string[] {
+    // Shares are worked out on the ship as it was when the blast began, so parts the blast destroys do
+    // not shelter the parts behind them.
+    const hits: { uid: string; dmg: number }[] = [];
     for (const p of [...this.parts].sort((a, b) => compareIds(a.uid, b.uid))) {
       if (p.uid === exceptUid || p.hp <= 0) continue;
       const c = partCentroid(p);
       const dist = Math.hypot(c.x - center.x, c.y - center.y);
       if (dist >= radius) continue;
-      const dmg = afterArmor(damage * (1 - dist / radius), p.def.def.armor ?? 0);
-      if (this.applyDamage(p.uid, dmg)) destroyed.push(p.uid);
+      const k = factorOf ? factorOf(p, dist) : 1;
+      if (k <= 0) continue;
+      hits.push({ uid: p.uid, dmg: afterArmor(damage * (1 - dist / radius) * k, p.def.def.armor ?? 0) });
     }
+    const destroyed: string[] = [];
+    for (const h of hits) if (this.applyDamage(h.uid, h.dmg)) destroyed.push(h.uid);
     return destroyed;
   }
 
@@ -676,7 +718,11 @@ export class Ship {
         return m.def.def.magazine?.ammoType === w.def.ammoType && m.ammo >= 1;
       });
     });
-    if (!canMove && !canFight) {
+    // A hangar that still holds drones can still fight (spec §9.7).
+    const canLaunch = this.parts.some(
+      (p) => p.hp > 0 && p.def.def.hangar && p.ammo >= 1 && this.isCommanded(p.uid),
+    );
+    if (!canMove && !canFight && !canLaunch && this.liveDrones === 0) {
       this.defeated = true;
       this.defeatReason = "incapacitated";
     }
@@ -705,10 +751,51 @@ export class Ship {
     return this.parts.map((p) => ({ pieces: partPiecesShipFrame(p), tag: `${this.id}/${p.uid}` }));
   }
 
+  // ---------- drones and hangars (spec §9.7) ----------
+  /** H: every intact, commanded hangar queues all the drones it holds. */
+  requestDroneLaunch(): void {
+    for (const p of [...this.parts].sort((a, b) => compareIds(a.uid, b.uid))) {
+      if (!p.def.def.hangar || p.hp <= 0) continue;
+      this.hangarPending.set(p.uid, Math.floor(p.ammo));
+    }
+  }
+
+  /** Drones left in hangars. */
+  get dronesStored(): number {
+    return this.parts.reduce((n, p) => n + (p.def.def.hangar && p.hp > 0 ? Math.floor(p.ammo) : 0), 0);
+  }
+
+  /** Strength of this ship as a decoy (0 when it is none or no longer active). */
+  get decoyStrength(): number {
+    if (this.inert || this.defeated) return 0;
+    let s = 0;
+    for (const p of this.parts) if (p.hp > 0 && p.def.def.decoy) s = Math.max(s, p.def.def.decoy.strength);
+    return s;
+  }
+
+  /** Shortest decoy-emitter lifetime aboard (s), or null. */
+  get decoyLifetime(): number | null {
+    let t: number | null = null;
+    for (const p of this.parts) if (p.def.def.decoy) t = Math.min(t ?? Infinity, p.def.def.decoy.lifetime);
+    return t;
+  }
+
+  /** Makes a drone inert (no control, no weapons); the first reason sticks. */
+  makeInert(reason: NonNullable<Ship["inertReason"]>): void {
+    if (this.inert) return;
+    this.inert = true;
+    this.inertReason = reason;
+    this.intent = IDLE_INTENT;
+  }
+
   snapshot() {
     return {
       id: this.id,
       team: this.team,
+      inert: this.inert,
+      pdEngageShips: this.pdEngageShips,
+      drone: this.drone,
+      hangars: [...this.hangarPending].map(([uid, n]) => [uid, n, this.hangarCooldown.get(uid) ?? 0]),
       speedKill: this.flight.speedKill,
       heat: this.heat,
       radiatorsExtended: this.radiatorsExtended,

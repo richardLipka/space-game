@@ -41,6 +41,8 @@ export const MissileDef = Type.Object(
   strict,
 );
 
+export type MissileDef = Static<typeof MissileDef>;
+
 export const WeaponDef = Type.Object(
   {
     kind: Type.Union([
@@ -152,6 +154,8 @@ export const PartDef = Type.Object(
     ),
     heatSink: Type.Optional(Type.Object({ capacity: PositiveNumber }, strict)),
     weapon: Type.Optional(WeaponDef),
+    /** Decoy emitter (spec §9.7): enemy missiles and PD prefer its ship while it is active. */
+    decoy: Type.Optional(Type.Object({ strength: Fraction, lifetime: PositiveNumber }, strict)),
     hangar: Type.Optional(
       Type.Object(
         { droneType: Type.String(), capacity: Type.Integer({ minimum: 1 }), launchInterval: PositiveNumber },

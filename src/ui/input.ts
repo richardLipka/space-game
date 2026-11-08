@@ -17,7 +17,10 @@ export type UiCommand =
   | "radiators"
   | "networks"
   | "cycle-group-mode"
-  | "eject-wrecks";
+  | "eject-wrecks"
+  | "launch-missiles"
+  | "launch-drones"
+  | "pd-ships";
 
 /**
  * Keyboard/mouse → ControlIntent (spec §10). Continuous axes come from held keys; one-shot commands
@@ -90,9 +93,19 @@ export class InputController {
           this.faceCursor = !this.faceCursor;
           this.commands.push("face-cursor");
           break;
-        case "h":
         case "?":
+        case "f1":
+          e.preventDefault();
           this.commands.push("help");
+          break;
+        case "m":
+          this.commands.push("launch-missiles");
+          break;
+        case "h":
+          this.commands.push("launch-drones");
+          break;
+        case "o":
+          this.commands.push("pd-ships");
           break;
         case "escape":
           if (this.ejectMode) this.ejectMode = false;

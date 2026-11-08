@@ -47,3 +47,68 @@ describe("M1 performance", () => {
     expect(ms).toBeLessThan(2);
   });
 });
+
+describe("M5 performance", () => {
+  it("5.20 40 missiles + 30 drones + 500 projectiles + 10 ships → tick under 8 ms", async () => {
+    const { spawnMissile } = await import("../../src/sim/combat/missiles");
+    const droneJson = (await import("../../src/data/designs/drone-attack.json")).default;
+    const { validateDesign } = await import("../../src/data/validate");
+    const dr = validateDesign(droneJson);
+    if (!dr.ok) throw new Error(dr.errors.join("\n"));
+    const w = new World({ seed: 1 });
+    w.registerDesign(dr.value);
+    const ships = Array.from({ length: 10 }, (_, i) =>
+      w.addShip(shipWithParts(50), cat, {
+        position: vec2((i % 5) * 400, Math.floor(i / 5) * 1200),
+        angle: i < 5 ? Math.PI / 2 : -Math.PI / 2,
+        team: i < 5 ? 0 : 1,
+      }),
+    );
+    for (let i = 0; i < 30; i++) {
+      const mother = ships[i % 10]!;
+      const d = w.addShip(dr.value, cat, {
+        position: vec2((i % 10) * 200 - 100, 300 + Math.floor(i / 10) * 200),
+        team: mother.team,
+      });
+      d.drone = { mother: mother.id, hangarUid: "x", role: "attack", launchTick: 0 };
+    }
+    const mdef = cat.get("core:weapon.missile.launcher.s").def.weapon!.missile!;
+    const rng = w.rng.fork();
+    const topUp = () => {
+      while (w.combat.missiles.length < 40) {
+        const from = ships[w.combat.missiles.length % 5]!;
+        const to = ships[5 + (w.combat.missiles.length % 5)]!;
+        spawnMissile(w, from, mdef, vec2(rng.range(0, 1600), 500), vec2(0, 1), vec2(0, 0), to.id);
+      }
+      while (w.combat.projectiles.length < 500) {
+        w.combat.projectiles.push({
+          id: w.combat.nextProjectileId++,
+          owner: ships[0]!.id,
+          team: 0,
+          pos: vec2(rng.range(-200, 1800), rng.range(-200, 1400)),
+          vel: vec2(rng.range(-1000, 1000), rng.range(-1000, 1000)),
+          mass: 0.5,
+          damage: 5,
+          age: 0,
+          lifetime: 2,
+          kind: "perf",
+        });
+      }
+    };
+    for (let i = 0; i < 30; i++) {
+      topUp();
+      w.step(); // warm-up (JIT)
+    }
+    let total = 0;
+    const ticks = 60;
+    for (let i = 0; i < ticks; i++) {
+      topUp();
+      const t0 = performance.now();
+      w.step();
+      total += performance.now() - t0;
+    }
+    const ms = total / ticks;
+    console.log(`M5 load (10 ships, 30 drones, 40 missiles, 500 rounds): ${ms.toFixed(2)} ms/tick`);
+    expect(ms).toBeLessThan(8);
+  });
+});

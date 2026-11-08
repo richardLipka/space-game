@@ -56,6 +56,7 @@ const ion = square("user:alice/engine.ion", 150, {
 const lightPlate = square("user:alice/plate.light", 10);
 const hangar = square("user:alice/hangar.s", 300, {
   category: "hangar",
+  edges: ["snap", "snap", "function", "snap"], // launch bay on the outer side
   hangar: { droneType: "drone-x", capacity: 2, launchInterval: 1 },
 });
 const drone: ShipDesign = {

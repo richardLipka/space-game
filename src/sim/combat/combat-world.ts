@@ -1,13 +1,17 @@
-import { type Vec2, add, angleOf, dot, length, rotate, scale, sub } from "../core/vec2";
+import { type Vec2, add, dot, length, lengthSq, normalize, rotate, scale, sub } from "../core/vec2";
 import { rayPolygon } from "../core/geometry";
-import { compareIds } from "../core/ids";
 import { gravityAccel } from "../physics/forces";
 import type { ContactImpulse } from "../physics/planck-adapter";
+import type { PartInstance } from "../ship/ship";
+import { partCentroid } from "../ship/ship";
 import type { Ship } from "../ship/ship-entity";
 import type { World } from "../world";
-import { COMBAT } from "./constants";
+import { COMBAT, MISSILE } from "./constants";
 import { beamFalloff, collisionDamage, damageAlongRay } from "./damage";
-import { updateWeapons, type FireOrder, type TargetInfo } from "./weapons";
+import type { Missile } from "./missiles";
+import { spawnMissile } from "./missiles";
+import { firstEngageable, orderShipTargets, rankThreats, type Contact, type Defender } from "./targeting";
+import { updateWeapons, type FireOrder, type WeaponTargeting } from "./weapons";
 
 /** A ballistic round in flight (spec §9.3). Not a physics body: hits are found by swept raycasts. */
 export interface Projectile {
@@ -22,6 +26,16 @@ export interface Projectile {
   readonly lifetime: number;
   /** Ammo / weapon kind for rendering (e.g. "kinetic-120"). */
   readonly kind: string;
+  /**
+   * Burst shell (flak, spec §9.6): bursts when an enemy missile or drone passes within `proximity`, or at
+   * `time` (the predicted intercept), damaging everything hostile within `radius`.
+   */
+  readonly fuse?: {
+    readonly proximity: number;
+    readonly radius: number;
+    readonly damage: number;
+    readonly time: number | null;
+  };
 }
 
 export interface BeamTrace {
@@ -33,7 +47,17 @@ export interface BeamTrace {
 
 export interface CombatEvent {
   readonly tick: number;
-  readonly kind: "fire" | "hit" | "beam-hit" | "explosion" | "destroyed" | "collision" | "eject";
+  readonly kind:
+    | "fire"
+    | "hit"
+    | "beam-hit"
+    | "explosion"
+    | "destroyed"
+    | "collision"
+    | "eject"
+    | "burst"
+    | "missile-down"
+    | "launch";
   readonly pos: Vec2;
   readonly size: number;
 }
@@ -41,12 +65,14 @@ export interface CombatEvent {
 export class CombatState {
   projectiles: Projectile[] = [];
   nextProjectileId = 1;
+  /** Guided missiles in flight (spec §9.5), sorted by id. */
+  missiles: Missile[] = [];
   /** Beams fired this tick (for rendering). */
   beams: BeamTrace[] = [];
   /** Recent events for effects (pruned after COMBAT.eventLifetime). */
   events: CombatEvent[] = [];
   /** Totals for tests and debugging. */
-  stats = { shots: 0, hits: 0 };
+  stats = { shots: 0, hits: 0, missilesLaunched: 0, missilesDown: 0, missileHits: 0 };
 }
 
 interface ShipRayHit {
@@ -63,7 +89,12 @@ interface RockRayHit {
   readonly id: string;
   readonly t: number;
 }
-export type RayHit = ShipRayHit | RockRayHit;
+interface MissileRayHit {
+  readonly kind: "missile";
+  readonly missile: Missile;
+  readonly t: number;
+}
+export type RayHit = ShipRayHit | RockRayHit | MissileRayHit;
 
 /** Pose of a body: world position of its origin and angle. */
 function pose(world: World, id: string): { position: Vec2; angle: number } {
@@ -71,13 +102,29 @@ function pose(world: World, id: string): { position: Vec2; angle: number } {
   return { position: s.position, angle: s.angle };
 }
 
-/** Nearest ship part or asteroid hit by a world-space ray within maxDist. */
+/** Distance along a unit ray to a circle, or null. */
+function rayCircle(origin: Vec2, dir: Vec2, center: Vec2, radius: number, maxDist: number): number | null {
+  const oc = sub(origin, center);
+  const b = dot(oc, dir);
+  const c = lengthSq(oc) - radius * radius;
+  if (c <= 0) return 0;
+  const disc = b * b - c;
+  if (disc < 0) return null;
+  const t = -b - Math.sqrt(disc);
+  return t >= 0 && t <= maxDist ? t : null;
+}
+
+/**
+ * Nearest ship part, asteroid, debris or (when `missileTeam` is given) missile of another team hit by a
+ * world-space ray within maxDist.
+ */
 export function raycastWorld(
   world: World,
   origin: Vec2,
   dir: Vec2,
   maxDist: number,
   excludeShip?: string,
+  missileTeam?: number,
 ): RayHit | null {
   let best: RayHit | null = null;
   for (const ship of world.allShips()) {
@@ -114,10 +161,17 @@ export function raycastWorld(
       if (t !== null && (!best || t < best.t)) best = { kind: "debris", id: d.id, t };
     }
   }
+  if (missileTeam !== undefined) {
+    for (const m of world.combat.missiles) {
+      if (m.team === missileTeam || m.hp <= 0) continue;
+      const t = rayCircle(origin, dir, m.pos, MISSILE.radius, maxDist);
+      if (t !== null && (!best || t < best.t)) best = { kind: "missile", missile: m, t };
+    }
+  }
   return best;
 }
 
-function pushEvent(world: World, kind: CombatEvent["kind"], pos: Vec2, size: number): void {
+export function pushEvent(world: World, kind: CombatEvent["kind"], pos: Vec2, size: number): void {
   world.combat.events.push({ tick: world.tick, kind, pos, size });
 }
 
@@ -141,34 +195,119 @@ function worldPartCenter(world: World, ship: Ship, uid: string): Vec2 {
   return add(p.position, rotate(add(part.position, rotate(part.def.centroid, part.angle)), p.angle));
 }
 
-/** Target for AI-mode groups: the selected target, else the nearest enemy ship. */
-function aiTarget(world: World, ship: Ship): TargetInfo | null {
-  const me = world.physics.getWorldCenter(ship.id);
-  let chosen: Ship | null = null;
-  const sel = ship.weaponCommand.targetId;
-  if (sel && world.hasShip(sel)) chosen = world.getShip(sel);
-  else {
-    let best = Infinity;
-    for (const other of world.allShips()) {
-      if (other.team === ship.team || other.defeated) continue;
-      const d = length(sub(world.physics.getWorldCenter(other.id), me));
-      if (d < best) {
-        best = d;
-        chosen = other;
-      }
-    }
+/** Damage to a missile; it is destroyed at 0 HP. */
+function damageMissile(world: World, m: Missile, damage: number): void {
+  if (m.hp <= 0) return;
+  m.hp -= damage;
+  if (m.hp <= 0) {
+    world.combat.stats.missilesDown++;
+    pushEvent(world, "missile-down", m.pos, 1);
   }
-  if (!chosen) return null;
-  const s = world.physics.getBodyState(chosen.id);
-  return { id: chosen.id, position: world.physics.getWorldCenter(chosen.id), velocity: s.linearVelocity };
 }
 
-/** Step 9 (plan §13.3): weapons aim and fire; projectiles spawn, beams resolve immediately. */
+/**
+ * Blast at a world point (missile warheads, flak bursts; spec §8, §9.5): parts within `radius` take
+ * `damage` falling off linearly, after armor; every wreck between the blast and a part halves its share
+ * (COMBAT.wreckAbsorb). `hostileTo` limits it to ships and missiles of other teams (flak); missile warheads
+ * hurt everyone. Missiles inside a flak burst take the burst damage.
+ */
+export function blast(
+  world: World,
+  center: Vec2,
+  radius: number,
+  damage: number,
+  opts: { hostileTo?: number; missiles?: boolean } = {},
+): void {
+  for (const ship of world.allShips()) {
+    if (opts.hostileTo !== undefined && ship.team === opts.hostileTo) continue;
+    const p = pose(world, ship.id);
+    if (length(sub(p.position, center)) > ship.layout.boundingRadius + radius) continue;
+    const local = rotate(sub(center, p.position), -p.angle);
+    const destroyed = ship.applyBlast(local, radius, damage, undefined, (part, dist) =>
+      shelter(ship, local, part, dist),
+    );
+    for (const uid of destroyed) pushEvent(world, "destroyed", worldPartCenter(world, ship, uid), 2);
+  }
+  if (opts.missiles) {
+    for (const m of world.combat.missiles) {
+      if (opts.hostileTo !== undefined && m.team === opts.hostileTo) continue;
+      if (length(sub(m.pos, center)) <= radius) damageMissile(world, m, damage);
+    }
+  }
+}
+
+/** Share of a blast that reaches `part`: halved by every wreck on the straight line from the blast. */
+function shelter(ship: Ship, center: Vec2, part: PartInstance, dist: number): number {
+  if (dist < 1e-6) return 1;
+  const dir = normalize(sub(partCentroid(part), center));
+  let k = 1;
+  for (const h of ship.layout.raycastAll(center, dir, dist)) {
+    if (h.uid === part.uid || h.t >= dist - 1e-6) continue;
+    if (ship.part(h.uid).hp <= 0) k *= 1 - COMBAT.wreckAbsorb;
+  }
+  return k;
+}
+
+/** Everything that can be targeted this tick (spec §9.6): live ships, drones and missiles. */
+export function contactsOf(world: World): Contact[] {
+  const out: Contact[] = [];
+  for (const s of world.allShips()) {
+    if (s.defeated || s.inert) continue;
+    out.push({
+      id: s.id,
+      kind: s.drone ? "drone" : "ship",
+      team: s.team,
+      position: world.physics.getWorldCenter(s.id),
+      velocity: world.physics.getBodyState(s.id).linearVelocity,
+      targetId: null,
+      decoy: s.decoyStrength > 0,
+    });
+  }
+  for (const m of world.combat.missiles) {
+    if (m.hp <= 0) continue;
+    out.push({
+      id: m.id,
+      kind: "missile",
+      team: m.team,
+      position: m.pos,
+      velocity: m.vel,
+      targetId: m.target,
+      decoy: false,
+    });
+  }
+  return out;
+}
+
+/** Targeting for one ship's automatic weapons, built from this tick's contacts. */
+function targetingFor(world: World, ship: Ship, contacts: readonly Contact[]): WeaponTargeting {
+  const me: Defender = {
+    id: ship.id,
+    team: ship.team,
+    position: world.physics.getWorldCenter(ship.id),
+    velocity: world.physics.getBodyState(ship.id).linearVelocity,
+  };
+  let threats: Contact[] | null = null;
+  let ships: Contact[] | null = null;
+  const shipList = () => (ships ??= orderShipTargets(contacts, me, ship.weaponCommand.targetId));
+  return {
+    ship: (w, mount) => firstEngageable(w, mount, shipList()),
+    pd: (w, mount) => {
+      threats ??= rankThreats(contacts, me);
+      return (
+        firstEngageable(w, mount, threats) ??
+        (ship.pdEngageShips ? firstEngageable(w, mount, shipList()) : null)
+      );
+    },
+  };
+}
+
+/** Step 9 (plan §13.3): weapons aim and fire; projectiles and missiles spawn, beams resolve immediately. */
 export function fireWeapons(world: World, dt: number): void {
   world.combat.beams = [];
+  const contacts = contactsOf(world);
   for (const ship of world.allShips()) {
     if (ship.weapons.length === 0) continue;
-    const enabled = !(world.enforceDefeat && ship.defeated);
+    const enabled = !(world.enforceDefeat && ship.defeated) && !ship.inert;
     const p = pose(world, ship.id);
     const orders = updateWeapons(
       ship.weapons,
@@ -182,21 +321,40 @@ export function fireWeapons(world: World, dt: number): void {
       ship.weaponCommand,
       ship.groupModes,
       { position: p.position, angle: p.angle, velocityAt: (pt) => world.physics.velocityAt(ship.id, pt) },
-      ship.weapons.some((w) => (ship.groupModes.get(w.group) ?? "manual") === "ai")
-        ? aiTarget(world, ship)
-        : null,
+      targetingFor(world, ship, contacts),
       world.rng,
       dt,
       enabled,
     );
     for (const o of orders) resolveOrder(world, ship, o, dt);
+    if (ship.weaponCommand.launch) ship.weaponCommand = { ...ship.weaponCommand, launch: false };
   }
 }
 
 function resolveOrder(world: World, ship: Ship, o: FireOrder, dt: number): void {
   const def = o.weapon.def;
+  if (o.kind === "missile" && def.missile && o.targetId) {
+    if (!world.hasShip(o.targetId)) return;
+    spawnMissile(world, ship, def.missile, o.muzzle, o.dir, o.muzzleVelocity, o.targetId);
+    world.physics.applyImpulse(
+      ship.id,
+      scale(o.dir, -def.missile.mass * MISSILE.launchSpeed * COMBAT.momentumTransfer),
+      o.muzzle,
+    );
+    pushEvent(world, "launch", o.muzzle, 1);
+    return;
+  }
   if (o.kind === "projectile" && def.projectile) {
     const pr = def.projectile;
+    const burst =
+      pr.burstRadius && pr.burstDamage
+        ? {
+            proximity: pr.proximityFuse ?? 0,
+            radius: pr.burstRadius,
+            damage: pr.burstDamage,
+            time: o.fuseTime ?? null,
+          }
+        : undefined;
     world.combat.projectiles.push({
       id: world.combat.nextProjectileId++,
       owner: ship.id,
@@ -208,6 +366,7 @@ function resolveOrder(world: World, ship: Ship, o: FireOrder, dt: number): void 
       age: 0,
       lifetime: pr.lifetime,
       kind: def.ammoType ?? def.kind,
+      ...(burst ? { fuse: burst } : {}),
     });
     // Recoil.
     world.physics.applyImpulse(
@@ -220,22 +379,57 @@ function resolveOrder(world: World, ship: Ship, o: FireOrder, dt: number): void 
     return;
   }
   if (o.kind === "beam" && def.beam) {
-    const hit = raycastWorld(world, o.muzzle, o.dir, def.range, ship.id);
+    const hit = raycastWorld(world, o.muzzle, o.dir, def.range, ship.id, ship.team);
     const to = add(o.muzzle, scale(o.dir, hit ? hit.t : def.range));
     world.combat.beams.push({ owner: ship.id, from: o.muzzle, to, hit: !!hit });
-    if (hit?.kind === "ship") {
-      const dmg =
-        def.beam.dps *
-        dt *
-        beamFalloff(hit.t, def.beam.falloffStart, def.range) *
-        ship.powerFactorOf(o.weapon.uid);
-      damageShipAlongRay(world, hit, dmg, COMBAT.minDamage * dt);
-      if (world.tick % 6 === 0) pushEvent(world, "beam-hit", to, 1);
-    }
+    if (!hit) return;
+    const dmg =
+      def.beam.dps *
+      dt *
+      beamFalloff(hit.t, def.beam.falloffStart, def.range) *
+      ship.powerFactorOf(o.weapon.uid);
+    if (hit.kind === "ship") damageShipAlongRay(world, hit, dmg, COMBAT.minDamage * dt);
+    else if (hit.kind === "missile") damageMissile(world, hit.missile, dmg);
+    if (hit.kind !== "asteroid" && hit.kind !== "debris" && world.tick % 6 === 0)
+      pushEvent(world, "beam-hit", to, 1);
   }
 }
 
-/** Step 10: move projectiles (with gravity) and resolve swept hits. */
+/** Distance from point `c` to segment a→b and the parameter of the closest point. */
+function pointSegment(c: Vec2, a: Vec2, b: Vec2): { dist: number; s: number } {
+  const ab = sub(b, a);
+  const l2 = lengthSq(ab);
+  const s = l2 > 1e-12 ? Math.min(1, Math.max(0, dot(sub(c, a), ab) / l2)) : 0;
+  return { dist: length(sub(c, add(a, scale(ab, s)))), s };
+}
+
+/**
+ * Where along this tick's path a burst shell goes off: the closest approach to an enemy missile or drone
+ * within its proximity, else the moment its time fuse runs out. Null if it keeps flying.
+ */
+function burstPoint(world: World, pr: Projectile, from: Vec2, to: Vec2, dt: number): Vec2 | null {
+  const fuse = pr.fuse!;
+  let best: { s: number } | null = null;
+  for (const m of world.combat.missiles) {
+    if (m.team === pr.team || m.hp <= 0) continue;
+    const r = pointSegment(m.pos, from, to);
+    if (r.dist <= fuse.proximity && (!best || r.s < best.s)) best = { s: r.s };
+  }
+  for (const s of world.allShips()) {
+    if (s.team === pr.team || !s.drone || s.inert) continue;
+    const r = pointSegment(world.physics.getWorldCenter(s.id), from, to);
+    if (r.dist <= fuse.proximity + s.layout.boundingRadius * 0.5 && (!best || r.s < best.s))
+      best = { s: r.s };
+  }
+  if (best) return add(from, scale(sub(to, from), best.s));
+  if (fuse.time !== null && pr.age + dt >= fuse.time) {
+    const s = Math.min(1, Math.max(0, (fuse.time - pr.age) / dt));
+    return add(from, scale(sub(to, from), s));
+  }
+  return null;
+}
+
+/** Step 10: move projectiles (with gravity) and resolve swept hits, burst fuses and hits on missiles. */
 export function stepProjectiles(world: World, dt: number): void {
   const keep: Projectile[] = [];
   for (const pr of world.combat.projectiles) {
@@ -243,9 +437,18 @@ export function stepProjectiles(world: World, dt: number): void {
     pr.vel = add(pr.vel, scale(g, dt));
     const step = scale(pr.vel, dt);
     const dist = length(step);
+    const end = add(pr.pos, step);
+    if (pr.fuse) {
+      const at = burstPoint(world, pr, pr.pos, end, dt);
+      if (at) {
+        blast(world, at, pr.fuse.radius, pr.fuse.damage, { hostileTo: pr.team, missiles: true });
+        pushEvent(world, "burst", at, pr.fuse.radius);
+        continue;
+      }
+    }
     if (dist > 0) {
       const dir = scale(step, 1 / dist);
-      const hit = raycastWorld(world, pr.pos, dir, dist, pr.owner);
+      const hit = raycastWorld(world, pr.pos, dir, dist, pr.owner, pr.team);
       if (hit) {
         const at = add(pr.pos, scale(dir, hit.t));
         if (hit.kind === "ship") {
@@ -257,12 +460,15 @@ export function stepProjectiles(world: World, dt: number): void {
           );
           damageShipAlongRay(world, hit, pr.damage, COMBAT.minDamage);
           world.combat.stats.hits++;
+        } else if (hit.kind === "missile") {
+          damageMissile(world, hit.missile, pr.damage);
+          world.combat.stats.hits++;
         }
         pushEvent(world, "hit", at, Math.min(3, 0.5 + pr.damage / 150));
         continue;
       }
     }
-    pr.pos = add(pr.pos, step);
+    pr.pos = end;
     pr.age += dt;
     if (pr.age < pr.lifetime) keep.push(pr);
   }
@@ -309,7 +515,3 @@ export function pruneEvents(world: World): void {
     world.combat.events = world.combat.events.filter((e) => e.tick >= minTick);
   }
 }
-
-/** Sorted ids helper for snapshots. */
-export const byId = (a: { id: string }, b: { id: string }) => compareIds(a.id, b.id);
-export const angleOfVec = angleOf;

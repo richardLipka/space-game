@@ -487,3 +487,47 @@
   --glow-width: 8;
   --glow-alpha: 0.5;
 }
+
+/* ---- Missiles, PD, drones (M5) ---- */
+.missile {
+  --stroke: #5ff6ff;
+  --stroke-width: 1.4;
+  --fill: #5ff6ff;
+  --fill-alpha: 0.6;
+  --glow: #18c8ff;
+  --glow-width: 6;
+  --glow-alpha: 0.4;
+  --min-size: 4;
+}
+.missile.team-1 {
+  --stroke: #ff5fd2;
+  --fill: #ff5fd2;
+  --glow: #ff2fa8;
+}
+.fx-missile-exhaust {
+  --stroke: #ffb347;
+  --stroke-width: 1.5;
+  --glow: #ff6a00;
+  --glow-width: 6;
+  --glow-alpha: 0.45;
+  --scale: 1;
+}
+.fx-burst {
+  --stroke: #ffe066;
+  --stroke-width: 1.2;
+  --fill: #ffe066;
+  --fill-alpha: 0.12;
+  --min-size: 4;
+}
+.fx-launch {
+  --stroke: #c8f0ff;
+  --stroke-width: 1.5;
+  --min-size: 3;
+}
+.fx-missile-down {
+  --stroke: #ffffff;
+  --stroke-width: 1.5;
+  --fill: #ffb347;
+  --fill-alpha: 0.4;
+  --min-size: 4;
+}

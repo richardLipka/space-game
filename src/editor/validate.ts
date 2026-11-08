@@ -212,7 +212,8 @@ export function validateDesignLayout(
   );
   for (const p of design.parts) {
     const ammo = defs.get(p.uid)!.weapon?.ammoType;
-    if (ammo && !magazines.has(ammo)) {
+    // Drones fly with what their weapons hold (spec §9.7); no magazine needed.
+    if (ammo && !magazines.has(ammo) && !design.drone) {
       issues.push({
         severity: "warning",
         code: "no-ammo-source",

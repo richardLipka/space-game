@@ -542,8 +542,9 @@ interface MissileDef { mass: number; thrust: number; fuel: number /*s of burn*/;
 | 1–9 / Shift+1–9 | Select / add weapon group |
 | G | Cycle selected groups' mode (hold → manual → AI) |
 | M | Launch missile(s) at target |
-| H | Launch drones |
+| H | Launch drones (help is ? / F1) |
 | R | Extend / retract radiators |
+| O | PD also engages ships when no missiles or drones are in reach |
 | B | Eject mode: click a part of your ship to jettison it, with everything attached only through it (not the command module). B or Esc leaves |
 | Shift+B | Jettison all wrecked parts |
 | P | Power priority panel |
@@ -727,6 +728,14 @@ The `sim` module never imports `render`, `ui` or `editor`. Rendering reads a sim
 | Ejection | Any part except the command module can be jettisoned in flight, intact or wrecked. Everything that would no longer be structurally attached to the command module goes with it (wrecks still count as structure), and the whole cluster leaves as one inert debris body. In eject mode the hover highlight and the HUD show every part that will leave at 3 m/s (equal and opposite push on the ship), taking its fuel, ammo and heat share (its mass share of the base pool plus its own heat sink). Structure, networks and mass are recomputed. Debris blocks shots and can collide but takes no damage; at most 200 are kept. Ejection is a one-shot input in replays (`eject: [uids]`) |
 | Editor palette | Categories are collapsible (command and structure open by default, the choice is remembered per browser). A search box filters by name, id, category, weapon kind/mount or ammo type. Hovering a part shows its key numbers |
 | Connection graph | Editor overlay (G, or Overlays → Connection graph): a node per part, an edge per structural connection, and a coloured lane on each edge for every resource it carries (power, fuel, ammunition). Each consumer is drawn fed from its nearest source on its network (fewest connections, ties by uid); the sim itself still shares resources across the whole network. Links through non-conducting parts are structure only. Consumers that no source can reach are ringed and listed in the side panel |
+| Missile guidance | Proportional navigation in space: lateral acceleration N·Vc·(line-of-sight rate) across the line of sight (closing speed counted as at least 50 m/s), the rest of the thrust along it; the heading turns at most `turnRate`. Missiles coast without fuel and self-destruct 20 s after burnout. The fuse arms 0.4 s after launch, then fires at the closest approach of each tick's path to any enemy hull within `proximityFuse`; hitting an asteroid or debris detonates it. Rounds and beams hit missiles within 0.8 m |
+| Blasts | Missile warheads and flak bursts deal `damage × (1 − d/R)` after armor; each wreck on the line from the blast to a part halves that part's share. Shares are taken from the ship as it was when the blast began. Warheads hurt any ship (friendly fire); flak only hurts hostile ships and missiles |
+| Missile launch | M fires one missile from every ready launcher at the selected target. Launchers in a manual group also fire on the trigger, and in AI mode pick their own target. No target, no launch |
+| Threat ranking | PD and the shared targeting rank enemy missiles and drones by time to closest approach. Missiles homing on the ship, or anything passing within 150 m, rank ahead of the rest; decoys rank as if three times closer. AI-mode weapons take the selected target first, then the nearest enemy they can engage (range, arc, own-hull blocking) |
+| PD | Always automatic and keeps working in sections cut off from command. The "engage ships" toggle is per ship (O), not per turret. Flak shells burst near an enemy missile or drone, or at the predicted intercept time |
+| Decoys | A decoy emitter part (`decoy: {strength, lifetime}`) makes its ship a decoy. Each missile gets one roll per enemy decoy within 1200 m (pass with probability = strength) and then homes on the decoy. Decoys go inert after their lifetime |
+| Drones | Drone designs are ordinary designs flagged `drone`. Their role comes from their parts: decoy emitter → decoy, PD turret → PD escort, else attack. Hangars launch from their functional edge (H; one every `launchInterval`). Attack drones hold 300 m from the carrier's target (else the nearest enemy), PD drones escort at 35 m, decoys fly away at 60 m/s. A drone goes inert without fuel, beyond 5 km from its carrier, when the carrier is gone or defeated, or (decoys) after its lifetime. Drone weapons hold only their internal magazine. A carrier with drones in its hangars or in flight is not defeated. Returning to refuel (Should) is not done yet |
+| Help key | H launches drones (Section 10), so the flight help moved to ? / F1 |
 
 Still open (this doesn't block Milestone 1):
 - First-pass numbers for the part catalogue. These will be tuned with the balance harness.

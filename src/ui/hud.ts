@@ -31,9 +31,10 @@ function bar(frac: number, width = 16): string {
 const HELP = `W/S thrust   A/D strafe   Q/E rotate   F face cursor
 X speed kill   Shift+X flip & burn   Tab switch ship
 C camera   wheel zoom   middle-drag pan (free cam)
-+/- time scale   Space pause   T theme   V overlays   H help   Esc editor
++/- time scale   Space pause   T theme   V overlays   ? help   Esc editor
 P power priority   R radiators   N networks   hold K + click: destroy part (debug)
 LMB fire   1–9 weapon group (Shift adds)   G group mode   RMB target
+M launch missiles at target   H launch drones   O PD also fires at ships
 B eject mode (click a part to jettison)   Shift+B eject all wrecks`;
 
 /** " + N attached parts" when ejecting this part also takes parts held on only through it. */
@@ -180,6 +181,40 @@ export class Hud {
         `ammo   <span class="${cls}">${bar(frac, 10)}</span> <span data-testid="ammo-${type}">${stock}</span>/${cap} ${esc(type)}${cap === 0 ? ' <span class="alert">no magazine</span>' : ""}`,
       );
     }
+    // Missiles, PD and drones (spec §9.5–9.7).
+    const launchers = ship.weapons.filter((w) => w.def.kind === "missile" && w.part.hp > 0).length;
+    const mine = world.combat.missiles.filter((m) => m.owner === ship.id).length;
+    const incoming = world.combat.missiles.filter((m) => m.team !== ship.team && m.target === ship.id).length;
+    if (launchers || mine || incoming) {
+      const hint = launchers
+        ? info.targetId
+          ? '<span class="dim">M launch</span>'
+          : '<span class="dim">M launch (right-click a target first)</span>'
+        : "";
+      lines.push(
+        `missiles out <span data-testid="missiles-out">${mine}</span>  ${incoming ? `<span class="alert" data-testid="incoming">INCOMING ${incoming}</span>  ` : ""}${hint}`,
+      );
+    }
+    const pds = ship.weapons.filter((w) => w.def.kind === "pd");
+    if (pds.length) {
+      const alive = pds.filter((w) => w.part.hp > 0).length;
+      lines.push(
+        `PD     ${alive}/${pds.length} turrets, automatic  vs ships <span data-testid="pd-ships" class="${ship.pdEngageShips ? "warn" : "dim"}">${ship.pdEngageShips ? "on" : "off"}</span> <span class="dim">(O)</span>`,
+      );
+    }
+    const hangars = ship.parts.filter((p) => p.def.def.hangar);
+    const drones = world.allShips().filter((s) => s.drone?.mother === ship.id);
+    if (hangars.length || drones.length) {
+      const live = drones.filter((d) => !d.inert && !d.defeated);
+      const roles = ["attack", "pd", "decoy"]
+        .map((r) => [r, live.filter((d) => d.drone!.role === r).length] as const)
+        .filter(([, n]) => n > 0)
+        .map(([r, n]) => `${r} ${n}`);
+      const queued = [...ship.hangarPending.values()].reduce((a, b) => a + b, 0);
+      lines.push(
+        `drones stored <span data-testid="drones-stored">${ship.dronesStored}</span>  out <span data-testid="drones-out">${live.length}</span>${roles.length ? ` (${roles.join(", ")})` : ""}${drones.length > live.length ? `  <span class="dim">lost ${drones.length - live.length}</span>` : ""}${queued ? `  <span class="warn">launching ${queued}</span>` : ""}  <span class="dim">H launch</span>`,
+      );
+    }
     if (info.targetId && world.hasShip(info.targetId)) {
       const t = world.getShip(info.targetId);
       const d = length(sub(world.physics.getWorldCenter(t.id), world.physics.getWorldCenter(ship.id)));
@@ -215,7 +250,7 @@ export class Hud {
     lines.push(
       `<span class="dim">t ${world.time.toFixed(1)} s  tick <span data-testid="tick">${world.tick}</span>  ×${info.timeScale}${info.paused ? "  PAUSED" : ""}  cam ${info.cameraMode}  theme ${info.theme}  ${info.fps.toFixed(0)} fps</span>`,
     );
-    lines.push(info.showHelp ? `<span class="dim">${HELP}</span>` : `<span class="dim">H for help</span>`);
+    lines.push(info.showHelp ? `<span class="dim">${HELP}</span>` : `<span class="dim">? for help</span>`);
     this.el.innerHTML = lines.join("\n");
   }
 }

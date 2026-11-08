@@ -94,7 +94,7 @@ export function instantiateParts(
       hp: def.def.hp,
       fuel: (def.def.fuelTank?.capacity ?? 0) * fuelFraction,
       charge: (def.def.battery?.capacity ?? 0) * chargeFraction,
-      ammo: def.def.magazine?.capacity ?? def.def.weapon?.internalMagazine ?? 0,
+      ammo: def.def.magazine?.capacity ?? def.def.weapon?.internalMagazine ?? def.def.hangar?.capacity ?? 0,
     };
   });
 }

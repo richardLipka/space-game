@@ -43,6 +43,8 @@ export class FlightScreen {
   targetId: string | null = null;
   /** Test hook: hold the trigger regardless of the mouse. */
   debugTrigger = false;
+  /** M pressed: launch on the next tick (needs a target). */
+  private pendingLaunch = false;
   private readonly powerPanel: HTMLElement;
   private powerPanelKey = "";
   /** UI commands this screen does not handle itself (theme, exit). */
@@ -207,7 +209,9 @@ export class FlightScreen {
         aimPoint: mouseWorld,
         selected: new Set(this.selectedGroups),
         targetId: this.targetId,
+        launch: this.pendingLaunch,
       };
+      this.pendingLaunch = false;
       w.step();
     });
   }
@@ -284,6 +288,19 @@ export class FlightScreen {
           this.showNetworks = !this.showNetworks;
           scene.showNetworks = this.showNetworks;
           break;
+        case "launch-missiles": {
+          const ship = this.controlledShip;
+          if (ship) this.pendingLaunch = true;
+          break;
+        }
+        case "launch-drones":
+          this.controlledShip?.requestDroneLaunch();
+          break;
+        case "pd-ships": {
+          const ship = this.controlledShip;
+          if (ship) ship.pdEngageShips = !ship.pdEngageShips;
+          break;
+        }
         case "eject-wrecks": {
           const ship = this.controlledShip;
           if (ship) for (const p of ship.parts) if (p.hp <= 0) ship.requestEject(p.uid);

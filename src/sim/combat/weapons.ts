@@ -1,9 +1,9 @@
 import type { WeaponDef } from "../../data/schemas/part";
-import { type Vec2, add, angleOf, degToRad, fromAngle, rotate, sub, length } from "../core/vec2";
+import { type Vec2, add, angleOf, degToRad, fromAngle, rotate, sub } from "../core/vec2";
 import type { Rng } from "../core/rng";
 import { hpFactor, isIntact, type PartInstance } from "../ship/ship";
 import { COMBAT } from "./constants";
-import { intercept } from "./lead";
+import type { Engagement, Mount } from "./targeting";
 
 export type GroupMode = "hold" | "manual" | "ai";
 
@@ -36,8 +36,10 @@ export interface WeaponCommand {
   aimPoint: Vec2 | null;
   /** Selected weapon groups. */
   selected: ReadonlySet<number>;
-  /** Selected target ship id (RMB), used by AI-mode groups. */
+  /** Selected target ship id (RMB), used by AI-mode groups and missiles. */
   targetId: string | null;
+  /** One-shot (M): every ready missile launcher fires one missile at the selected target. */
+  launch?: boolean;
 }
 
 export const IDLE_WEAPONS: WeaponCommand = {
@@ -55,20 +57,28 @@ export interface ShooterPose {
   velocityAt(p: Vec2): Vec2;
 }
 
-export interface TargetInfo {
-  readonly id: string;
-  readonly position: Vec2;
-  readonly velocity: Vec2;
+/** Target choice for automatic weapons, supplied by the world from the shared targeting module. */
+export interface WeaponTargeting {
+  /** AI-mode groups and AI-mode missile launchers: the enemy ship to engage. */
+  ship(w: WeaponState, mount: Mount): Engagement | null;
+  /** PD turrets: the most urgent missile or drone (or a ship, when the PD may engage ships). */
+  pd(w: WeaponState, mount: Mount): Engagement | null;
 }
+
+export const NO_TARGETING: WeaponTargeting = { ship: () => null, pd: () => null };
 
 export interface FireOrder {
   readonly weapon: WeaponState;
-  readonly kind: "projectile" | "beam";
+  readonly kind: "projectile" | "beam" | "missile";
   /** World muzzle position and unit fire direction (spread applied). */
   readonly muzzle: Vec2;
   readonly dir: Vec2;
   /** Shooter velocity at the muzzle (inherited by projectiles). */
   readonly muzzleVelocity: Vec2;
+  /** Missiles: the ship to home on. */
+  readonly targetId?: string | null;
+  /** Burst shells (flak): seconds until the predicted intercept, when the shell bursts by itself. */
+  readonly fuseTime?: number;
 }
 
 /** Services the weapon update needs from the ship it belongs to. */
@@ -120,8 +130,11 @@ export function weaponPerformance(w: WeaponState): { interval: number; spread: n
 }
 
 /**
- * One tick of weapon logic (spec §9.1–9.3): aim, traverse, decide, fire.
- * Returns fire orders; projectiles and beams are resolved by the world.
+ * One tick of weapon logic (spec §9.1–9.6): aim, traverse, decide, fire.
+ * Manual groups follow the pilot; AI-mode groups and PD turrets pick targets through `targeting`;
+ * missile launchers fire on M, on the trigger (manual) or by themselves (AI mode).
+ * PD keeps working in sections cut off from the command module (spec §7.1).
+ * Returns fire orders; projectiles, beams and missiles are resolved by the world.
  */
 export function updateWeapons(
   weapons: readonly WeaponState[],
@@ -129,7 +142,7 @@ export function updateWeapons(
   cmd: WeaponCommand,
   modes: ReadonlyMap<number, GroupMode>,
   pose: ShooterPose,
-  target: TargetInfo | null,
+  targeting: WeaponTargeting,
   rng: Rng,
   dt: number,
   enabled: boolean,
@@ -138,8 +151,8 @@ export function updateWeapons(
   for (const w of weapons) {
     w.cooldown = Math.max(0, w.cooldown - dt);
     const def = w.def;
-    const ok =
-      enabled && isIntact(w.part) && host.isCommanded(w.uid) && def.kind !== "pd" && def.kind !== "missile";
+    const isPd = def.kind === "pd";
+    const ok = enabled && isIntact(w.part) && (isPd || host.isCommanded(w.uid));
     if (!ok) {
       if (w.beamActive) host.setBeamActive(w.uid, false);
       w.beamActive = false;
@@ -147,26 +160,52 @@ export function updateWeapons(
     }
     const mode = modes.get(w.group) ?? "manual";
     const { muzzle, mountAngle } = mountOf(w, pose);
+    const mount: Mount = { muzzle, mountAngle, muzzleVelocity: pose.velocityAt(muzzle) };
+
+    if (def.kind === "missile") {
+      // Launchers do not aim: missiles steer themselves (spec §9.5).
+      let targetId: string | null = null;
+      if (cmd.launch || (mode === "manual" && cmd.selected.has(w.group) && cmd.trigger))
+        targetId = cmd.targetId;
+      else if (mode === "ai") targetId = targeting.ship(w, mount)?.id ?? null;
+      w.aimError = 0;
+      if (!targetId || w.cooldown > 1e-9) continue;
+      if (def.ammoType && host.drawRounds(w.uid, 1) < 1) continue;
+      const perf = weaponPerformance(w);
+      w.cooldown += perf.interval;
+      if (def.heatPerShot) host.addHeat(def.heatPerShot);
+      const angle = mountAngle + (perf.spread > 0 ? rng.normal(0, perf.spread) : 0);
+      orders.push({
+        weapon: w,
+        kind: "missile",
+        muzzle,
+        dir: fromAngle(angle),
+        muzzleVelocity: mount.muzzleVelocity,
+        targetId,
+      });
+      continue;
+    }
 
     // What to aim at and whether the trigger is pulled.
     let aim: Vec2 | null = null;
     let wantsFire = false;
-    if (mode === "manual" && cmd.selected.has(w.group)) {
+    let fuseTime: number | undefined;
+    if (isPd) {
+      const e = targeting.pd(w, mount);
+      if (e) {
+        aim = e.aimPoint;
+        wantsFire = true;
+        fuseTime = e.t;
+      }
+    } else if (mode === "manual" && cmd.selected.has(w.group)) {
       aim = cmd.aimPoint;
       wantsFire = cmd.trigger;
-    } else if (mode === "ai" && target) {
-      const dist = length(sub(target.position, muzzle));
-      if (def.kind === "projectile" && def.projectile) {
-        const sol = intercept(
-          muzzle,
-          pose.velocityAt(muzzle),
-          target.position,
-          target.velocity,
-          def.projectile.speed,
-        );
-        aim = sol?.aimPoint ?? target.position;
-      } else aim = target.position;
-      wantsFire = dist <= def.range;
+    } else if (mode === "ai") {
+      const e = targeting.ship(w, mount);
+      if (e) {
+        aim = e.aimPoint;
+        wantsFire = true;
+      }
     }
 
     let fireAngle = mountAngle + w.turret;
@@ -221,7 +260,8 @@ export function updateWeapons(
       kind: "projectile",
       muzzle,
       dir: fromAngle(angle),
-      muzzleVelocity: pose.velocityAt(muzzle),
+      muzzleVelocity: mount.muzzleVelocity,
+      ...(fuseTime !== undefined && def.projectile?.burstRadius ? { fuseTime } : {}),
     });
   }
   return orders;

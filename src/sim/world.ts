@@ -24,6 +24,8 @@ import {
   pruneEvents,
   stepProjectiles,
 } from "./combat/combat-world";
+import { stepMissiles } from "./combat/missiles";
+import { controlDrones, launchDrones, updateDroneLinks } from "./drones/drones";
 
 export interface WorldConfig {
   readonly seed: number;
@@ -95,6 +97,9 @@ export class World {
   /** Asteroid geometry (body-local outlines) for rendering and later hit tests. */
   readonly asteroids: { readonly id: string; readonly outline: readonly Vec2[] }[] = [];
   private readonly ships = new Map<string, Ship>();
+  private readonly catalogues = new Map<string, PartCatalogue>();
+  /** Designs hangars can launch (drone types, spec §9.7), by design id. */
+  readonly designs = new Map<string, ShipDesign>();
   /** Jettisoned parts, oldest first. */
   debris: Debris[] = [];
 
@@ -115,8 +120,21 @@ export class World {
     return this.tick * SIM_DT;
   }
 
+  /** Makes a design available to hangars (drone types). */
+  registerDesign(design: ShipDesign): void {
+    this.designs.set(design.id, design);
+  }
+
+  /** Part catalogue a ship was built from (drones launched from it use the same one). */
+  catalogueOf(shipId: string): PartCatalogue {
+    const c = this.catalogues.get(shipId);
+    if (!c) throw new Error(`Unknown ship ${shipId}`);
+    return c;
+  }
+
   addShip(design: ShipDesign, catalogue: PartCatalogue, options: SpawnOptions = {}): Ship {
     const id = this.ids.next("ship");
+    this.catalogues.set(id, catalogue);
     const ship = new Ship(id, design, instantiateParts(design, catalogue, options), options.team ?? 0);
     this.physics.createBody({
       id,
@@ -131,6 +149,7 @@ export class World {
     }
     this.physics.setMassProps(id, ship.massProps);
     this.ships.set(id, ship);
+    this.sortedShips = null;
     return ship;
   }
 
@@ -147,9 +166,11 @@ export class World {
     return s;
   }
 
-  /** Ships sorted by id (deterministic iteration). */
-  allShips(): Ship[] {
-    return [...this.ships.values()].sort((a, b) => compareIds(a.id, b.id));
+  private sortedShips: Ship[] | null = null;
+
+  /** Ships sorted by id (deterministic iteration). Cached until a ship is added; callers must not mutate it. */
+  allShips(): readonly Ship[] {
+    return (this.sortedShips ??= [...this.ships.values()].sort((a, b) => compareIds(a.id, b.id)));
   }
 
   setIntent(shipId: string, intent: ControlIntent): void {
@@ -215,6 +236,10 @@ export class World {
       ship.pendingEject = [];
       for (const uid of queued) this.ejectPart(ship.id, uid);
     }
+    // 0b–0d: drones (spec §9.7): launches, link checks, drone AI.
+    launchDrones(this, dt);
+    updateDroneLinks(this, dt);
+    controlDrones(this);
     // 1–6: control, fuel, apply ship forces (plan §13.3).
     // 2–3: networks and power.
     for (const ship of this.allShips()) ship.preStep(dt);
@@ -225,7 +250,7 @@ export class World {
         angularVelocity: s.angularVelocity,
         velocity: s.linearVelocity,
         dt,
-        disabled: this.enforceDefeat && ship.defeated,
+        disabled: (this.enforceDefeat && ship.defeated) || ship.inert,
       });
       const f = rotate({ x: w.fx, y: w.fy }, s.angle);
       if (f.x !== 0 || f.y !== 0) this.physics.applyForceToCenter(ship.id, f);
@@ -249,6 +274,7 @@ export class World {
     // 8: collision damage; 10: projectiles.
     applyContactDamage(this, this.physics.takeContactImpulses());
     stepProjectiles(this, dt);
+    stepMissiles(this, dt);
     processExplosions(this);
     // 11–12: heat, overheat damage, ammo refill.
     for (const ship of this.allShips()) ship.postStep(dt);
@@ -282,6 +308,15 @@ export class World {
         pos: p.pos,
         vel: p.vel,
         age: p.age,
+      })),
+      missiles: this.combat.missiles.map((m) => ({
+        id: m.id,
+        pos: m.pos,
+        vel: m.vel,
+        heading: m.heading,
+        fuel: m.fuel,
+        hp: m.hp,
+        target: m.target,
       })),
     };
   }

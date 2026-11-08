@@ -282,11 +282,16 @@ export class LayoutIndex {
     return hits.sort((x, y) => x.t - y.t || (x.uid < y.uid ? -1 : 1));
   }
 
-  /** Radius of a circle around the ship origin that contains every part. */
+  private radiusCache: number | null = null;
+
+  /** Radius of a circle around the ship origin that contains every part (cached: layouts never change). */
   get boundingRadius(): number {
-    let r = 0;
-    for (const o of this.outlines.values()) for (const v of o) r = Math.max(r, Math.hypot(v.x, v.y));
-    return r;
+    if (this.radiusCache === null) {
+      let r = 0;
+      for (const o of this.outlines.values()) for (const v of o) r = Math.max(r, Math.hypot(v.x, v.y));
+      this.radiusCache = r;
+    }
+    return this.radiusCache;
   }
 }
 

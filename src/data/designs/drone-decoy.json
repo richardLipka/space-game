@@ -1,0 +1,49 @@
+{
+  "formatVersion": 1,
+  "id": "drone-decoy",
+  "name": "Ghost (decoy drone)",
+  "createdAt": "2026-11-08T00:00:00Z",
+  "modifiedAt": "2026-11-08T00:00:00Z",
+  "drone": true,
+  "parts": [
+    {
+      "uid": "core",
+      "partId": "core:drone.core.xs",
+      "x": 0,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "eng",
+      "partId": "core:engine.drone.xs",
+      "x": -0.75,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "emitter",
+      "partId": "core:decoy.emitter.xs",
+      "x": 0.75,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "tank-l",
+      "partId": "core:tank.fuel.xs",
+      "x": 0,
+      "y": 0.75,
+      "angle": 0
+    },
+    {
+      "uid": "tank-r",
+      "partId": "core:tank.fuel.xs",
+      "x": 0,
+      "y": -0.75,
+      "angle": 0
+    }
+  ],
+  "weaponGroupModes": {
+    "1": "ai"
+  },
+  "powerPriority": ["gyro", "propulsion", "pointDefense", "weapons", "hangar"]
+}

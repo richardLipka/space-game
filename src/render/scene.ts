@@ -161,6 +161,38 @@ export class Scene {
       for (const t of list) g.moveTo(t.tx, t.ty).lineTo(t.x, t.y);
       strokeStyled(g, this.theme.resolve(`fx-projectile kind-${kind}`), z);
     }
+    // Missiles (spec §9.5): an arrowhead along the heading, with an exhaust trail while burning.
+    for (const m of world.combat.missiles) {
+      const back = (1 - alpha) * dt;
+      const x = m.pos.x - m.vel.x * back;
+      const y = m.pos.y - m.vel.y * back;
+      const body = this.theme.resolve(`missile team-${m.team}`);
+      const size = Math.max(body.minSize / z, 1.6);
+      const hx = Math.cos(m.heading);
+      const hy = Math.sin(m.heading);
+      if (m.fuel > 0) {
+        const ex = this.theme.resolve("fx-missile-exhaust");
+        const len = size * 2.5 * ex.scale;
+        g.moveTo(x - hx * size * 0.6, y - hy * size * 0.6).lineTo(
+          x - hx * (size * 0.6 + len),
+          y - hy * (size * 0.6 + len),
+        );
+        strokeStyled(g, ex, z);
+      }
+      g.poly(
+        [
+          x + hx * size,
+          y + hy * size,
+          x - hx * size * 0.6 - hy * size * 0.5,
+          y - hy * size * 0.6 + hx * size * 0.5,
+          x - hx * size * 0.6 + hy * size * 0.5,
+          y - hy * size * 0.6 - hx * size * 0.5,
+        ],
+        true,
+      );
+      if (body.fillAlpha > 0) g.fill({ color: body.fill, alpha: body.fillAlpha });
+      strokeStyled(g, body, z);
+    }
     // Beams fired this tick.
     if (world.combat.beams.length) {
       for (const b of world.combat.beams) g.moveTo(b.from.x, b.from.y).lineTo(b.to.x, b.to.y);
@@ -366,12 +398,13 @@ export class Scene {
     v.root.visible = true;
 
     const zoomKey = Math.round(Math.log2(z) * 2);
-    const stateKey = `${zoomKey}|${ship.defeated}|${ship.parts.map((p) => (p.hp <= 0 ? "w" : p.hp < p.def.def.hp ? "d" : "o")).join("")}`;
+    const dead = ship.defeated || ship.inert;
+    const stateKey = `${zoomKey}|${dead}|${ship.parts.map((p) => (p.hp <= 0 ? "w" : p.hp < p.def.def.hp ? "d" : "o")).join("")}`;
     if (v.themeVersion !== this.theme.version || v.stateKey !== stateKey) {
       v.hull.clear();
       const zq = Math.pow(2, zoomKey / 2);
       for (const p of ship.parts) {
-        const state = p.hp <= 0 ? "wreck" : p.hp < p.def.def.hp || ship.defeated ? "damaged" : "ok";
+        const state = p.hp <= 0 ? "wreck" : p.hp < p.def.def.hp || dead ? "damaged" : "ok";
         const s = this.theme.resolve(`part cat-${p.def.def.category} team-${ship.team} state-${state}`);
         polyStyled(
           v.hull,

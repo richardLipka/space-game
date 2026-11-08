@@ -4,6 +4,11 @@ import catalogueJson from "./data/core/catalogue.json";
 import fighterJson from "./data/designs/demo-fighter.json";
 import haulerJson from "./data/designs/demo-hauler.json";
 import gunboatJson from "./data/designs/demo-gunboat.json";
+import frigateJson from "./data/designs/demo-frigate.json";
+import picketJson from "./data/designs/demo-picket.json";
+import droneAttackJson from "./data/designs/drone-attack.json";
+import dronePdJson from "./data/designs/drone-pd.json";
+import droneDecoyJson from "./data/designs/drone-decoy.json";
 import sandboxJson from "./data/scenarios/m1-sandbox.json";
 import { makeCruiserDesign } from "./data/designs/generate";
 import { validateCatalogue, validateDesign, validateScenario, type ValidationResult } from "./data/validate";
@@ -26,7 +31,7 @@ function must<T>(r: ValidationResult<T>, what: string): T {
 }
 
 const LAST_DESIGN_KEY = "space-game.lastDesignId";
-const SEEDED_KEY = "space-game.seeded.v2";
+const SEEDED_KEY = "space-game.seeded.v3";
 const safeStorage = {
   get(k: string): string | null {
     try {
@@ -61,6 +66,13 @@ async function main(): Promise<void> {
   const fighter = must(validateDesign(fighterJson), "fighter");
   const hauler = must(validateDesign(haulerJson), "hauler");
   const gunboat = must(validateDesign(gunboatJson), "gunboat");
+  const frigate = must(validateDesign(frigateJson), "frigate");
+  const picket = must(validateDesign(picketJson), "picket");
+  /** Drone types the core hangars launch (spec §9.7); library copies with the same id override them. */
+  const coreDrones = [droneAttackJson, dronePdJson, droneDecoyJson].map((j) =>
+    must(validateDesign(j), "drone"),
+  );
+  const droneDesigns = new Map(coreDrones.map((d) => [d.id, d]));
 
   let library: Library;
   try {
@@ -69,7 +81,7 @@ async function main(): Promise<void> {
     library = new MemoryLibrary();
   }
   if (!safeStorage.get(SEEDED_KEY)) {
-    for (const d of [fighter, hauler, gunboat])
+    for (const d of [fighter, hauler, gunboat, frigate, picket, ...coreDrones])
       if (!(await library.getDesign(d.id))) await library.putDesign(d);
     safeStorage.set(SEEDED_KEY, "1");
   }
@@ -78,6 +90,7 @@ async function main(): Promise<void> {
   let catalogue = core;
   const refreshCatalogue = async () => {
     userParts = (await library.listParts()).map((p) => p.def);
+    for (const d of await library.listDesigns()) if (d.drone) droneDesigns.set(d.id, d);
     catalogue = new PartCatalogue(core.version, [...core.all().map((p) => p.def), ...userParts]);
   };
   await refreshCatalogue();
@@ -115,6 +128,7 @@ async function main(): Promise<void> {
 
   const startFlight = (designs: ShipDesign[], title: string, dummies: ShipDesign[]) => {
     const world = createWorldFromScenario(sandbox);
+    for (const d of droneDesigns.values()) world.registerDesign(d);
     const ships = designs.map((d, i) => {
       const sp = sandbox.playerSpawns[i] ?? { position: [0, i * 50], angle: 0 };
       return world.addShip(d, catalogue, {
@@ -140,9 +154,13 @@ async function main(): Promise<void> {
     },
     newId: () => `ship-${randomId()}`,
     now: () => new Date().toISOString(),
-    testFlight: (d) => startFlight([d], `Test flight: ${d.name}`, [hauler, hauler]),
+    testFlight: (d) => startFlight([d], `Test flight: ${d.name}`, [hauler, hauler, picket]),
     openSandbox: () =>
-      startFlight([gunboat, fighter, makeCruiserDesign()], "Flight sandbox", [hauler, hauler]),
+      startFlight([gunboat, fighter, frigate, makeCruiserDesign()], "Flight sandbox", [
+        hauler,
+        hauler,
+        picket,
+      ]),
     cycleTheme,
     toast,
   };

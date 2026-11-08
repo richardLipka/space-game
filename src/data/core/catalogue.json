@@ -1,5 +1,5 @@
 {
-  "catalogueVersion": "v0-3",
+  "catalogueVersion": "v0-4",
   "parts": [
     {
       "id": "core:hull.square.s",
@@ -878,6 +878,197 @@
           "burstRadius": 25,
           "burstDamage": 18
         }
+      }
+    },
+    {
+      "id": "core:drone.core.xs",
+      "rev": 1,
+      "source": "core",
+      "name": "Drone core",
+      "category": "command",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 60,
+      "hp": 60,
+      "cost": 8,
+      "command": {
+        "gyroTorque": 600,
+        "powerDraw": 500
+      },
+      "reactor": {
+        "maxOutput": 4000,
+        "heatPerWatt": 0.3
+      }
+    },
+    {
+      "id": "core:engine.drone.xs",
+      "rev": 1,
+      "source": "core",
+      "name": "Drone engine",
+      "category": "propulsion",
+      "outline": [
+        [-0.25, -0.25],
+        [0.25, -0.25],
+        [0.25, 0.25],
+        [-0.25, 0.25]
+      ],
+      "edges": ["snap", "snap", "snap", "function"],
+      "mass": 20,
+      "hp": 30,
+      "cost": 4,
+      "engine": {
+        "thrust": 2500,
+        "isp": 260,
+        "gimbalMax": 10,
+        "nozzleEdge": 3,
+        "powerDraw": 0,
+        "heatAtMax": 4000
+      }
+    },
+    {
+      "id": "core:tank.fuel.xs",
+      "rev": 1,
+      "source": "core",
+      "name": "Fuel cell XS",
+      "category": "storage",
+      "outline": [
+        [-0.25, -0.25],
+        [0.25, -0.25],
+        [0.25, 0.25],
+        [-0.25, 0.25]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 5,
+      "hp": 20,
+      "cost": 1,
+      "fuelTank": {
+        "capacity": 25
+      }
+    },
+    {
+      "id": "core:weapon.gun.drone.xs",
+      "rev": 1,
+      "source": "core",
+      "name": "Drone gun",
+      "category": "weapon",
+      "outline": [
+        [-0.5, -0.25],
+        [0.5, -0.25],
+        [0.5, 0.25],
+        [-0.5, 0.25]
+      ],
+      "edges": ["snap", "function", "snap", "snap"],
+      "mass": 40,
+      "hp": 40,
+      "cost": 6,
+      "weapon": {
+        "kind": "projectile",
+        "mount": "fixed",
+        "muzzle": [0.5, 0],
+        "ammoType": "autocannon-30",
+        "internalMagazine": 80,
+        "fireInterval": 0.15,
+        "heatPerShot": 2000,
+        "range": 900,
+        "spread": 0.6,
+        "projectile": {
+          "speed": 1300,
+          "mass": 0.3,
+          "damage": 12,
+          "lifetime": 0.9
+        }
+      }
+    },
+    {
+      "id": "core:decoy.emitter.xs",
+      "rev": 1,
+      "source": "core",
+      "name": "Decoy emitter",
+      "category": "weapon",
+      "outline": [
+        [-0.25, -0.25],
+        [0.25, -0.25],
+        [0.25, 0.25],
+        [-0.25, 0.25]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 10,
+      "hp": 20,
+      "cost": 3,
+      "decoy": {
+        "strength": 0.8,
+        "lifetime": 20
+      }
+    },
+    {
+      "id": "core:hangar.attack.m",
+      "rev": 1,
+      "source": "core",
+      "name": "Attack drone hangar",
+      "category": "hangar",
+      "outline": [
+        [-1.0, -0.75],
+        [1.0, -0.75],
+        [1.0, 0.75],
+        [-1.0, 0.75]
+      ],
+      "edges": ["snap", "function", "snap", "snap"],
+      "mass": 300,
+      "hp": 200,
+      "cost": 30,
+      "hangar": {
+        "droneType": "drone-attack",
+        "capacity": 4,
+        "launchInterval": 1
+      }
+    },
+    {
+      "id": "core:hangar.pd.m",
+      "rev": 1,
+      "source": "core",
+      "name": "PD drone hangar",
+      "category": "hangar",
+      "outline": [
+        [-1.0, -0.75],
+        [1.0, -0.75],
+        [1.0, 0.75],
+        [-1.0, 0.75]
+      ],
+      "edges": ["snap", "function", "snap", "snap"],
+      "mass": 300,
+      "hp": 200,
+      "cost": 30,
+      "hangar": {
+        "droneType": "drone-pd",
+        "capacity": 2,
+        "launchInterval": 1.5
+      }
+    },
+    {
+      "id": "core:hangar.decoy.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Decoy launcher",
+      "category": "hangar",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "function", "snap", "snap"],
+      "mass": 120,
+      "hp": 100,
+      "cost": 12,
+      "hangar": {
+        "droneType": "drone-decoy",
+        "capacity": 4,
+        "launchInterval": 0.5
       }
     }
   ]

@@ -181,3 +181,68 @@ export function pointInPolygon(pt: Vec2, poly: readonly Vec2[]): boolean {
   }
   return inside;
 }
+
+/** Closest points of segments p1→q1 and p2→q2: distance and parameters s, t in [0, 1] along each. */
+export function segmentSegmentClosest(
+  p1: Vec2,
+  q1: Vec2,
+  p2: Vec2,
+  q2: Vec2,
+): { dist: number; s: number; t: number } {
+  const d1 = { x: q1.x - p1.x, y: q1.y - p1.y };
+  const d2 = { x: q2.x - p2.x, y: q2.y - p2.y };
+  const r = { x: p1.x - p2.x, y: p1.y - p2.y };
+  const a = d1.x * d1.x + d1.y * d1.y;
+  const e = d2.x * d2.x + d2.y * d2.y;
+  const f = d2.x * r.x + d2.y * r.y;
+  const clamp = (v: number) => Math.min(1, Math.max(0, v));
+  let s: number;
+  let t: number;
+  if (a <= 1e-12 && e <= 1e-12) {
+    s = 0;
+    t = 0;
+  } else if (a <= 1e-12) {
+    s = 0;
+    t = clamp(f / e);
+  } else {
+    const c = d1.x * r.x + d1.y * r.y;
+    if (e <= 1e-12) {
+      t = 0;
+      s = clamp(-c / a);
+    } else {
+      const b = d1.x * d2.x + d1.y * d2.y;
+      const denom = a * e - b * b;
+      s = denom > 1e-12 ? clamp((b * f - c * e) / denom) : 0;
+      t = (b * s + f) / e;
+      if (t < 0) {
+        t = 0;
+        s = clamp(-c / a);
+      } else if (t > 1) {
+        t = 1;
+        s = clamp((b - c) / a);
+      }
+    }
+  }
+  const dx = p1.x + d1.x * s - (p2.x + d2.x * t);
+  const dy = p1.y + d1.y * s - (p2.y + d2.y * t);
+  return { dist: Math.hypot(dx, dy), s, t };
+}
+
+/**
+ * Distance from segment p→q to a polygon (0 when the segment touches or enters it) and the parameter s
+ * in [0, 1] of the closest point along the segment (the entry point when it enters).
+ */
+export function segmentPolygonDistance(p: Vec2, q: Vec2, poly: readonly Vec2[]): { dist: number; s: number } {
+  if (pointInPolygon(p, poly)) return { dist: 0, s: 0 };
+  const len = Math.hypot(q.x - p.x, q.y - p.y);
+  if (len > 1e-12) {
+    const hit = rayPolygon(p, { x: (q.x - p.x) / len, y: (q.y - p.y) / len }, poly, len);
+    if (hit !== null) return { dist: 0, s: hit / len };
+  }
+  let best = { dist: Infinity, s: 0 };
+  for (let i = 0; i < poly.length; i++) {
+    const r = segmentSegmentClosest(p, q, poly[i]!, poly[(i + 1) % poly.length]!);
+    if (r.dist < best.dist) best = { dist: r.dist, s: r.s };
+  }
+  return best;
+}

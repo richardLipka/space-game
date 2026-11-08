@@ -65,4 +65,19 @@ export const goldenCases: Record<string, () => string> = {
     new InputPlayer(inR.value).runWith(w, 3600);
     return w.hash();
   },
+  /** Plan test 5.19: missile duel with PD on both sides (core catalogue), recorded launches. */
+  "m5-missile-duel-1800": () => {
+    const w = new World({ seed: 1, enforceDefeat: true });
+    const catR = validateCatalogue(
+      JSON.parse(readFileSync(new URL("../../src/data/core/catalogue.json", import.meta.url), "utf8")),
+    );
+    const duelist = validateDesign(fixture("designs/missile-duelist.json"));
+    const inR = validateInputs(fixture("inputs/m5-missile-duel.json"));
+    if (!catR.ok || !duelist.ok || !inR.ok) throw new Error("invalid fixtures");
+    const cat = PartCatalogue.fromJson(catR.value);
+    w.addShip(duelist.value, cat);
+    w.addShip(duelist.value, cat, { position: vec2(2500, 300), angle: Math.PI, team: 1 });
+    new InputPlayer(inR.value).runWith(w, 1800);
+    return w.hash();
+  },
 };

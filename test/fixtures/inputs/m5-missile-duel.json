@@ -1,0 +1,93 @@
+{
+  "formatVersion": 1,
+  "frames": [
+    {
+      "tick": 0,
+      "ship": "ship-000001",
+      "intent": {
+        "thrust": [0, 0],
+        "rotate": 0,
+        "target": "ship-000002",
+        "launch": true
+      }
+    },
+    {
+      "tick": 0,
+      "ship": "ship-000002",
+      "intent": {
+        "thrust": [0, 0],
+        "rotate": 0,
+        "target": "ship-000001",
+        "launch": true
+      }
+    },
+    {
+      "tick": 90,
+      "ship": "ship-000001",
+      "intent": {
+        "thrust": [0, 0],
+        "rotate": 0,
+        "target": "ship-000002",
+        "launch": true
+      }
+    },
+    {
+      "tick": 90,
+      "ship": "ship-000002",
+      "intent": {
+        "thrust": [0, 0],
+        "rotate": 0,
+        "target": "ship-000001",
+        "launch": true
+      }
+    },
+    {
+      "tick": 180,
+      "ship": "ship-000001",
+      "intent": {
+        "thrust": [0, 0],
+        "rotate": 0,
+        "target": "ship-000002",
+        "launch": true
+      }
+    },
+    {
+      "tick": 180,
+      "ship": "ship-000002",
+      "intent": {
+        "thrust": [0, 0],
+        "rotate": 0,
+        "target": "ship-000001",
+        "launch": true
+      }
+    },
+    {
+      "tick": 300,
+      "ship": "ship-000001",
+      "intent": {
+        "thrust": [0.2, 0],
+        "rotate": 0.1
+      }
+    },
+    {
+      "tick": 600,
+      "ship": "ship-000001",
+      "intent": {
+        "thrust": [0, 0],
+        "rotate": 0,
+        "target": "ship-000002",
+        "launch": true
+      }
+    },
+    {
+      "tick": 600,
+      "ship": "ship-000002",
+      "intent": {
+        "thrust": [0, 0],
+        "rotate": 0,
+        "target": "ship-000001",
+        "launch": true
+      }
+    }
+  ]
+}

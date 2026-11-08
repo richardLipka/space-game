@@ -72,6 +72,8 @@ export function partSemanticErrors(p: PartDef): string[] {
   }
   if (p.weapon?.mount === "turret" && p.weapon.traverseRate === undefined)
     errs.push(`${p.id}: turret weapons need a traverseRate (deg/s)`);
+  if (p.hangar && !p.edges.includes("function"))
+    errs.push(`${p.id}: a hangar needs a "function" edge (its launch bay)`);
   if (p.engine && p.edges[p.engine.nozzleEdge] !== "function") {
     errs.push(`${p.id}: engine.nozzleEdge ${p.engine.nozzleEdge} must reference a "function" edge`);
   }
