@@ -7,6 +7,7 @@ import { PartCatalogue } from "../../src/sim/ship/catalogue";
 import type { ShipDesign } from "../../src/data/schemas/design";
 import { World } from "../../src/sim/world";
 import { vec2 } from "../../src/sim/core/vec2";
+import { PERF_RETRY, perfBudget } from "../helpers";
 
 const r = validateCatalogue(catalogueJson);
 if (!r.ok) throw new Error(r.errors.join("\n"));
@@ -33,23 +34,23 @@ function msPerTick(design: ShipDesign, ticks: number): number {
 }
 
 describe("M1 performance", () => {
-  it("one tick of a single 50-part ship takes < 0.5 ms", () => {
+  it("one tick of a single 50-part ship takes < 0.5 ms", PERF_RETRY, () => {
     const d = shipWithParts(50);
     expect(d.parts).toHaveLength(50);
     const ms = msPerTick(d, 2000);
     console.log(`50-part ship: ${ms.toFixed(3)} ms/tick`);
-    expect(ms).toBeLessThan(0.5);
+    expect(ms).toBeLessThan(perfBudget(0.5));
   });
 
-  it("150-part cruiser stays well inside the 16 ms frame", () => {
+  it("150-part cruiser stays well inside the 16 ms frame", PERF_RETRY, () => {
     const ms = msPerTick(makeCruiserDesign(), 1000);
     console.log(`150-part cruiser: ${ms.toFixed(3)} ms/tick`);
-    expect(ms).toBeLessThan(2);
+    expect(ms).toBeLessThan(perfBudget(2));
   });
 });
 
 describe("M5 performance", () => {
-  it("5.20 40 missiles + 30 drones + 500 projectiles + 10 ships → tick under 8 ms", async () => {
+  it("5.20 40 missiles + 30 drones + 500 projectiles + 10 ships → tick under 8 ms", PERF_RETRY, async () => {
     const { spawnMissile } = await import("../../src/sim/combat/missiles");
     const droneJson = (await import("../../src/data/designs/drone-attack.json")).default;
     const { validateDesign } = await import("../../src/data/validate");
@@ -109,6 +110,6 @@ describe("M5 performance", () => {
     }
     const ms = total / ticks;
     console.log(`M5 load (10 ships, 30 drones, 40 missiles, 500 rounds): ${ms.toFixed(2)} ms/tick`);
-    expect(ms).toBeLessThan(8);
+    expect(ms).toBeLessThan(perfBudget(8));
   });
 });

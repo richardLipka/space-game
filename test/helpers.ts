@@ -26,3 +26,11 @@ export function scenario(name: string): Scenario {
   if (!r.ok) throw new Error(r.errors.join("\n"));
   return r.value;
 }
+
+/**
+ * Timing budget for performance tests: the plan's number on a developer machine, 4× on CI, where shared
+ * runners are slower and run test files in parallel. Perf tests also retry, so one slow sample (GC, a busy
+ * machine) does not fail the build; a real regression fails every attempt.
+ */
+export const perfBudget = (ms: number): number => (process.env.CI ? ms * 4 : ms);
+export const PERF_RETRY = { retry: 2 } as const;

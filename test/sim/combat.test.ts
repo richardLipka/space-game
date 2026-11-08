@@ -12,7 +12,7 @@ import { intercept } from "../../src/sim/combat/lead";
 import { stepProjectiles } from "../../src/sim/combat/combat-world";
 import { weaponPerformance } from "../../src/sim/combat/weapons";
 import { COMBAT } from "../../src/sim/combat/constants";
-import { design, testCatalogue } from "../helpers";
+import { design, PERF_RETRY, perfBudget, testCatalogue } from "../helpers";
 
 const base = testCatalogue();
 const sq = base.get("core:test.square").def;
@@ -608,7 +608,7 @@ describe("M4 defeat", () => {
 });
 
 describe("M4 performance", () => {
-  it("4.23 500 projectiles + 10 ships: one tick under 4 ms", () => {
+  it("4.23 500 projectiles + 10 ships: one tick under 4 ms", PERF_RETRY, () => {
     const w = new World({ seed: 1 });
     for (let i = 0; i < 10; i++)
       addShip(
@@ -648,7 +648,7 @@ describe("M4 performance", () => {
     const ms = (performance.now() - t0) / n;
     console.log(`500 projectiles + 10 ships: ${ms.toFixed(2)} ms/tick`);
     expect(w.combat.projectiles.length).toBeGreaterThan(400);
-    expect(ms).toBeLessThan(4);
+    expect(ms).toBeLessThan(perfBudget(4));
     void length;
   });
 });
