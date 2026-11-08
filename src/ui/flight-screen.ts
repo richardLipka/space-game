@@ -13,6 +13,9 @@ import type { PowerGroup } from "../data/schemas/design";
 import { partCentroid, partPiecesShipFrame } from "../sim/ship/ship";
 import { rotate as rot } from "../sim/core/vec2";
 import { pointInPolygon } from "../sim/core/geometry";
+import { aiProfile } from "../data/ai/index";
+import type { AiProfile } from "../data/schemas/ai";
+import type { Order } from "../sim/ai/brain";
 
 export interface FlightSetup {
   readonly world: World;
@@ -45,6 +48,10 @@ export class FlightScreen {
   debugTrigger = false;
   /** M pressed: launch on the next tick (needs a target). */
   private pendingLaunch = false;
+  /** Allies picked with Ctrl+click for orders (empty = all allies). */
+  readonly selectedAllies = new Set<string>();
+  /** Profile allied ships fly with. */
+  allyProfile: AiProfile = aiProfile("balanced");
   private readonly powerPanel: HTMLElement;
   private powerPanelKey = "";
   /** UI commands this screen does not handle itself (theme, exit). */
@@ -150,7 +157,77 @@ export class FlightScreen {
     if (uid) this.controlledShip?.requestEject(uid);
   }
 
-  /** Debug destroy tool: hold K and click a part (plan M3 task 10). */
+  /** Ids of the player's ships (test helper). */
+  playerIds(): string[] {
+    return this.setup?.playerShips.map((s) => s.id) ?? [];
+  }
+
+  /** Allied ships: the player's other ships, flown by the AI (spec §11.3). */
+  private allies(): Ship[] {
+    const setup = this.setup;
+    if (!setup) return [];
+    return setup.playerShips.filter((_, i) => i !== this.controlled);
+  }
+
+  /** Hands every ally to the AI following the controlled ship (keeps existing orders). */
+  private assignAllies(previous?: string): void {
+    const world = this.setup?.world;
+    const me = this.controlledShip;
+    if (!world || !me) return;
+    world.clearAi(me.id);
+    this.selectedAllies.delete(me.id);
+    this.allies().forEach((s, i) => {
+      const st = world.ai.get(s.id);
+      if (!st) world.setAi(s.id, this.allyProfile, { kind: "follow", leader: me.id }, i);
+      else {
+        st.slot = i;
+        if (st.order?.kind === "follow" || s.id === previous) st.order = { kind: "follow", leader: me.id };
+      }
+    });
+  }
+
+  /** J / K / L: orders for the selected allies (all when none are selected), also while paused. */
+  private giveOrder(kind: Order["kind"]): void {
+    const world = this.setup?.world;
+    const me = this.controlledShip;
+    if (!world || !me) return;
+    const targets = this.allies().filter(
+      (s) => this.selectedAllies.size === 0 || this.selectedAllies.has(s.id),
+    );
+    for (const s of targets) {
+      const st = world.ai.get(s.id);
+      if (!st) continue;
+      if (kind === "follow") st.order = { kind: "follow", leader: me.id };
+      else if (kind === "attack") {
+        if (!this.targetId) continue;
+        st.order = { kind: "attack", target: this.targetId };
+      } else st.order = { kind: "hold", point: world.physics.getWorldCenter(s.id) };
+      st.nextEval = 0;
+    }
+  }
+
+  /** Ctrl+click: select the ally nearest the cursor (Ctrl+Shift adds); on empty space, clear. */
+  private selectAllyAt(screen: { x: number; y: number }, add: boolean): void {
+    const world = this.setup?.world;
+    if (!world) return;
+    let best: string | null = null;
+    let bestD = 60;
+    for (const s of this.allies()) {
+      const c = this.camera.worldToScreen(world.physics.getWorldCenter(s.id));
+      const d = Math.hypot(c.x - screen.x, c.y - screen.y) - s.layout.boundingRadius * this.camera.zoom;
+      if (d < bestD) {
+        bestD = d;
+        best = s.id;
+      }
+    }
+    if (!add) this.selectedAllies.clear();
+    if (best) {
+      if (add && this.selectedAllies.has(best)) this.selectedAllies.delete(best);
+      else this.selectedAllies.add(best);
+    }
+  }
+
+  /** Debug destroy tool: hold Y and click a part (plan M3 task 10). */
   private killAt(screen: { x: number; y: number }): void {
     const world = this.setup?.world;
     if (!world) return;
@@ -183,6 +260,7 @@ export class FlightScreen {
     this.paused = false;
     this.targetId = null;
     this.debugTrigger = false;
+    this.selectedAllies.clear();
     this.selectedGroups.clear();
     this.selectedGroups.add(1);
     this.scene = new Scene(this.theme, this.app);
@@ -193,6 +271,7 @@ export class FlightScreen {
     const ship = setup.playerShips[0];
     if (ship) this.camera.center = setup.world.physics.getWorldCenter(ship.id);
     this.input.speedKillActive = () => this.controlledShip?.flight.speedKill !== "off";
+    this.assignAllies();
     this.input.enabled = true;
     this.input.takeCommands();
     this.hudEl.hidden = false;
@@ -238,14 +317,24 @@ export class FlightScreen {
           this.camera.mode =
             CAMERA_MODES[(CAMERA_MODES.indexOf(this.camera.mode) + 1) % CAMERA_MODES.length]!;
           break;
-        case "switch-ship":
+        case "switch-ship": {
           this.input.ejectMode = false;
-          setup.world.setIntent(ships[this.controlled]!.id, IDLE_INTENT);
-          ships[this.controlled]!.weaponCommand = {
-            ...ships[this.controlled]!.weaponCommand,
-            trigger: false,
-          };
+          const prev = ships[this.controlled]!;
+          setup.world.setIntent(prev.id, IDLE_INTENT);
+          prev.weaponCommand = { ...prev.weaponCommand, trigger: false };
           this.controlled = (this.controlled + 1) % ships.length;
+          // The previous ship goes to the AI on this same frame; the new one leaves it (spec §11.3).
+          this.assignAllies(prev.id);
+          break;
+        }
+        case "order-follow":
+          this.giveOrder("follow");
+          break;
+        case "order-attack":
+          this.giveOrder("attack");
+          break;
+        case "order-hold":
+          this.giveOrder("hold");
           break;
         case "pause":
           this.paused = !this.paused;
@@ -313,6 +402,7 @@ export class FlightScreen {
     if (this.setup !== setup) return; // a command ended the session
     for (const c of this.input.takeClicks()) {
       if (c.kill) this.killAt(c);
+      else if (c.select) this.selectAllyAt(c, c.add);
       else if (c.eject) this.ejectAt(c);
     }
     for (const k of this.input.takeGroupKeys()) {
@@ -371,6 +461,25 @@ export class FlightScreen {
       selectedGroups: this.selectedGroups,
       targetId: this.targetId,
       eject: this.input.ejectMode ? { hoverUid } : null,
+      allies: this.allies().map((s) => {
+        const st = world.ai.get(s.id);
+        return {
+          ship: s,
+          order: st?.order?.kind ?? "-",
+          behaviour: st?.behaviour ?? "-",
+          selected: this.selectedAllies.has(s.id),
+        };
+      }),
+      targetAi: (() => {
+        const st = this.targetId ? world.ai.get(this.targetId) : undefined;
+        if (!st || !this.showOverlays) return null;
+        const top = Object.entries(st.scores)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([k, v]) => `${k} ${v.toFixed(2)}`)
+          .join(", ");
+        return `${st.profile.id}: ${st.behaviour} (${top})`;
+      })(),
     });
     this.renderPowerPanel();
   }

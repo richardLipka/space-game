@@ -150,6 +150,8 @@ export class Ship {
   defeatReason: "command-destroyed" | "incapacitated" | null = null;
   /** PD turrets also fire at ships when no missiles or drones are in reach (spec §9.6). */
   pdEngageShips = false;
+  /** AI-mode weapons fire at ships only above this estimated hit probability (AI fire control, §11.2). */
+  minHitProbability = 0;
   /** Set for drones (spec §9.7). */
   drone: DroneLink | null = null;
   /** Drone that lost fuel, link or decoy lifetime: no control, no weapons (spec §9.7). Never cleared. */
@@ -392,12 +394,7 @@ export class Ship {
       this.lastWrench = { fx: 0, fy: 0, torque: 0 };
       return this.lastWrench;
     }
-    const pctx: PropulsionContext = {
-      hasFuel: (uid) => this.fuelInNetwork(this.networkOf(uid)) > 0,
-      factor: (uid) => this.partFactor(uid),
-      commanded: (uid) => this.isCommanded(uid),
-    };
-    this.propulsion = buildPropulsion(this.parts, mp, pctx);
+    this.propulsion = this.propulsionNow();
     const acts = this.propulsion.actuators;
     const { desired, weights } = flightControl(this.intent, this.flight, {
       mass: mp.mass,
@@ -436,6 +433,20 @@ export class Ship {
     this.lastWrench = wrenchOf(acts, u);
     if (this.intent.speedKill) this.intent = { ...this.intent, speedKill: undefined };
     return this.lastWrench;
+  }
+
+  /**
+   * Propulsion as it is right now: intact, commanded, fuelled and powered actuators only. The AI's
+   * capability profile reads it (spec §11.1); control() uses it every tick.
+   */
+  propulsionNow(): PropulsionModel {
+    this.updateNetworks();
+    const pctx: PropulsionContext = {
+      hasFuel: (uid) => this.fuelInNetwork(this.networkOf(uid)) > 0,
+      factor: (uid) => this.partFactor(uid),
+      commanded: (uid) => this.isCommanded(uid),
+    };
+    return buildPropulsion(this.parts, this.massProps, pctx);
   }
 
   /** Steps 11–12: heat, overheat damage, ammo refill, part state. */
@@ -752,10 +763,11 @@ export class Ship {
   }
 
   // ---------- drones and hangars (spec §9.7) ----------
-  /** H: every intact, commanded hangar queues all the drones it holds. */
-  requestDroneLaunch(): void {
+  /** H: every intact, commanded hangar queues all the drones it holds (optionally only some drone types). */
+  requestDroneLaunch(only?: (droneType: string) => boolean): void {
     for (const p of [...this.parts].sort((a, b) => compareIds(a.uid, b.uid))) {
       if (!p.def.def.hangar || p.hp <= 0) continue;
+      if (only && !only(p.def.def.hangar.droneType)) continue;
       this.hangarPending.set(p.uid, Math.floor(p.ammo));
     }
   }

@@ -39,6 +39,8 @@ export interface EditorServices {
   now(): string;
   testFlight(design: ShipDesign): void;
   openSandbox(): void;
+  /** Player squadron against an AI squadron (M6). */
+  openSkirmish(): void;
   cycleTheme(): void;
   toast(message: string, kind?: "info" | "error"): void;
 }
@@ -280,6 +282,12 @@ export class EditorScreen {
       el("span", { class: "ed-sep" }),
       this.button("Test flight", "btn-test-flight", () => this.testFlight()),
       this.button("Sandbox", "btn-sandbox", () => this.services.openSandbox()),
+      this.button(
+        "Skirmish",
+        "btn-skirmish",
+        () => this.services.openSkirmish(),
+        "Your two ships against an AI squadron",
+      ),
       this.button("Theme", "btn-theme", () => this.services.cycleTheme()),
     );
     this.ui.palette = el("aside", { class: "ed-palette", "data-testid": "palette" });

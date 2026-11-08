@@ -7,6 +7,7 @@ import { InputPlayer } from "../../src/sim/scenario/replay";
 import { createWorldFromScenario } from "../../src/sim/scenario/setup";
 import { World } from "../../src/sim/world";
 import { vec2 } from "../../src/sim/core/vec2";
+import { aiProfile } from "../../src/data/ai/index";
 
 const fixturesDir = fileURLToPath(new URL("../fixtures/", import.meta.url));
 const fixture = (p: string): unknown => JSON.parse(readFileSync(join(fixturesDir, p), "utf8"));
@@ -78,6 +79,27 @@ export const goldenCases: Record<string, () => string> = {
     w.addShip(duelist.value, cat);
     w.addShip(duelist.value, cat, { position: vec2(2500, 300), angle: Math.PI, team: 1 });
     new InputPlayer(inR.value).runWith(w, 1800);
+    return w.hash();
+  },
+  /** Plan test 6.15: AI vs AI (aggressive gunboat vs kiting missile frigate with drones), core catalogue. */
+  "m6-ai-battle-3600": () => {
+    const w = new World({ seed: 1, enforceDefeat: true });
+    const core = new URL("../../src/data/", import.meta.url);
+    const json = (p: string) => JSON.parse(readFileSync(new URL(p, core), "utf8"));
+    const catR = validateCatalogue(json("core/catalogue.json"));
+    if (!catR.ok) throw new Error("invalid catalogue");
+    const cat = PartCatalogue.fromJson(catR.value);
+    const d = (n: string) => {
+      const r = validateDesign(json(`designs/${n}.json`));
+      if (!r.ok) throw new Error(`invalid ${n}`);
+      return r.value;
+    };
+    for (const n of ["drone-attack", "drone-pd", "drone-decoy"]) w.registerDesign(d(n));
+    const a = w.addShip(d("demo-gunboat"), cat);
+    const b = w.addShip(d("demo-frigate"), cat, { position: vec2(3500, 600), angle: Math.PI, team: 1 });
+    w.setAi(a.id, aiProfile("aggressive"));
+    w.setAi(b.id, aiProfile("kiter"));
+    w.run(3600);
     return w.hash();
   },
 };

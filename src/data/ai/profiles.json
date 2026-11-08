@@ -1,0 +1,131 @@
+{
+  "formatVersion": 1,
+  "profiles": [
+    {
+      "id": "balanced",
+      "name": "Balanced",
+      "rangeFactor": 0.7,
+      "weights": {
+        "approach": 1,
+        "hold": 1,
+        "broadside": 1,
+        "face": 1,
+        "evade": 1,
+        "retreat": 1,
+        "cool": 1
+      },
+      "retreatHp": 0.25,
+      "maxSpeed": 120,
+      "orbitSpeed": 40,
+      "minHitProbability": 0.2,
+      "volleyInterval": 6,
+      "droneLaunchRange": 2500,
+      "preferWeakened": 0.5
+    },
+    {
+      "id": "aggressive",
+      "name": "Aggressive",
+      "rangeFactor": 0.45,
+      "weights": {
+        "approach": 1.3,
+        "hold": 0.9,
+        "broadside": 1,
+        "face": 1.1,
+        "evade": 0.8,
+        "retreat": 0.5,
+        "cool": 0.8
+      },
+      "retreatHp": 0.1,
+      "maxSpeed": 160,
+      "orbitSpeed": 30,
+      "minHitProbability": 0.1,
+      "volleyInterval": 3,
+      "droneLaunchRange": 3000,
+      "preferWeakened": 0.8
+    },
+    {
+      "id": "kiter",
+      "name": "Kiter",
+      "rangeFactor": 0.95,
+      "weights": {
+        "approach": 0.9,
+        "hold": 1.3,
+        "broadside": 1,
+        "face": 1,
+        "evade": 1.1,
+        "retreat": 1,
+        "cool": 1
+      },
+      "retreatHp": 0.35,
+      "maxSpeed": 140,
+      "orbitSpeed": 60,
+      "minHitProbability": 0.3,
+      "volleyInterval": 6,
+      "droneLaunchRange": 2500,
+      "preferWeakened": 0.3
+    },
+    {
+      "id": "brawler",
+      "name": "Brawler",
+      "rangeFactor": 0.3,
+      "weights": {
+        "approach": 1.2,
+        "hold": 0.9,
+        "broadside": 1.2,
+        "face": 1.3,
+        "evade": 0.7,
+        "retreat": 0.7,
+        "cool": 0.9
+      },
+      "retreatHp": 0.15,
+      "maxSpeed": 120,
+      "orbitSpeed": 25,
+      "minHitProbability": 0.15,
+      "volleyInterval": 4,
+      "droneLaunchRange": 2000,
+      "preferWeakened": 0.6
+    },
+    {
+      "id": "sniper",
+      "name": "Sniper",
+      "rangeFactor": 1.0,
+      "weights": {
+        "approach": 0.8,
+        "hold": 1.4,
+        "broadside": 0.9,
+        "face": 1.1,
+        "evade": 1.1,
+        "retreat": 1.1,
+        "cool": 1.1
+      },
+      "retreatHp": 0.3,
+      "maxSpeed": 90,
+      "orbitSpeed": 15,
+      "minHitProbability": 0.4,
+      "volleyInterval": 8,
+      "droneLaunchRange": 2500,
+      "preferWeakened": 0.4
+    },
+    {
+      "id": "carrier",
+      "name": "Carrier",
+      "rangeFactor": 1.2,
+      "weights": {
+        "approach": 0.8,
+        "hold": 1.2,
+        "broadside": 1,
+        "face": 0.9,
+        "evade": 1.2,
+        "retreat": 1.2,
+        "cool": 1
+      },
+      "retreatHp": 0.4,
+      "maxSpeed": 80,
+      "orbitSpeed": 20,
+      "minHitProbability": 0.2,
+      "volleyInterval": 5,
+      "droneLaunchRange": 4000,
+      "preferWeakened": 0.5
+    }
+  ]
+}

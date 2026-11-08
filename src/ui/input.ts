@@ -20,7 +20,19 @@ export type UiCommand =
   | "eject-wrecks"
   | "launch-missiles"
   | "launch-drones"
-  | "pd-ships";
+  | "pd-ships"
+  | "order-follow"
+  | "order-attack"
+  | "order-hold";
+
+export interface Click {
+  readonly x: number;
+  readonly y: number;
+  readonly kill: boolean;
+  readonly eject: boolean;
+  readonly select: boolean;
+  readonly add: boolean;
+}
 
 /**
  * Keyboard/mouse → ControlIntent (spec §10). Continuous axes come from held keys; one-shot commands
@@ -36,8 +48,11 @@ export class InputController {
   private dragging = false;
   private dragDelta: Vec2 = { x: 0, y: 0 };
   private readonly commands: UiCommand[] = [];
-  /** Left clicks on the canvas since the last read; `kill` when K was held (debug destroy tool). */
-  private clicks: { x: number; y: number; kill: boolean; eject: boolean }[] = [];
+  /**
+   * Left clicks on the canvas since the last read: `kill` when Y was held (debug destroy tool), `select`
+   * with Ctrl (pick allies for orders; `add` with Ctrl+Shift).
+   */
+  private clicks: Click[] = [];
   /** Eject mode (B): left clicks jettison the part under the cursor instead of firing. */
   ejectMode = false;
   /** Right clicks (target selection). */
@@ -107,6 +122,15 @@ export class InputController {
         case "o":
           this.commands.push("pd-ships");
           break;
+        case "j":
+          this.commands.push("order-follow");
+          break;
+        case "k":
+          this.commands.push("order-attack");
+          break;
+        case "l":
+          this.commands.push("order-hold");
+          break;
         case "escape":
           if (this.ejectMode) this.ejectMode = false;
           else this.commands.push("exit");
@@ -150,9 +174,17 @@ export class InputController {
     canvas.addEventListener("mousedown", (e) => {
       if (!this.enabled) return;
       if (e.button === 0) {
-        const kill = this.held.has("k");
-        this.clicks.push({ x: e.offsetX, y: e.offsetY, kill, eject: this.ejectMode && !kill });
-        if (!kill && !this.ejectMode) this.leftHeld = true;
+        const kill = this.held.has("y");
+        const select = e.ctrlKey && !kill;
+        this.clicks.push({
+          x: e.offsetX,
+          y: e.offsetY,
+          kill,
+          eject: this.ejectMode && !kill && !select,
+          select,
+          add: select && e.shiftKey,
+        });
+        if (!kill && !select && !this.ejectMode) this.leftHeld = true;
       }
       if (e.button === 2) this.rightClicks.push({ x: e.offsetX, y: e.offsetY });
       if (e.button === 1) {
@@ -194,7 +226,7 @@ export class InputController {
     return this.commands.splice(0);
   }
 
-  takeClicks(): { x: number; y: number; kill: boolean; eject: boolean }[] {
+  takeClicks(): Click[] {
     return this.clicks.splice(0);
   }
 

@@ -17,6 +17,15 @@ export interface HudInfo {
   readonly title?: string;
   readonly selectedGroups?: ReadonlySet<number>;
   readonly targetId?: string | null;
+  /** Allied ships under AI control, with their order, behaviour and whether they are selected. */
+  readonly allies?: readonly {
+    readonly ship: Ship;
+    readonly order: string;
+    readonly behaviour: string;
+    readonly selected: boolean;
+  }[];
+  /** Target's AI state (debug view, overlays on): behaviour and top utility scores. */
+  readonly targetAi?: string | null;
   /** Eject mode is on; the part under the cursor, if any. */
   readonly eject?: { readonly hoverUid: string | null } | null;
 }
@@ -32,9 +41,10 @@ const HELP = `W/S thrust   A/D strafe   Q/E rotate   F face cursor
 X speed kill   Shift+X flip & burn   Tab switch ship
 C camera   wheel zoom   middle-drag pan (free cam)
 +/- time scale   Space pause   T theme   V overlays   ? help   Esc editor
-P power priority   R radiators   N networks   hold K + click: destroy part (debug)
+P power priority   R radiators   N networks   hold Y + click: destroy part (debug)
 LMB fire   1–9 weapon group (Shift adds)   G group mode   RMB target
 M launch missiles at target   H launch drones   O PD also fires at ships
+J allies follow   K allies attack my target   L allies hold   Ctrl+click select allies (Shift adds)
 B eject mode (click a part to jettison)   Shift+B eject all wrecks`;
 
 /** " + N attached parts" when ejecting this part also takes parts held on only through it. */
@@ -224,6 +234,17 @@ export class Hud {
         `target  <span data-testid="target">${esc(t.design.name)}</span> ${d.toFixed(0)} m  hull ${Math.round(hp * 100)}%${t.defeated ? ' <span class="alert">DEFEATED</span>' : ""}`,
       );
     } else if (wgroups.length) lines.push(`<span class="dim">target  none (right-click a ship)</span>`);
+    if (info.allies?.length) {
+      const parts = info.allies.map(
+        (a) =>
+          `<span class="${a.selected ? "sel" : "dim"}">${esc(a.ship.design.name.split(" (")[0]!)} ${a.order}·${a.behaviour}${a.ship.defeated ? " ✗" : ""}</span>`,
+      );
+      lines.push(
+        `allies <span data-testid="allies">${parts.join("  ")}</span>  <span class="dim">J follow · K attack · L hold</span>`,
+      );
+    }
+    if (info.targetAi)
+      lines.push(`<span class="dim" data-testid="target-ai">target AI ${esc(info.targetAi)}</span>`);
     if (ship.defeated) {
       lines.push(
         `<span class="alert" data-testid="defeated">DEFEATED: ${ship.defeatReason === "command-destroyed" ? "command module destroyed" : "cannot move or fight"}</span>`,

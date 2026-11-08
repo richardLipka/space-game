@@ -135,7 +135,22 @@ export class Scene {
     // Keep effects above ship hulls.
     this.worldLayer.addChild(this.fxG);
     this.drawCombat(world, camera, alpha);
+    if (this.showOverlays) this.drawAiDebug(world, camera);
     this.drawOffscreenIndicators(world, camera, alpha);
+  }
+
+  /** AI debug view (plan M6 task 8): each AI ship's desired velocity as a line from its centre (1 s ahead). */
+  private drawAiDebug(world: World, camera: Camera): void {
+    if (world.ai.size === 0) return;
+    const g = this.fxG;
+    const s = this.theme.resolve("overlay-ai-velocity");
+    for (const [id, st] of world.ai) {
+      if (!world.hasShip(id)) continue;
+      const c = world.physics.getWorldCenter(id);
+      const v = st.debug.desiredVel;
+      g.moveTo(c.x, c.y).lineTo(c.x + v.x, c.y + v.y);
+    }
+    strokeStyled(g, s, camera.zoom);
   }
 
   /** Projectiles, beams, effects and the target marker (spec §9, §13.7). */

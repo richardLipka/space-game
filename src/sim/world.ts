@@ -26,6 +26,8 @@ import {
 } from "./combat/combat-world";
 import { stepMissiles } from "./combat/missiles";
 import { controlDrones, launchDrones, updateDroneLinks } from "./drones/drones";
+import { createAiState, runAi, type AiState, type Order } from "./ai/brain";
+import type { AiProfile } from "../data/schemas/ai";
 
 export interface WorldConfig {
   readonly seed: number;
@@ -98,6 +100,8 @@ export class World {
   readonly asteroids: { readonly id: string; readonly outline: readonly Vec2[] }[] = [];
   private readonly ships = new Map<string, Ship>();
   private readonly catalogues = new Map<string, PartCatalogue>();
+  /** AI-controlled ships (spec §11) and their state, by ship id. */
+  readonly ai = new Map<string, AiState>();
   /** Designs hangars can launch (drone types, spec §9.7), by design id. */
   readonly designs = new Map<string, ShipDesign>();
   /** Jettisoned parts, oldest first. */
@@ -118,6 +122,31 @@ export class World {
 
   get time(): number {
     return this.tick * SIM_DT;
+  }
+
+  /** Hands a ship to the AI with a profile and an optional order (spec §11.3). */
+  setAi(shipId: string, profile: AiProfile, order: Order | null = null, slot = 0): AiState {
+    const st = createAiState(this.getShip(shipId), profile, order, slot);
+    this.ai.set(shipId, st);
+    return st;
+  }
+
+  /** Takes a ship back from the AI (e.g. the player switched to it): weapon modes return to the player's. */
+  clearAi(shipId: string): void {
+    const st = this.ai.get(shipId);
+    if (!st) return;
+    this.ai.delete(shipId);
+    if (!this.hasShip(shipId)) return;
+    const ship = this.getShip(shipId);
+    ship.groupModes.clear();
+    for (const [g, m] of st.savedModes) ship.groupModes.set(g, m);
+    ship.minHitProbability = 0;
+    ship.weaponCommand = {
+      trigger: false,
+      aimPoint: null,
+      selected: new Set([1]),
+      targetId: ship.weaponCommand.targetId,
+    };
   }
 
   /** Makes a design available to hangars (drone types). */
@@ -240,6 +269,8 @@ export class World {
     launchDrones(this, dt);
     updateDroneLinks(this, dt);
     controlDrones(this);
+    // 0e: AI ships think and steer (spec §11).
+    runAi(this, dt);
     // 1–6: control, fuel, apply ship forces (plan §13.3).
     // 2–3: networks and power.
     for (const ship of this.allShips()) ship.preStep(dt);
@@ -302,6 +333,9 @@ export class World {
       bodies: this.physics.getState(),
       ships: this.allShips().map((s) => s.snapshot()),
       debris: this.debris.map((d) => d.id),
+      ai: [...this.ai]
+        .sort((a, b) => compareIds(a[0], b[0]))
+        .map(([id, s]) => [id, s.behaviour, s.targetId, s.order?.kind ?? null]),
       projectiles: this.combat.projectiles.map((p) => ({
         id: p.id,
         owner: p.owner,

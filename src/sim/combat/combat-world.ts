@@ -261,6 +261,7 @@ export function contactsOf(world: World): Contact[] {
       velocity: world.physics.getBodyState(s.id).linearVelocity,
       targetId: null,
       decoy: s.decoyStrength > 0,
+      radius: Math.max(1, s.layout.boundingRadius * 0.6),
     });
   }
   for (const m of world.combat.missiles) {
@@ -273,6 +274,7 @@ export function contactsOf(world: World): Contact[] {
       velocity: m.vel,
       targetId: m.target,
       decoy: false,
+      radius: MISSILE.radius,
     });
   }
   return out;
@@ -290,7 +292,7 @@ function targetingFor(world: World, ship: Ship, contacts: readonly Contact[]): W
   let ships: Contact[] | null = null;
   const shipList = () => (ships ??= orderShipTargets(contacts, me, ship.weaponCommand.targetId));
   return {
-    ship: (w, mount) => firstEngageable(w, mount, shipList()),
+    ship: (w, mount) => firstEngageable(w, mount, shipList(), ship.minHitProbability),
     pd: (w, mount) => {
       threats ??= rankThreats(contacts, me);
       return (
@@ -383,13 +385,13 @@ function resolveOrder(world: World, ship: Ship, o: FireOrder, dt: number): void 
     const to = add(o.muzzle, scale(o.dir, hit ? hit.t : def.range));
     world.combat.beams.push({ owner: ship.id, from: o.muzzle, to, hit: !!hit });
     if (!hit) return;
-    const dmg =
-      def.beam.dps *
-      dt *
-      beamFalloff(hit.t, def.beam.falloffStart, def.range) *
-      ship.powerFactorOf(o.weapon.uid);
-    if (hit.kind === "ship") damageShipAlongRay(world, hit, dmg, COMBAT.minDamage * dt);
-    else if (hit.kind === "missile") damageMissile(world, hit.missile, dmg);
+    const strength = beamFalloff(hit.t, def.beam.falloffStart, def.range) * ship.powerFactorOf(o.weapon.uid);
+    const dmg = def.beam.dps * dt * strength;
+    if (hit.kind === "ship") {
+      damageShipAlongRay(world, hit, dmg, COMBAT.minDamage * dt);
+      // Beam heating (decision log: Beam heat): part of the beam's power goes into the target's heat pool.
+      hit.ship.addHeat((def.powerDraw ?? 0) * COMBAT.beamHeatToTarget * strength * dt);
+    } else if (hit.kind === "missile") damageMissile(world, hit.missile, dmg);
     if (hit.kind !== "asteroid" && hit.kind !== "debris" && world.tick % 6 === 0)
       pushEvent(world, "beam-hit", to, 1);
   }

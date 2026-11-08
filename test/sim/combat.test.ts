@@ -396,6 +396,28 @@ describe("M4 beams", () => {
   });
 });
 
+describe("beam heating", () => {
+  it("a beam hit puts beamHeatToTarget of the beam's power into the target's heat pool", () => {
+    const run = (firing: boolean) => {
+      const w = new World({ seed: 1 });
+      const s = addShip(w, [
+        ["core:test.command", 0, 0],
+        ["core:test.beam", 1, 0],
+        ["core:test.reactor", 0, 1],
+      ]);
+      const t = addShip(w, [["core:test.big", 0, 0]], { position: vec2(20, 0) });
+      t.heat = 1_000_000; // well above zero, so hull cooling is the same in both runs
+      s.weaponCommand = fire(vec2(20, 0), [1], firing);
+      w.step(); // first tick requests power
+      const h0 = t.heat;
+      w.run(60);
+      return t.heat - h0;
+    };
+    // Test beam: 60 W, fully powered, target inside falloffStart → 60 × 0.3 W for one second.
+    expect(run(true) - run(false)).toBeCloseTo(60 * COMBAT.beamHeatToTarget, 6);
+  });
+});
+
 describe("M4 weapons", () => {
   it("4.9 a 0.5 s weapon fires 20 shots in 10 s (±1)", () => {
     const w = new World({ seed: 1 });

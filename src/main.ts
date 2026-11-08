@@ -17,6 +17,7 @@ import type { PartDef } from "./data/schemas/part";
 import { IdbLibrary } from "./data/share/idb-library";
 import { MemoryLibrary, type Library } from "./data/share/library";
 import { degToRad, vec2 } from "./sim/core/vec2";
+import { aiProfile } from "./data/ai/index";
 import { createWorldFromScenario } from "./sim/scenario/setup";
 import { PartCatalogue } from "./sim/ship/catalogue";
 import { applyTheme, domStyleSource, ThemeResolver, THEMES, type ThemeName } from "./render/theme";
@@ -126,7 +127,14 @@ async function main(): Promise<void> {
     else if (cmd === "theme") cycleTheme();
   };
 
-  const startFlight = (designs: ShipDesign[], title: string, dummies: ShipDesign[]) => {
+  /** Enemy ships flown by the AI (spec §11): design, profile and spawn point. */
+  type EnemyAi = { design: ShipDesign; profile: string; x: number; y: number };
+  const startFlight = (
+    designs: ShipDesign[],
+    title: string,
+    dummies: ShipDesign[],
+    enemies: EnemyAi[] = [],
+  ) => {
     const world = createWorldFromScenario(sandbox);
     for (const d of droneDesigns.values()) world.registerDesign(d);
     const ships = designs.map((d, i) => {
@@ -139,6 +147,10 @@ async function main(): Promise<void> {
     dummies.forEach((d, i) =>
       world.addShip(d, catalogue, { position: vec2(250 + i * 60, 80 - i * 160), angle: Math.PI, team: 1 }),
     );
+    for (const e of enemies) {
+      const s = world.addShip(e.design, catalogue, { position: vec2(e.x, e.y), angle: Math.PI, team: 1 });
+      world.setAi(s.id, aiProfile(e.profile));
+    }
     editor.hide();
     mode = "flight";
     flight.start({ world, playerShips: ships, title });
@@ -161,6 +173,17 @@ async function main(): Promise<void> {
         hauler,
         picket,
       ]),
+    openSkirmish: () =>
+      startFlight(
+        [gunboat, frigate],
+        "Skirmish",
+        [],
+        [
+          { design: gunboat, profile: "aggressive", x: 3500, y: 400 },
+          { design: frigate, profile: "kiter", x: 4200, y: -300 },
+          { design: picket, profile: "balanced", x: 3800, y: 900 },
+        ],
+      ),
     cycleTheme,
     toast,
   };
@@ -190,6 +213,14 @@ async function main(): Promise<void> {
     },
     resolveStyle: (classes: string) => theme.resolve(classes),
     openSandbox: () => services.openSandbox(),
+    openSkirmish: () => services.openSkirmish(),
+    /** AI state of a ship (behaviour, order, target), for tests. */
+    ai: (id: string) => {
+      const st = flight.world?.ai.get(id);
+      return st ? { behaviour: st.behaviour, order: st.order?.kind ?? null, target: st.targetId } : null;
+    },
+    /** Ids of the player's ships (index 0 starts under control). */
+    playerShips: () => (flight.world ? flight.playerIds() : []),
     toEditor,
     /** Controlled ship (flight mode). */
     get ship() {

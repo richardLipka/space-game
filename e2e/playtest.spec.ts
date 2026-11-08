@@ -78,21 +78,33 @@ test("B enters eject mode; clicking a part jettisons it as debris", async ({ pag
   await expect(page.getByTestId("eject-mode")).toBeVisible();
   expect(await game(page, (g) => g.partUids())).toContain("mag-k");
   const box = (await page.locator("#view").boundingBox())!;
+  /** Points at a part, re-aiming while the camera settles, until the HUD confirms the hover. */
+  const hover = async (uid: string, expectText: string, testId?: string) => {
+    await expect
+      .poll(
+        async () => {
+          const pt = (await page.evaluate(`window.__game.screenOfPart(${JSON.stringify(uid)})`)) as {
+            x: number;
+            y: number;
+          };
+          await page.mouse.move(box.x + pt.x, box.y + pt.y);
+          const loc = testId ? page.getByTestId(testId) : page.locator("#hud");
+          return ((await loc.count()) ? await loc.first().innerText() : "").includes(expectText);
+        },
+        { timeout: 10_000 },
+      )
+      .toBe(true);
+  };
+  await hover("mag-k", "click to eject Kinetic magazine S");
   const pt = (await game(page, (g) => g.screenOfPart("mag-k")))!;
-  await page.mouse.move(box.x + pt.x, box.y + pt.y);
-  await expect(page.locator("#hud")).toContainText("click to eject Kinetic magazine S");
   await page.mouse.click(box.x + pt.x, box.y + pt.y);
   await game(page, (g) => g.pause(false));
   await expect.poll(() => game(page, (g) => g.debrisCount())).toBe(1);
   expect(await game(page, (g) => g.partUids())).not.toContain("mag-k");
   // The command module cannot be ejected.
-  const cmd = (await game(page, (g) => g.screenOfPart("cmd")))!;
-  await page.mouse.move(box.x + cmd.x, box.y + cmd.y);
-  await expect(page.locator("#hud")).toContainText("cannot eject the command module");
+  await hover("cmd", "cannot eject the command module");
   // The fuel tank carries the main engine behind it: the HUD warns that it leaves too.
-  const tank = (await game(page, (g) => g.screenOfPart("tank")))!;
-  await page.mouse.move(box.x + tank.x, box.y + tank.y);
-  await expect(page.getByTestId("eject-extra")).toContainText("attached part");
+  await hover("tank", "attached part", "eject-extra");
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("eject-mode")).toHaveCount(0);
   await expect(page.getByTestId("palette")).toBeHidden(); // Esc left eject mode, not the flight

@@ -312,11 +312,11 @@
   --stroke-width: 1.4;
 }
 .fx-beam {
-  --stroke: #ff7ad9;
-  --stroke-width: 2;
+  --stroke: #ff9be3;
+  --stroke-width: 0.8;
   --glow: #ff2fa8;
-  --glow-width: 12;
-  --glow-alpha: 0.55;
+  --glow-width: 4;
+  --glow-alpha: 0.45;
 }
 .fx-fire {
   --stroke: #fff2c0;
@@ -530,4 +530,11 @@
   --fill: #ffb347;
   --fill-alpha: 0.4;
   --min-size: 4;
+}
+
+/* ---- AI debug view (M6) ---- */
+.overlay-ai-velocity {
+  --stroke: #b48cff;
+  --stroke-width: 1.2;
+  --stroke-alpha: 0.8;
 }

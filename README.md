@@ -5,16 +5,17 @@ Design docs: [docs/space-game-spec.md](docs/space-game-spec.md) and [docs/implem
 
 ## Status
 
-| Milestone               | State                                                                                                                                                                                                                                                 |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M0 Foundation           | Done: tooling, deterministic sim core, schemas, headless runner, golden runs, CI                                                                                                                                                                      |
-| M1 Physics core         | Done: mass properties, gimballed engines, RCS, gyro, allocator, speed kill, gravity, arena, neon/flat themes, camera, HUD                                                                                                                             |
-| M2 Editor and sharing   | Done: polygon editor with edge snapping, mirror mode, validation, live stats, overlays, undo/redo, local library (IndexedDB), self-contained export/import (file, JSON, `SG1:` codes), test flight                                                    |
-| M3 Resource systems     | Done: resource networks over connected parts, power priorities and brownout, per-network fuel and ammo, heat pool with radiators and overheat damage, HUD and live priority panel                                                                     |
-| M4 Combat               | Done: fixed and turret weapons, groups and modes, projectiles with swept hits, beams, armor, wrecks, explosions, collision damage, defeat, combat HUD and effects                                                                                     |
-| Playtest 1 fixes        | Done: speed kill turns and burns when there is no retro thrust, damped recoil, per-turret turn rate shown in part info, palette search and collapsible categories, HUD ammo and heat breakdown, hull radiation, glowing radiators, ejecting parts (B) |
-| M5 Missiles, PD, drones | Done: guided missiles (proportional navigation, proximity fuse, blast, can be shot down), automatic PD and flak, shared targeting, AI-mode weapons, three drone types with hangars, decoys                                                            |
-| M6 AI                   | Next                                                                                                                                                                                                                                                  |
+| Milestone                | State                                                                                                                                                                                                                                                 |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0 Foundation            | Done: tooling, deterministic sim core, schemas, headless runner, golden runs, CI                                                                                                                                                                      |
+| M1 Physics core          | Done: mass properties, gimballed engines, RCS, gyro, allocator, speed kill, gravity, arena, neon/flat themes, camera, HUD                                                                                                                             |
+| M2 Editor and sharing    | Done: polygon editor with edge snapping, mirror mode, validation, live stats, overlays, undo/redo, local library (IndexedDB), self-contained export/import (file, JSON, `SG1:` codes), test flight                                                    |
+| M3 Resource systems      | Done: resource networks over connected parts, power priorities and brownout, per-network fuel and ammo, heat pool with radiators and overheat damage, HUD and live priority panel                                                                     |
+| M4 Combat                | Done: fixed and turret weapons, groups and modes, projectiles with swept hits, beams, armor, wrecks, explosions, collision damage, defeat, combat HUD and effects                                                                                     |
+| Playtest 1 fixes         | Done: speed kill turns and burns when there is no retro thrust, damped recoil, per-turret turn rate shown in part info, palette search and collapsible categories, HUD ammo and heat breakdown, hull radiation, glowing radiators, ejecting parts (B) |
+| M5 Missiles, PD, drones  | Done: guided missiles (proportional navigation, proximity fuse, blast, can be shot down), automatic PD and flak, shared targeting, AI-mode weapons, three drone types with hangars, decoys                                                            |
+| M6 AI                    | Done: capability profile, steering with asteroid and boundary avoidance, utility behaviours, fire control, target selection, six AI profiles, allies with Tab hand-off and J/K/L orders, Skirmish mode                                                |
+| M7 Scenarios and balance | Next                                                                                                                                                                                                                                                  |
 
 ## Commands
 
@@ -40,9 +41,10 @@ paste or drop a ship file / `SG1:` code anywhere to import
 W/S thrust · A/D strafe · Q/E rotate · F face cursor · X speed kill (turns to burn if it must) · Shift+X flip and burn ·
 Tab switch ship · C camera mode · wheel zoom · middle-drag pan (free camera) · +/− time scale ·
 Space pause · T theme · V overlays · ? help · Esc back to editor ·
-P power priority panel · R radiators in/out · N show resource networks · hold K + click: destroy a part (debug) ·
+P power priority panel · R radiators in/out · N show resource networks · hold Y + click: destroy a part (debug) ·
 LMB fire selected groups at the cursor · 1–9 select weapon group (Shift adds) · G cycle group mode (manual/hold/AI) · RMB target a ship ·
 M launch missiles at the target · H launch drones · O PD also fires at ships ·
+J allies follow · K allies attack my target · L allies hold · Ctrl+click select allies (Ctrl+Shift adds) ·
 B eject mode (click a part to jettison it and everything hanging on it; B/Esc leaves) · Shift+B jettison all wrecks
 
 ## Layout

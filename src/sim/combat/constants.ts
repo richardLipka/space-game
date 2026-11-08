@@ -22,6 +22,11 @@ export const COMBAT = {
    * armor are assumed to absorb the rest (decision log: Recoil damping); 1 would be pure Newtonian.
    */
   momentumTransfer: 0.1,
+  /**
+   * Share of a beam's power (at the target, after range falloff and brownout) that ends up as heat in
+   * the ship it hits (decision log: Beam heat). Beams cook ships as well as cutting parts.
+   */
+  beamHeatToTarget: 0.3,
   /** Hit / effect events kept for rendering (s). */
   eventLifetime: 2,
 } as const;

@@ -22,6 +22,8 @@ export interface Contact {
   readonly targetId: string | null;
   /** Active decoy (spec §9.7): enemy missiles and PD prefer it. */
   readonly decoy: boolean;
+  /** Rough size for hit-probability estimates (m); defaults to 1. */
+  readonly radius?: number;
 }
 
 /** The ship doing the defending. */
@@ -91,10 +93,21 @@ export function rankThreats(contacts: readonly Contact[], d: Defender): Contact[
  * angle blocked by the ship's own parts, or inside a fixed weapon's aim cone. Missile launchers can always
  * launch (missiles steer themselves) while the target is in range.
  */
+/**
+ * Estimated chance that one round from `w` hits a target of `radius` at `dist`: the target's size against
+ * the spread cone (spec §11.2 fire control). Beams and missiles count as sure hits.
+ */
+export function hitProbability(w: WeaponState, dist: number, radius: number): number {
+  if (w.def.kind === "beam" || w.def.kind === "missile") return 1;
+  const sigma = degToRad(Math.max(w.def.spread, 0.05));
+  return Math.min(1, radius / (dist * Math.tan(sigma) * 2 + 1e-6));
+}
+
 export function engageSolution(
   w: WeaponState,
   mount: Mount,
-  target: { readonly position: Vec2; readonly velocity: Vec2 },
+  target: { readonly position: Vec2; readonly velocity: Vec2; readonly radius?: number },
+  minHitProbability = 0,
 ): { aimPoint: Vec2; t: number } | null {
   const def = w.def;
   let aimPoint = target.position;
@@ -108,6 +121,7 @@ export function engageSolution(
   }
   const dist = length(sub(aimPoint, mount.muzzle));
   if (dist > def.range) return null;
+  if (minHitProbability > 0 && hitProbability(w, dist, target.radius ?? 1) < minHitProbability) return null;
   if (def.kind === "missile") return { aimPoint, t: dist / 300 };
   if (def.kind === "beam") t = 0;
   const rel = wrap(angleOf(sub(aimPoint, mount.muzzle)) - mount.mountAngle);
@@ -124,9 +138,10 @@ export function firstEngageable(
   w: WeaponState,
   mount: Mount,
   ordered: readonly Contact[],
+  minHitProbability = 0,
 ): Engagement | null {
   for (const c of ordered) {
-    const sol = engageSolution(w, mount, c);
+    const sol = engageSolution(w, mount, c, minHitProbability);
     if (sol) return { id: c.id, ...sol };
   }
   return null;

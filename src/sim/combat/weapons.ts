@@ -40,6 +40,10 @@ export interface WeaponCommand {
   targetId: string | null;
   /** One-shot (M): every ready missile launcher fires one missile at the selected target. */
   launch?: boolean;
+  /** Beams hold fire (AI cool-down, spec §11.2). */
+  holdBeams?: boolean;
+  /** AI-mode launchers wait for `launch` instead of firing on their own, so missiles go out in volleys. */
+  missileVolleys?: boolean;
 }
 
 export const IDLE_WEAPONS: WeaponCommand = {
@@ -167,7 +171,7 @@ export function updateWeapons(
       let targetId: string | null = null;
       if (cmd.launch || (mode === "manual" && cmd.selected.has(w.group) && cmd.trigger))
         targetId = cmd.targetId;
-      else if (mode === "ai") targetId = targeting.ship(w, mount)?.id ?? null;
+      else if (mode === "ai" && !cmd.missileVolleys) targetId = targeting.ship(w, mount)?.id ?? null;
       w.aimError = 0;
       if (!targetId || w.cooldown > 1e-9) continue;
       if (def.ammoType && host.drawRounds(w.uid, 1) < 1) continue;
@@ -230,7 +234,7 @@ export function updateWeapons(
       }
     }
     w.isBlocked = def.mount === "turret" && w.blocked.some(([a, b]) => w.turret >= a && w.turret <= b);
-    const canAct = wantsFire && aimed && !w.isBlocked;
+    const canAct = wantsFire && aimed && !w.isBlocked && !(def.kind === "beam" && cmd.holdBeams);
 
     if (def.kind === "beam") {
       // Demand power exactly while the beam wants to fire; it fires once power is served (next tick).
