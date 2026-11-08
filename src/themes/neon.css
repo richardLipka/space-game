@@ -1,0 +1,489 @@
+/*
+ * Neon wireframe theme (spec §13.7). The renderer reads these custom properties by semantic selector;
+ * no colours live in game code. Copy this file to make a new theme.
+ *
+ * Properties: --stroke --stroke-width(px) --stroke-alpha --fill --fill-alpha
+ *             --glow --glow-width(px) --glow-alpha --scale --min-size(px)
+ */
+:root {
+  --bg: #04050b;
+  --hud-fg: #8ff7ff;
+  --hud-dim: #3f7d88;
+  --hud-warn: #ffb347;
+  --hud-alert: #ff4f7b;
+  --hud-font: 13px/1.45 ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+/* ---- Ships ---- */
+.part {
+  --stroke: #5ff6ff;
+  --stroke-width: 1.4;
+  --fill: #5ff6ff;
+  --fill-alpha: 0.05;
+  --glow: #18c8ff;
+  --glow-width: 6;
+  --glow-alpha: 0.18;
+}
+.part.team-1 {
+  --stroke: #ff5fd2;
+  --fill: #ff5fd2;
+  --glow: #ff2fa8;
+}
+.part.cat-command {
+  --stroke: #ffffff;
+  --fill-alpha: 0.12;
+}
+.part.cat-propulsion {
+  --stroke: #7dffb0;
+  --glow: #20ff80;
+}
+.part.cat-storage {
+  --stroke: #ffd36b;
+  --glow: #ffaa00;
+  --fill-alpha: 0.07;
+}
+.part.cat-armor {
+  --stroke: #c9d4ff;
+  --stroke-width: 2;
+}
+.part.state-damaged {
+  --stroke-alpha: 0.75;
+  --glow-alpha: 0.1;
+}
+.part.state-wreck {
+  --stroke: #444b5c;
+  --glow-alpha: 0;
+  --fill-alpha: 0.02;
+}
+.part.state-selected {
+  --stroke: #ffffff;
+  --glow-alpha: 0.4;
+}
+
+.icon-ship {
+  --stroke: #5ff6ff;
+  --stroke-width: 1.5;
+  --min-size: 6;
+  --glow-width: 6;
+  --glow-alpha: 0.3;
+}
+.icon-ship.team-1 {
+  --stroke: #ff5fd2;
+}
+
+/* ---- Effects ---- */
+.fx-thrust {
+  --stroke: #ffb347;
+  --stroke-width: 2;
+  --glow: #ff6a00;
+  --glow-width: 9;
+  --glow-alpha: 0.45;
+  --scale: 1;
+}
+.fx-thrust.kind-thruster {
+  --stroke: #c8f0ff;
+  --glow: #6fd0ff;
+  --scale: 0.6;
+}
+
+/* ---- Overlays ---- */
+.overlay-com {
+  --stroke: #ffffff;
+  --stroke-width: 1.5;
+  --min-size: 7;
+}
+.overlay-thrust {
+  --stroke: #ffe066;
+  --stroke-width: 1.5;
+  --scale: 1;
+}
+.overlay-gimbal-bad {
+  --stroke: #ff4f7b;
+  --stroke-width: 2;
+}
+
+/* ---- Arena ---- */
+.arena-grid {
+  --stroke: #0f2a3a;
+  --stroke-width: 1;
+  --stroke-alpha: 0.9;
+}
+.arena-grid.major {
+  --stroke: #15405a;
+}
+.arena-edge {
+  --stroke: #ff4f7b;
+  --stroke-width: 2;
+  --glow-width: 10;
+  --glow-alpha: 0.25;
+}
+.asteroid {
+  --stroke: #8a7bff;
+  --stroke-width: 1.4;
+  --fill: #8a7bff;
+  --fill-alpha: 0.06;
+  --glow: #5b3cff;
+  --glow-width: 6;
+  --glow-alpha: 0.15;
+}
+.gravity-well {
+  --stroke: #b48cff;
+  --stroke-width: 1.5;
+  --fill: #2a1050;
+  --fill-alpha: 0.6;
+  --glow-width: 14;
+  --glow-alpha: 0.3;
+}
+
+/* ---- Editor ---- */
+:root {
+  --panel-bg: rgba(6, 14, 24, 0.92);
+  --panel-border: #134a5e;
+  --panel-fg: #bdf6ff;
+  --panel-dim: #4f8c99;
+  --accent: #5ff6ff;
+  --danger: #ff4f7b;
+  --warn: #ffb347;
+  --button-bg: #0b2230;
+  --button-hover: #123a4e;
+}
+.editor-grid {
+  --stroke: #0d2433;
+  --stroke-width: 1;
+}
+.editor-grid.major {
+  --stroke: #15405a;
+}
+.editor-axis {
+  --stroke: #1f5a72;
+  --stroke-width: 1.5;
+}
+.editor-axis.mirror {
+  --stroke: #ffb347;
+  --stroke-width: 2;
+}
+.part.state-issue {
+  --stroke: #ff4f7b;
+  --glow: #ff2050;
+  --glow-alpha: 0.4;
+}
+.editor-ghost {
+  --stroke: #5ff6ff;
+  --stroke-width: 1.5;
+  --stroke-alpha: 0.7;
+  --fill: #5ff6ff;
+  --fill-alpha: 0.08;
+}
+.editor-ghost.snapped {
+  --stroke: #7dffb0;
+  --fill: #7dffb0;
+  --glow: #20ff80;
+  --glow-width: 8;
+  --glow-alpha: 0.3;
+}
+.editor-ghost.invalid {
+  --stroke: #ff4f7b;
+  --fill: #ff4f7b;
+  --fill-alpha: 0.12;
+}
+.overlay-connection {
+  --stroke: #7dffb0;
+  --stroke-width: 3;
+  --stroke-alpha: 0.9;
+}
+.overlay-exposed {
+  --stroke: #5ff6ff;
+  --stroke-width: 3;
+  --stroke-alpha: 0.6;
+}
+.overlay-covered {
+  --stroke: #ff4f7b;
+  --stroke-width: 4;
+}
+.overlay-arc {
+  --stroke: #ffe066;
+  --stroke-width: 1;
+  --stroke-alpha: 0.6;
+}
+.overlay-arc-blocked {
+  --stroke: #ff4f7b;
+  --stroke-width: 1;
+  --fill: #ff4f7b;
+  --fill-alpha: 0.25;
+}
+.overlay-thrust.rcs {
+  --stroke: #c8f0ff;
+}
+.overlay-net-0 {
+  --stroke: #7dffb0;
+  --stroke-width: 2.5;
+  --stroke-alpha: 0.5;
+}
+.overlay-net-1 {
+  --stroke: #ff4f7b;
+  --stroke-width: 2.5;
+}
+.overlay-net-2 {
+  --stroke: #ffb347;
+  --stroke-width: 2.5;
+}
+.overlay-net-3 {
+  --stroke: #b48cff;
+  --stroke-width: 2.5;
+}
+.overlay-net-4 {
+  --stroke: #ff5fd2;
+  --stroke-width: 2.5;
+}
+.overlay-net-5 {
+  --stroke: #ffffff;
+  --stroke-width: 2.5;
+}
+
+/* ---- Editor connection guidance ---- */
+.guide-attach {
+  --stroke: #7dffb0;
+  --stroke-width: 3;
+  --stroke-alpha: 0.75;
+  --glow: #20ff80;
+  --glow-width: 9;
+  --glow-alpha: 0.25;
+}
+.guide-no-attach {
+  --stroke: #ff4f7b;
+  --stroke-width: 1.5;
+  --stroke-alpha: 0.55;
+}
+.guide-ghost-snap {
+  --stroke: #7dffb0;
+  --stroke-width: 2.5;
+}
+.guide-ghost-no-attach {
+  --stroke: #ffb347;
+  --stroke-width: 2.5;
+}
+.guide-contact.connect {
+  --stroke: #ffffff;
+  --stroke-width: 5;
+  --glow: #20ff80;
+  --glow-width: 14;
+  --glow-alpha: 0.6;
+}
+.guide-contact.short {
+  --stroke: #ffb347;
+  --stroke-width: 5;
+  --glow: #ff8a00;
+  --glow-width: 12;
+  --glow-alpha: 0.5;
+}
+.guide-contact.blocked {
+  --stroke: #ff4f7b;
+  --stroke-width: 5;
+  --glow: #ff2050;
+  --glow-width: 12;
+  --glow-alpha: 0.6;
+}
+.part.state-disconnected {
+  --stroke: #ffb347;
+  --fill: #ffb347;
+  --fill-alpha: 0.1;
+  --glow: #ff8a00;
+  --glow-alpha: 0.35;
+}
+
+/* ---- Combat effects (M4) ---- */
+.fx-projectile {
+  --stroke: #ffe9a8;
+  --stroke-width: 1.6;
+  --glow: #ffb347;
+  --glow-width: 5;
+  --glow-alpha: 0.5;
+  --min-size: 6;
+  --scale: 1;
+}
+.fx-projectile.kind-kinetic-120 {
+  --stroke: #ffffff;
+  --stroke-width: 2.4;
+  --glow: #ffd36b;
+  --glow-width: 8;
+}
+.fx-projectile.kind-autocannon-30 {
+  --stroke: #ffd36b;
+  --stroke-width: 1.4;
+}
+.fx-beam {
+  --stroke: #ff7ad9;
+  --stroke-width: 2;
+  --glow: #ff2fa8;
+  --glow-width: 12;
+  --glow-alpha: 0.55;
+}
+.fx-fire {
+  --stroke: #fff2c0;
+  --stroke-width: 1.5;
+  --fill: #ffd36b;
+  --fill-alpha: 0.8;
+  --min-size: 3;
+}
+.fx-hit {
+  --stroke: #ffb347;
+  --stroke-width: 1.5;
+  --fill: #fff2c0;
+  --fill-alpha: 0.5;
+  --min-size: 3;
+}
+.fx-beam-hit {
+  --stroke: #ff7ad9;
+  --stroke-width: 1.5;
+  --fill: #ff7ad9;
+  --fill-alpha: 0.4;
+  --min-size: 3;
+}
+.fx-explosion {
+  --stroke: #ff8a3d;
+  --stroke-width: 3;
+  --fill: #ffd36b;
+  --fill-alpha: 0.35;
+  --min-size: 6;
+}
+.fx-destroyed {
+  --stroke: #ff4f7b;
+  --stroke-width: 2;
+  --min-size: 5;
+}
+.fx-collision {
+  --stroke: #c8f0ff;
+  --stroke-width: 2;
+  --min-size: 5;
+}
+.overlay-target {
+  --stroke: #ff4f7b;
+  --stroke-width: 2;
+  --glow-width: 8;
+  --glow-alpha: 0.35;
+  --min-size: 18;
+}
+.overlay-target.defeated {
+  --stroke: #6b7787;
+}
+.overlay-turret {
+  --stroke: #ffe066;
+  --stroke-width: 2.5;
+}
+.overlay-turret.blocked {
+  --stroke: #ff4f7b;
+}
+
+/* ---- Heat, ejection, debris ---- */
+/* Radiator glow: alpha values are the peak at full heat; the renderer scales them by heat and exposure. */
+.fx-radiator-glow {
+  --stroke: #ff5a2a;
+  --stroke-width: 1.6;
+  --stroke-alpha: 1;
+  --fill: #ff3b1a;
+  --fill-alpha: 0.55;
+  --glow: #ff2a00;
+  --glow-width: 12;
+  --glow-alpha: 0.6;
+}
+.eject-candidate {
+  --stroke: #ffb347;
+  --stroke-width: 1.5;
+  --stroke-alpha: 0.9;
+  --fill-alpha: 0;
+  --glow-alpha: 0;
+}
+.eject-hover {
+  --stroke: #ff4f7b;
+  --stroke-width: 2.5;
+  --fill: #ff4f7b;
+  --fill-alpha: 0.25;
+  --glow: #ff4f7b;
+  --glow-width: 10;
+  --glow-alpha: 0.4;
+}
+.debris {
+  --stroke: #5ff6ff;
+  --stroke-width: 1.1;
+  --stroke-alpha: 0.45;
+  --fill: #5ff6ff;
+  --fill-alpha: 0.03;
+  --glow-alpha: 0;
+}
+.debris.state-wreck {
+  --stroke: #444b5c;
+}
+.fx-eject {
+  --stroke: #ffb347;
+  --stroke-width: 1.5;
+  --glow: #ffb347;
+  --glow-width: 8;
+  --glow-alpha: 0.4;
+}
+
+/* ---- Editor connection graph ---- */
+.graph-edge {
+  --stroke: #8ff7ff;
+  --stroke-width: 1;
+  --stroke-alpha: 0.45;
+  --glow-alpha: 0;
+}
+.graph-edge.structural {
+  --stroke: #6b7280;
+  --stroke-alpha: 0.6;
+}
+.graph-flow {
+  --stroke-width: 2;
+  --stroke-alpha: 0.95;
+  --glow-width: 6;
+  --glow-alpha: 0.25;
+}
+.graph-flow.flow-power {
+  --stroke: #5ff6ff;
+  --glow: #18c8ff;
+}
+.graph-flow.flow-fuel {
+  --stroke: #ff9f40;
+  --glow: #ff6a00;
+}
+.graph-flow.flow-ammo {
+  --stroke: #ffe066;
+  --glow: #ffcc00;
+}
+.graph-node {
+  --stroke: #ffffff;
+  --stroke-width: 1.2;
+  --fill: #04050b;
+  --fill-alpha: 1;
+  --min-size: 4;
+  --glow-alpha: 0;
+}
+.graph-node.cat-command {
+  --stroke: #ffffff;
+  --fill: #ffffff;
+  --min-size: 6;
+}
+.graph-node.cat-power {
+  --stroke: #5ff6ff;
+}
+.graph-node.cat-storage {
+  --stroke: #ffd36b;
+}
+.graph-node.cat-propulsion {
+  --stroke: #7dffb0;
+}
+.graph-node.cat-weapon {
+  --stroke: #ff5fd2;
+}
+.graph-node.structural {
+  --stroke: #6b7280;
+}
+.graph-node.unsupplied {
+  --stroke: #ff4f7b;
+  --stroke-width: 2;
+  --fill-alpha: 0;
+  --min-size: 8;
+  --glow: #ff4f7b;
+  --glow-width: 8;
+  --glow-alpha: 0.5;
+}

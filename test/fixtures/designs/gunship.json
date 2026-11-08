@@ -1,0 +1,16 @@
+{
+  "formatVersion": 1,
+  "createdAt": "2026-11-08T00:00:00Z",
+  "modifiedAt": "2026-11-08T00:00:00Z",
+  "weaponGroupModes": {},
+  "powerPriority": ["gyro", "propulsion", "weapons", "pointDefense", "hangar"],
+  "id": "gunship",
+  "name": "Test gunship",
+  "parts": [
+    { "uid": "eng", "partId": "core:test.engine", "x": -1, "y": 0, "angle": 0 },
+    { "uid": "cmd", "partId": "core:test.command", "x": 0, "y": 0, "angle": 0 },
+    { "uid": "gun", "partId": "core:test.gun", "x": 1, "y": 0, "angle": 0 },
+    { "uid": "mag", "partId": "core:test.magazine", "x": 0, "y": 1, "angle": 0 },
+    { "uid": "tank", "partId": "core:test.fueltank", "x": 0, "y": -1, "angle": 0 }
+  ]
+}

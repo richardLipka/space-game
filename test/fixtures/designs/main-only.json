@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "createdAt": "2026-11-07T00:00:00Z",
+  "modifiedAt": "2026-11-07T00:00:00Z",
+  "weaponGroupModes": {},
+  "powerPriority": ["gyro", "propulsion", "weapons", "pointDefense", "hangar"],
+  "id": "main-only",
+  "name": "Main engine only",
+  "parts": [
+    { "uid": "cmd", "partId": "core:test.command", "x": 1, "y": 0, "angle": 0 },
+    { "uid": "tank", "partId": "core:test.fueltank", "x": 0, "y": 0, "angle": 0 },
+    { "uid": "eng", "partId": "core:test.engine", "x": -1, "y": 0, "angle": 0 }
+  ]
+}

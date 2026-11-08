@@ -1,0 +1,17 @@
+{
+  "formatVersion": 1,
+  "createdAt": "2026-11-08T00:00:00Z",
+  "modifiedAt": "2026-11-08T00:00:00Z",
+  "weaponGroupModes": {},
+  "powerPriority": ["gyro", "propulsion", "weapons", "pointDefense", "hangar"],
+  "id": "target-dummy",
+  "name": "Target dummy",
+  "parts": [
+    { "uid": "cmd", "partId": "core:test.command", "x": 0, "y": 0, "angle": 0 },
+    { "uid": "a1", "partId": "core:test.square", "x": -1, "y": 0, "angle": 0 },
+    { "uid": "a2", "partId": "core:test.square", "x": 1, "y": 0, "angle": 0 },
+    { "uid": "a3", "partId": "core:test.square", "x": 0, "y": 1, "angle": 0 },
+    { "uid": "eng", "partId": "core:test.engine", "x": 0, "y": -1, "angle": 90 },
+    { "uid": "tank", "partId": "core:test.fueltank", "x": 1, "y": -1, "angle": 0 }
+  ]
+}

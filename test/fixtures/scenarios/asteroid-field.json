@@ -1,0 +1,76 @@
+{
+  "id": "test-asteroid-field",
+  "name": "Test asteroid field",
+  "description": "Drifting asteroids for golden runs",
+  "budget": 1000,
+  "maxPlayerShips": 1,
+  "arena": {
+    "width": 2000,
+    "height": 2000,
+    "asteroids": [
+      {
+        "position": [0, 0],
+        "angle": 0,
+        "outline": [
+          [-20, -15],
+          [18, -18],
+          [25, 5],
+          [0, 22],
+          [-22, 10]
+        ],
+        "static": true
+      },
+      {
+        "position": [150, 40],
+        "angle": 30,
+        "outline": [
+          [-8, -6],
+          [9, -7],
+          [10, 6],
+          [-7, 8]
+        ],
+        "velocity": [-20, 0],
+        "angularVelocity": 15
+      },
+      {
+        "position": [-150, -30],
+        "angle": 0,
+        "outline": [
+          [-6, -6],
+          [6, -6],
+          [6, 6],
+          [-6, 6]
+        ],
+        "velocity": [25, 2],
+        "angularVelocity": -10
+      },
+      {
+        "position": [0, 200],
+        "angle": 10,
+        "outline": [
+          [-10, -5],
+          [10, -5],
+          [0, 12]
+        ],
+        "velocity": [0, -30]
+      },
+      {
+        "position": [300, 300],
+        "angle": 0,
+        "outline": [
+          [-5, -5],
+          [5, -5],
+          [5, 5],
+          [-5, 5]
+        ],
+        "velocity": [-15, -15],
+        "angularVelocity": 45
+      }
+    ],
+    "gravityWells": []
+  },
+  "playerSpawns": [{ "position": [-400, 0], "angle": 0 }],
+  "enemies": [],
+  "objective": { "type": "destroyAll" },
+  "seed": 1
+}

@@ -1,0 +1,350 @@
+/* Minimal flat theme: proves theme switching works without touching game code (plan M1 task 12). */
+:root {
+  --bg: #e9edf2;
+  --hud-fg: #1d2733;
+  --hud-dim: #6b7887;
+  --hud-warn: #b25e00;
+  --hud-alert: #c0103a;
+  --hud-font: 13px/1.45 system-ui, sans-serif;
+}
+.part {
+  --stroke: #1d2733;
+  --stroke-width: 1;
+  --fill: #8aa4c0;
+  --fill-alpha: 0.9;
+  --glow-alpha: 0;
+}
+.part.team-1 {
+  --fill: #d98a8a;
+}
+.part.cat-command {
+  --fill: #f2f5f8;
+}
+.part.cat-propulsion {
+  --fill: #7fb88f;
+}
+.part.cat-storage {
+  --fill: #e0c070;
+}
+.part.state-wreck {
+  --fill: #9aa0a6;
+}
+.icon-ship {
+  --stroke: #1d2733;
+  --stroke-width: 1.5;
+  --min-size: 6;
+}
+.fx-thrust {
+  --stroke: #e07000;
+  --stroke-width: 3;
+  --glow-alpha: 0;
+  --scale: 0.8;
+}
+.fx-thrust.kind-thruster {
+  --stroke: #4a90c0;
+  --scale: 0.5;
+}
+.overlay-com {
+  --stroke: #c0103a;
+  --stroke-width: 1.5;
+  --min-size: 7;
+}
+.overlay-thrust {
+  --stroke: #b25e00;
+  --stroke-width: 1.5;
+}
+.overlay-gimbal-bad {
+  --stroke: #c0103a;
+  --stroke-width: 2;
+}
+.arena-grid {
+  --stroke: #d3d9e0;
+  --stroke-width: 1;
+}
+.arena-grid.major {
+  --stroke: #bcc5cf;
+}
+.arena-edge {
+  --stroke: #c0103a;
+  --stroke-width: 2;
+}
+.asteroid {
+  --stroke: #4d4a5c;
+  --fill: #a39fb5;
+  --fill-alpha: 1;
+}
+.gravity-well {
+  --stroke: #5a3d8a;
+  --fill: #c9b8e8;
+  --fill-alpha: 1;
+}
+
+/* ---- Editor ---- */
+:root {
+  --panel-bg: rgba(255, 255, 255, 0.95);
+  --panel-border: #c5ced8;
+  --panel-fg: #1d2733;
+  --panel-dim: #6b7887;
+  --accent: #2563a8;
+  --danger: #c0103a;
+  --warn: #b25e00;
+  --button-bg: #eef2f6;
+  --button-hover: #dde5ee;
+}
+.editor-grid {
+  --stroke: #d9dfe6;
+  --stroke-width: 1;
+}
+.editor-grid.major {
+  --stroke: #bcc5cf;
+}
+.editor-axis {
+  --stroke: #9aa6b3;
+  --stroke-width: 1.5;
+}
+.editor-axis.mirror {
+  --stroke: #b25e00;
+  --stroke-width: 2;
+}
+.part.state-selected {
+  --stroke: #2563a8;
+  --stroke-width: 2.5;
+}
+.part.state-issue {
+  --stroke: #c0103a;
+  --stroke-width: 2.5;
+}
+.editor-ghost {
+  --stroke: #2563a8;
+  --fill: #2563a8;
+  --fill-alpha: 0.15;
+}
+.editor-ghost.snapped {
+  --stroke: #1f8a4c;
+  --fill: #1f8a4c;
+  --fill-alpha: 0.2;
+}
+.editor-ghost.invalid {
+  --stroke: #c0103a;
+  --fill: #c0103a;
+  --fill-alpha: 0.15;
+}
+.overlay-connection {
+  --stroke: #1f8a4c;
+  --stroke-width: 3;
+}
+.overlay-exposed {
+  --stroke: #2563a8;
+  --stroke-width: 3;
+}
+.overlay-covered {
+  --stroke: #c0103a;
+  --stroke-width: 4;
+}
+.overlay-arc {
+  --stroke: #b25e00;
+  --stroke-width: 1;
+}
+.overlay-arc-blocked {
+  --stroke: #c0103a;
+  --fill: #c0103a;
+  --fill-alpha: 0.2;
+}
+.overlay-thrust.rcs {
+  --stroke: #4a90c0;
+}
+.overlay-net-0 {
+  --stroke: #1f8a4c;
+  --stroke-width: 2.5;
+}
+.overlay-net-1 {
+  --stroke: #c0103a;
+  --stroke-width: 2.5;
+}
+.overlay-net-2 {
+  --stroke: #b25e00;
+  --stroke-width: 2.5;
+}
+.overlay-net-3 {
+  --stroke: #5a3d8a;
+  --stroke-width: 2.5;
+}
+.overlay-net-4 {
+  --stroke: #a03070;
+  --stroke-width: 2.5;
+}
+.overlay-net-5 {
+  --stroke: #1d2733;
+  --stroke-width: 2.5;
+}
+
+/* ---- Editor connection guidance ---- */
+.guide-attach {
+  --stroke: #1f8a4c;
+  --stroke-width: 3.5;
+}
+.guide-no-attach {
+  --stroke: #c0103a;
+  --stroke-width: 1.5;
+  --stroke-alpha: 0.6;
+}
+.guide-ghost-snap {
+  --stroke: #1f8a4c;
+  --stroke-width: 2.5;
+}
+.guide-ghost-no-attach {
+  --stroke: #b25e00;
+  --stroke-width: 2.5;
+}
+.guide-contact.connect {
+  --stroke: #0b5d2e;
+  --stroke-width: 6;
+}
+.guide-contact.short {
+  --stroke: #b25e00;
+  --stroke-width: 6;
+}
+.guide-contact.blocked {
+  --stroke: #c0103a;
+  --stroke-width: 6;
+}
+.part.state-disconnected {
+  --stroke: #b25e00;
+  --stroke-width: 2.5;
+  --fill: #f2c48a;
+}
+
+/* ---- Combat effects (M4) ---- */
+.fx-projectile {
+  --stroke: #1d2733;
+  --stroke-width: 2;
+  --min-size: 6;
+  --scale: 1;
+}
+.fx-beam {
+  --stroke: #c0103a;
+  --stroke-width: 2.5;
+}
+.fx-fire {
+  --stroke: #e07000;
+  --fill: #f2c48a;
+  --fill-alpha: 0.8;
+  --min-size: 3;
+}
+.fx-hit {
+  --stroke: #e07000;
+  --min-size: 3;
+}
+.fx-beam-hit {
+  --stroke: #c0103a;
+  --min-size: 3;
+}
+.fx-explosion {
+  --stroke: #c0103a;
+  --stroke-width: 3;
+  --fill: #f2c48a;
+  --fill-alpha: 0.5;
+  --min-size: 6;
+}
+.fx-destroyed {
+  --stroke: #c0103a;
+  --stroke-width: 2;
+  --min-size: 5;
+}
+.fx-collision {
+  --stroke: #2563a8;
+  --stroke-width: 2;
+  --min-size: 5;
+}
+.overlay-target {
+  --stroke: #c0103a;
+  --stroke-width: 2;
+  --min-size: 18;
+}
+.overlay-target.defeated {
+  --stroke: #9aa0a6;
+}
+.overlay-turret {
+  --stroke: #1d2733;
+  --stroke-width: 2.5;
+}
+.overlay-turret.blocked {
+  --stroke: #c0103a;
+}
+
+/* ---- Heat, ejection, debris ---- */
+.fx-radiator-glow {
+  --stroke: #c0281a;
+  --stroke-width: 2;
+  --stroke-alpha: 1;
+  --fill: #e8452c;
+  --fill-alpha: 0.7;
+  --glow-alpha: 0;
+}
+.eject-candidate {
+  --stroke: #c77700;
+  --stroke-width: 2;
+  --fill-alpha: 0;
+}
+.eject-hover {
+  --stroke: #c0103a;
+  --stroke-width: 3;
+  --fill: #c0103a;
+  --fill-alpha: 0.3;
+}
+.debris {
+  --stroke: #6b7280;
+  --stroke-width: 1.2;
+  --fill: #b8bec6;
+  --fill-alpha: 0.6;
+}
+.debris.state-wreck {
+  --fill: #9aa0a6;
+}
+.fx-eject {
+  --stroke: #c77700;
+  --stroke-width: 2;
+}
+
+/* ---- Editor connection graph ---- */
+.graph-edge {
+  --stroke: #1d2733;
+  --stroke-width: 1;
+  --stroke-alpha: 0.5;
+}
+.graph-edge.structural {
+  --stroke: #9aa0a6;
+}
+.graph-flow {
+  --stroke-width: 2.5;
+  --stroke-alpha: 1;
+}
+.graph-flow.flow-power {
+  --stroke: #2563a8;
+}
+.graph-flow.flow-fuel {
+  --stroke: #d0661a;
+}
+.graph-flow.flow-ammo {
+  --stroke: #b08900;
+}
+.graph-node {
+  --stroke: #1d2733;
+  --stroke-width: 1.5;
+  --fill: #ffffff;
+  --fill-alpha: 1;
+  --min-size: 4;
+}
+.graph-node.cat-command {
+  --fill: #1d2733;
+  --min-size: 6;
+}
+.graph-node.structural {
+  --stroke: #9aa0a6;
+}
+.graph-node.unsupplied {
+  --stroke: #c0103a;
+  --stroke-width: 2.5;
+  --fill-alpha: 0;
+  --min-size: 8;
+}

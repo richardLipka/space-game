@@ -1,0 +1,51 @@
+{
+  "name": "space-game",
+  "version": "0.0.1",
+  "description": "2D space combat prototype: ship physics, construction and tactical combat",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "sim": "tsx src/headless/cli.ts",
+    "golden:update": "tsx test/golden/update.ts",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm run test"
+  },
+  "type": "module",
+  "dependencies": {
+    "@noble/hashes": "^2.4.0",
+    "@sinclair/typebox": "^0.34.52",
+    "ajv": "^8.20.0",
+    "fflate": "^0.8.3",
+    "pixi.js": "^8.22.0",
+    "planck": "^1.4.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.65.0",
+    "@types/node": "^26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "fast-check": "^4.10.2",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.1",
+    "vite": "^8.3.6",
+    "vitest": "^5.1.0"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  }
+}

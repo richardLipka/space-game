@@ -1,0 +1,13 @@
+{
+  "formatVersion": 1,
+  "createdAt": "2026-11-07T00:00:00Z",
+  "modifiedAt": "2026-11-07T00:00:00Z",
+  "weaponGroupModes": {},
+  "powerPriority": ["gyro", "propulsion", "weapons", "pointDefense", "hangar"],
+  "id": "dumbbell",
+  "name": "Dumbbell (physics-only fixture)",
+  "parts": [
+    { "uid": "p1", "partId": "core:test.square", "x": -5, "y": 0, "angle": 0 },
+    { "uid": "p2", "partId": "core:test.square", "x": 5, "y": 0, "angle": 0 }
+  ]
+}

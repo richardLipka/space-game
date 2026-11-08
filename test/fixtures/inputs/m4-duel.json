@@ -1,0 +1,25 @@
+{
+  "formatVersion": 1,
+  "frames": [
+    {
+      "tick": 0,
+      "ship": "ship-000001",
+      "intent": { "thrust": [0.3, 0], "rotate": 0, "fire": true, "aim": [60, 0] }
+    },
+    {
+      "tick": 600,
+      "ship": "ship-000001",
+      "intent": { "thrust": [0, 0], "rotate": 0, "faceAngle": 10, "fire": true, "aim": [60, 10] }
+    },
+    {
+      "tick": 1200,
+      "ship": "ship-000001",
+      "intent": { "thrust": [0, 0], "rotate": 0, "speedKill": "keep", "fire": false }
+    },
+    {
+      "tick": 1800,
+      "ship": "ship-000001",
+      "intent": { "thrust": [0, 0], "rotate": 0, "faceAngle": 0, "fire": true, "aim": [60, 0] }
+    }
+  ]
+}

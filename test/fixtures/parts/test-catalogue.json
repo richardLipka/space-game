@@ -1,0 +1,457 @@
+{
+  "catalogueVersion": "test-1",
+  "parts": [
+    {
+      "id": "core:test.square",
+      "rev": 1,
+      "source": "core",
+      "name": "Test square 1x1",
+      "category": "structure",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 100,
+      "hp": 100,
+      "cost": 1
+    },
+    {
+      "id": "core:test.rect",
+      "rev": 1,
+      "source": "core",
+      "name": "Test rectangle 2x1",
+      "category": "structure",
+      "outline": [
+        [-1, -0.5],
+        [1, -0.5],
+        [1, 0.5],
+        [-1, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 200,
+      "hp": 200,
+      "cost": 2
+    },
+    {
+      "id": "core:test.tri",
+      "rev": 1,
+      "source": "core",
+      "name": "Test right triangle",
+      "category": "structure",
+      "outline": [
+        [0, 0],
+        [1, 0],
+        [0, 1]
+      ],
+      "edges": ["snap", "hull", "snap"],
+      "mass": 50,
+      "hp": 50,
+      "cost": 1
+    },
+    {
+      "id": "core:test.lshape",
+      "rev": 1,
+      "source": "core",
+      "name": "Test L shape",
+      "category": "structure",
+      "outline": [
+        [0, 0],
+        [2, 0],
+        [2, 1],
+        [1, 1],
+        [1, 2],
+        [0, 2]
+      ],
+      "convexPieces": [
+        [
+          [0, 0],
+          [2, 0],
+          [2, 1],
+          [0, 1]
+        ],
+        [
+          [0, 1],
+          [1, 1],
+          [1, 2],
+          [0, 2]
+        ]
+      ],
+      "edges": ["snap", "snap", "snap", "snap", "snap", "snap"],
+      "mass": 300,
+      "hp": 300,
+      "cost": 3
+    },
+    {
+      "id": "core:test.command",
+      "rev": 1,
+      "source": "core",
+      "name": "Test command module",
+      "category": "command",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 100,
+      "hp": 200,
+      "cost": 10,
+      "command": {
+        "gyroTorque": 1000,
+        "powerDraw": 0
+      }
+    },
+    {
+      "id": "core:test.engine",
+      "rev": 1,
+      "source": "core",
+      "name": "Test main engine",
+      "category": "propulsion",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "function"],
+      "mass": 100,
+      "hp": 100,
+      "cost": 10,
+      "engine": {
+        "thrust": 10000,
+        "isp": 300,
+        "gimbalMax": 15,
+        "nozzleEdge": 3,
+        "powerDraw": 0,
+        "heatAtMax": 0
+      }
+    },
+    {
+      "id": "core:test.fueltank",
+      "rev": 1,
+      "source": "core",
+      "name": "Test fuel tank",
+      "category": "storage",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 20,
+      "hp": 50,
+      "cost": 2,
+      "fuelTank": {
+        "capacity": 400
+      }
+    },
+    {
+      "id": "core:test.rcs",
+      "rev": 1,
+      "source": "core",
+      "name": "Test RCS block",
+      "category": "propulsion",
+      "outline": [
+        [-0.25, -0.25],
+        [0.25, -0.25],
+        [0.25, 0.25],
+        [-0.25, 0.25]
+      ],
+      "edges": ["function", "snap", "snap", "snap"],
+      "mass": 10,
+      "hp": 20,
+      "cost": 2,
+      "thruster": {
+        "thrust": 500,
+        "isp": 200,
+        "direction": [0, 1],
+        "powerDraw": 0,
+        "heatAtMax": 0
+      }
+    },
+    {
+      "id": "core:test.gyro",
+      "rev": 1,
+      "source": "core",
+      "name": "Test gyroscope",
+      "category": "propulsion",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 80,
+      "hp": 50,
+      "cost": 5,
+      "gyro": {
+        "torque": 2000,
+        "powerDraw": 0,
+        "heat": 0
+      }
+    },
+    {
+      "id": "core:test.reactor",
+      "rev": 1,
+      "source": "core",
+      "name": "Test reactor",
+      "category": "power",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 50,
+      "hp": 100,
+      "cost": 1,
+      "reactor": {
+        "maxOutput": 100,
+        "heatPerWatt": 0.5
+      }
+    },
+    {
+      "id": "core:test.battery",
+      "rev": 1,
+      "source": "core",
+      "name": "Test battery",
+      "category": "power",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 50,
+      "hp": 100,
+      "cost": 1,
+      "battery": {
+        "capacity": 1000,
+        "maxCharge": 50,
+        "maxDischarge": 100
+      }
+    },
+    {
+      "id": "core:test.gyro.powered",
+      "rev": 1,
+      "source": "core",
+      "name": "Test powered gyro",
+      "category": "propulsion",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 50,
+      "hp": 100,
+      "cost": 1,
+      "gyro": {
+        "torque": 1000,
+        "powerDraw": 60,
+        "heat": 0
+      }
+    },
+    {
+      "id": "core:test.load.weapons",
+      "rev": 1,
+      "source": "core",
+      "name": "Test weapons load",
+      "category": "weapon",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "function", "snap", "snap"],
+      "mass": 50,
+      "hp": 100,
+      "cost": 1,
+      "weapon": {
+        "kind": "beam",
+        "mount": "fixed",
+        "muzzle": [0.5, 0],
+        "internalMagazine": 0,
+        "fireInterval": 1,
+        "powerDraw": 60,
+        "range": 10,
+        "spread": 0,
+        "beam": {
+          "dps": 1,
+          "falloffStart": 5
+        }
+      }
+    },
+    {
+      "id": "core:test.engine.electric",
+      "rev": 1,
+      "source": "core",
+      "name": "Test electric engine",
+      "category": "propulsion",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "function"],
+      "mass": 50,
+      "hp": 100,
+      "cost": 1,
+      "engine": {
+        "thrust": 1000,
+        "isp": 300,
+        "gimbalMax": 15,
+        "nozzleEdge": 3,
+        "powerDraw": 100,
+        "heatAtMax": 200
+      }
+    },
+    {
+      "id": "core:test.radiator",
+      "rev": 1,
+      "source": "core",
+      "name": "Test radiator",
+      "category": "thermal",
+      "outline": [
+        [-1, -0.25],
+        [1, -0.25],
+        [1, 0.25],
+        [-1, 0.25]
+      ],
+      "edges": ["function", "snap", "function", "snap"],
+      "mass": 50,
+      "hp": 100,
+      "cost": 1,
+      "radiator": {
+        "dissipation": 1000,
+        "retractedFactor": 0.25,
+        "extendedDamageMult": 2
+      }
+    },
+    {
+      "id": "core:test.heatsink",
+      "rev": 1,
+      "source": "core",
+      "name": "Test heat sink",
+      "category": "thermal",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 50,
+      "hp": 100,
+      "cost": 1,
+      "heatSink": {
+        "capacity": 1000000
+      }
+    },
+    {
+      "id": "core:test.heater",
+      "rev": 1,
+      "source": "core",
+      "name": "Test heater (reactor, no output use)",
+      "category": "power",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 50,
+      "hp": 100,
+      "cost": 1,
+      "reactor": {
+        "maxOutput": 1000,
+        "heatPerWatt": 1
+      }
+    },
+    {
+      "id": "core:test.insulator",
+      "rev": 1,
+      "source": "core",
+      "name": "Test non-conducting strut",
+      "category": "structure",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 50,
+      "hp": 100,
+      "cost": 1,
+      "conducts": false
+    },
+    {
+      "id": "core:test.magazine",
+      "rev": 1,
+      "source": "core",
+      "name": "Test magazine",
+      "category": "storage",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 50,
+      "hp": 100,
+      "cost": 1,
+      "magazine": {
+        "ammoType": "test-ammo",
+        "capacity": 100,
+        "massPerRound": 1
+      }
+    },
+    {
+      "id": "core:test.gun",
+      "rev": 1,
+      "source": "core",
+      "name": "Test gun",
+      "category": "weapon",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "function", "snap", "snap"],
+      "mass": 50,
+      "hp": 100,
+      "cost": 1,
+      "weapon": {
+        "kind": "projectile",
+        "mount": "fixed",
+        "muzzle": [0.5, 0],
+        "ammoType": "test-ammo",
+        "internalMagazine": 10,
+        "fireInterval": 0.5,
+        "range": 100,
+        "spread": 0,
+        "projectile": {
+          "speed": 100,
+          "mass": 1,
+          "damage": 1,
+          "lifetime": 1
+        }
+      }
+    }
+  ]
+}

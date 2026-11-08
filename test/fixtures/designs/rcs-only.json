@@ -1,0 +1,19 @@
+{
+  "formatVersion": 1,
+  "createdAt": "2026-11-07T00:00:00Z",
+  "modifiedAt": "2026-11-07T00:00:00Z",
+  "weaponGroupModes": {},
+  "powerPriority": ["gyro", "propulsion", "weapons", "pointDefense", "hangar"],
+  "id": "rcs-only",
+  "name": "RCS only",
+  "parts": [
+    { "uid": "cmd", "partId": "core:test.command", "x": 0, "y": 0, "angle": 0 },
+    { "uid": "tank", "partId": "core:test.fueltank", "x": -1, "y": 0, "angle": 0 },
+    { "uid": "lf", "partId": "core:test.rcs", "x": 0.75, "y": -0.75, "angle": 0 },
+    { "uid": "lb", "partId": "core:test.rcs", "x": -1.25, "y": -0.75, "angle": 0 },
+    { "uid": "rf", "partId": "core:test.rcs", "x": 0.75, "y": 0.75, "angle": 180 },
+    { "uid": "rb", "partId": "core:test.rcs", "x": -1.25, "y": 0.75, "angle": 180 },
+    { "uid": "fwd", "partId": "core:test.rcs", "x": -1.75, "y": 0, "angle": -90 },
+    { "uid": "back", "partId": "core:test.rcs", "x": 0.75, "y": 0, "angle": 90 }
+  ]
+}

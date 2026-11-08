@@ -1,0 +1,19 @@
+{
+  "formatVersion": 1,
+  "createdAt": "2026-11-08T00:00:00Z",
+  "modifiedAt": "2026-11-08T00:00:00Z",
+  "weaponGroupModes": {},
+  "powerPriority": ["propulsion", "gyro", "weapons", "pointDefense", "hangar"],
+  "id": "power-starved",
+  "name": "Power-starved frigate",
+  "parts": [
+    { "uid": "cmd", "partId": "core:test.command", "x": 1, "y": 0, "angle": 0 },
+    { "uid": "eng", "partId": "core:test.engine.electric", "x": 0, "y": 0, "angle": 0 },
+    { "uid": "tank", "partId": "core:test.fueltank", "x": 2, "y": 0, "angle": 0 },
+    { "uid": "reactor", "partId": "core:test.reactor", "x": 1, "y": 1, "angle": 0 },
+    { "uid": "gyro1", "partId": "core:test.gyro.powered", "x": 1, "y": -1, "angle": 0 },
+    { "uid": "battery", "partId": "core:test.battery", "x": 2, "y": 1, "angle": 0 },
+    { "uid": "gyro2", "partId": "core:test.gyro.powered", "x": 2, "y": -1, "angle": 0 },
+    { "uid": "rad", "partId": "core:test.radiator", "x": 3.5, "y": 0, "angle": 0 }
+  ]
+}

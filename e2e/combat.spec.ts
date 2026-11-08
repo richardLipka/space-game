@@ -1,0 +1,69 @@
+import { expect, test, type Page } from "@playwright/test";
+
+interface Game {
+  openSandbox(): void;
+  setTarget(id: string | null): void;
+  enemies(): string[];
+  screenOfShip(id: string): { x: number; y: number } | null;
+  pause(p: boolean): void;
+}
+const game = <T>(page: Page, fn: (g: Game) => T): Promise<T> =>
+  page.evaluate(`(${fn.toString()})(window.__game)`) as Promise<T>;
+
+test("4.24 select group 2, aim at the dummy, fire: its hull drops in the HUD", async ({ page }) => {
+  test.setTimeout(60_000);
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/");
+  await expect(page.getByTestId("palette")).toBeVisible();
+  await game(page, (g) => g.openSandbox());
+  await expect(page.getByTestId("group-1")).toBeVisible();
+  const target = (await game(page, (g) => g.enemies()))[0]!;
+  await game(page, (g) => g.setTarget(g.enemies()[0]!));
+  await expect(page.getByTestId("target")).toContainText("Mule");
+  await expect(page.locator("#hud")).toContainText("hull 100%");
+
+  // Let the camera settle on the ship + target framing before aiming at screen coordinates.
+  await page.waitForTimeout(1200);
+  await page.keyboard.press("2");
+  await expect(page.getByTestId("group-2")).toHaveClass("sel");
+  await expect(page.getByTestId("group-1")).toHaveClass("dim");
+
+  const box = (await page.locator("#view").boundingBox())!;
+  const aimAtTarget = async () => {
+    const p = (await page.evaluate(`window.__game.screenOfShip(${JSON.stringify(target)})`)) as {
+      x: number;
+      y: number;
+    };
+    await page.mouse.move(box.x + p.x, box.y + p.y);
+  };
+  await aimAtTarget();
+  await page.mouse.down();
+  for (let i = 0; i < 20; i++) {
+    await page.waitForTimeout(150);
+    await aimAtTarget();
+  }
+  await page.mouse.up();
+  await page.screenshot({ path: "test-results/m4-combat.png" });
+  await expect
+    .poll(async () => Number((await page.locator("#hud").innerText()).match(/hull (\d+)%/)?.[1] ?? 100), {
+      timeout: 10_000,
+    })
+    .toBeLessThan(100);
+  // Group 2 ammo was used; group 1 (fixed cannon, unselected) still full.
+  await expect(page.getByTestId("group-1")).toContainText("loaded 4/4");
+  await expect(page.getByTestId("ammo-kinetic-120")).toHaveText("40");
+  expect(Number(await page.getByTestId("ammo-autocannon-30").textContent())).toBeLessThan(600);
+  expect(errors).toEqual([]);
+});
+
+test("G cycles the selected group's mode", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByTestId("palette")).toBeVisible();
+  await game(page, (g) => g.openSandbox());
+  await expect(page.getByTestId("group-1")).toContainText("manual");
+  await page.keyboard.press("g");
+  await expect(page.getByTestId("group-1")).toContainText("hold");
+  await page.keyboard.press("g");
+  await expect(page.getByTestId("group-1")).toContainText("ai");
+});

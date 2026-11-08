@@ -1,0 +1,884 @@
+{
+  "catalogueVersion": "v0-3",
+  "parts": [
+    {
+      "id": "core:hull.square.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Hull plate S",
+      "category": "structure",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 40,
+      "hp": 60,
+      "cost": 4
+    },
+    {
+      "id": "core:hull.square.m",
+      "rev": 1,
+      "source": "core",
+      "name": "Hull plate M",
+      "category": "structure",
+      "outline": [
+        [-1, -1],
+        [1, -1],
+        [1, 1],
+        [-1, 1]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 160,
+      "hp": 240,
+      "cost": 14
+    },
+    {
+      "id": "core:hull.rect.m",
+      "rev": 1,
+      "source": "core",
+      "name": "Hull beam M",
+      "category": "structure",
+      "outline": [
+        [-1, -0.5],
+        [1, -0.5],
+        [1, 0.5],
+        [-1, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 80,
+      "hp": 120,
+      "cost": 7
+    },
+    {
+      "id": "core:hull.tri.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Hull corner S",
+      "category": "structure",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "hull", "snap"],
+      "mass": 20,
+      "hp": 30,
+      "cost": 2
+    },
+    {
+      "id": "core:hull.wedge.m",
+      "rev": 1,
+      "source": "core",
+      "name": "Nose wedge M",
+      "category": "structure",
+      "outline": [
+        [-1, -0.75],
+        [1, -0.25],
+        [1, 0.25],
+        [-1, 0.75]
+      ],
+      "edges": ["hull", "hull", "hull", "snap"],
+      "mass": 70,
+      "hp": 120,
+      "cost": 6
+    },
+    {
+      "id": "core:command.s",
+      "rev": 2,
+      "source": "core",
+      "name": "Command module",
+      "category": "command",
+      "outline": [
+        [-0.75, -0.75],
+        [0.75, -0.75],
+        [0.75, 0.75],
+        [-0.75, 0.75]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 300,
+      "hp": 300,
+      "cost": 30,
+      "command": {
+        "gyroTorque": 6000,
+        "powerDraw": 5000
+      },
+      "reactor": {
+        "maxOutput": 30000,
+        "heatPerWatt": 0.3
+      }
+    },
+    {
+      "id": "core:engine.main.s",
+      "rev": 2,
+      "source": "core",
+      "name": "Main engine S",
+      "category": "propulsion",
+      "outline": [
+        [-0.5, -0.75],
+        [0.5, -0.75],
+        [0.5, 0.75],
+        [-0.5, 0.75]
+      ],
+      "edges": ["snap", "snap", "snap", "function"],
+      "mass": 180,
+      "hp": 150,
+      "cost": 25,
+      "engine": {
+        "thrust": 40000,
+        "isp": 320,
+        "gimbalMax": 15,
+        "nozzleEdge": 3,
+        "powerDraw": 0,
+        "heatAtMax": 60000
+      }
+    },
+    {
+      "id": "core:engine.main.l",
+      "rev": 2,
+      "source": "core",
+      "name": "Main engine L",
+      "category": "propulsion",
+      "outline": [
+        [-1, -1.5],
+        [1, -1.5],
+        [1, 1.5],
+        [-1, 1.5]
+      ],
+      "edges": ["snap", "snap", "snap", "function"],
+      "mass": 1400,
+      "hp": 900,
+      "cost": 120,
+      "engine": {
+        "thrust": 400000,
+        "isp": 340,
+        "gimbalMax": 10,
+        "nozzleEdge": 3,
+        "powerDraw": 0,
+        "heatAtMax": 400000
+      }
+    },
+    {
+      "id": "core:rcs.s",
+      "rev": 2,
+      "source": "core",
+      "name": "RCS block",
+      "category": "propulsion",
+      "outline": [
+        [-0.25, -0.25],
+        [0.25, -0.25],
+        [0.25, 0.25],
+        [-0.25, 0.25]
+      ],
+      "edges": ["function", "snap", "snap", "snap"],
+      "mass": 15,
+      "hp": 25,
+      "cost": 5,
+      "thruster": {
+        "thrust": 3000,
+        "isp": 220,
+        "direction": [0, 1],
+        "powerDraw": 0,
+        "heatAtMax": 2000
+      }
+    },
+    {
+      "id": "core:tank.fuel.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Fuel tank S",
+      "category": "storage",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 30,
+      "hp": 60,
+      "cost": 5,
+      "fuelTank": {
+        "capacity": 500
+      }
+    },
+    {
+      "id": "core:tank.fuel.m",
+      "rev": 1,
+      "source": "core",
+      "name": "Fuel tank M",
+      "category": "storage",
+      "outline": [
+        [-1, -1],
+        [1, -1],
+        [1, 1],
+        [-1, 1]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 110,
+      "hp": 200,
+      "cost": 16,
+      "fuelTank": {
+        "capacity": 2200
+      }
+    },
+    {
+      "id": "core:gyro.s",
+      "rev": 2,
+      "source": "core",
+      "name": "Gyroscope S",
+      "category": "propulsion",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 120,
+      "hp": 80,
+      "cost": 18,
+      "gyro": {
+        "torque": 20000,
+        "powerDraw": 40000,
+        "heat": 5000
+      }
+    },
+    {
+      "id": "core:armor.square.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Armor plate S",
+      "category": "armor",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 160,
+      "hp": 400,
+      "cost": 10,
+      "armor": 20
+    },
+    {
+      "id": "core:armor.square.m",
+      "rev": 1,
+      "source": "core",
+      "name": "Armor plate M",
+      "category": "armor",
+      "outline": [
+        [-1, -1],
+        [1, -1],
+        [1, 1],
+        [-1, 1]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 640,
+      "hp": 1600,
+      "cost": 36,
+      "armor": 30
+    },
+    {
+      "id": "core:armor.wedge.m",
+      "rev": 1,
+      "source": "core",
+      "name": "Armor wedge M",
+      "category": "armor",
+      "outline": [
+        [-1, -0.75],
+        [1, -0.25],
+        [1, 0.25],
+        [-1, 0.75]
+      ],
+      "edges": ["hull", "hull", "hull", "snap"],
+      "mass": 420,
+      "hp": 900,
+      "cost": 24,
+      "armor": 25
+    },
+    {
+      "id": "core:armor.tri.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Armor corner S",
+      "category": "armor",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "hull", "snap"],
+      "mass": 80,
+      "hp": 200,
+      "cost": 6,
+      "armor": 20
+    },
+    {
+      "id": "core:reactor.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Reactor S",
+      "category": "power",
+      "outline": [
+        [-0.75, -0.75],
+        [0.75, -0.75],
+        [0.75, 0.75],
+        [-0.75, 0.75]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 600,
+      "hp": 250,
+      "cost": 40,
+      "reactor": {
+        "maxOutput": 400000,
+        "heatPerWatt": 0.3
+      }
+    },
+    {
+      "id": "core:reactor.m",
+      "rev": 1,
+      "source": "core",
+      "name": "Reactor M",
+      "category": "power",
+      "outline": [
+        [-1.5, -1.5],
+        [1.5, -1.5],
+        [1.5, 1.5],
+        [-1.5, 1.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 2600,
+      "hp": 900,
+      "cost": 140,
+      "reactor": {
+        "maxOutput": 2000000,
+        "heatPerWatt": 0.25
+      }
+    },
+    {
+      "id": "core:battery.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Battery S",
+      "category": "power",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 90,
+      "hp": 60,
+      "cost": 8,
+      "battery": {
+        "capacity": 2000000,
+        "maxCharge": 200000,
+        "maxDischarge": 400000
+      }
+    },
+    {
+      "id": "core:radiator.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Radiator panel S",
+      "category": "thermal",
+      "outline": [
+        [-1, -0.25],
+        [1, -0.25],
+        [1, 0.25],
+        [-1, 0.25]
+      ],
+      "edges": ["function", "snap", "function", "snap"],
+      "mass": 60,
+      "hp": 40,
+      "cost": 8,
+      "radiator": {
+        "dissipation": 150000,
+        "retractedFactor": 0.3,
+        "extendedDamageMult": 2
+      }
+    },
+    {
+      "id": "core:heatsink.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Heat sink S",
+      "category": "thermal",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 200,
+      "hp": 120,
+      "cost": 10,
+      "heatSink": {
+        "capacity": 20000000
+      }
+    },
+    {
+      "id": "core:magazine.kinetic.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Kinetic magazine S",
+      "category": "storage",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 40,
+      "hp": 80,
+      "cost": 6,
+      "magazine": {
+        "ammoType": "kinetic-120",
+        "capacity": 40,
+        "massPerRound": 8
+      }
+    },
+    {
+      "id": "core:magazine.autocannon.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Autocannon magazine S",
+      "category": "storage",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 40,
+      "hp": 80,
+      "cost": 6,
+      "magazine": {
+        "ammoType": "autocannon-30",
+        "capacity": 600,
+        "massPerRound": 0.6
+      }
+    },
+    {
+      "id": "core:magazine.missile.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Missile magazine S",
+      "category": "storage",
+      "outline": [
+        [-0.75, -0.5],
+        [0.75, -0.5],
+        [0.75, 0.5],
+        [-0.75, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 80,
+      "hp": 100,
+      "cost": 10,
+      "magazine": {
+        "ammoType": "missile-std",
+        "capacity": 6,
+        "massPerRound": 90
+      }
+    },
+    {
+      "id": "core:magazine.flak.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Flak magazine S",
+      "category": "storage",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 40,
+      "hp": 80,
+      "cost": 6,
+      "magazine": {
+        "ammoType": "flak-40",
+        "capacity": 200,
+        "massPerRound": 1.5
+      }
+    },
+    {
+      "id": "core:magazine.pd.s",
+      "rev": 1,
+      "source": "core",
+      "name": "PD magazine S",
+      "category": "storage",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 30,
+      "hp": 80,
+      "cost": 5,
+      "magazine": {
+        "ammoType": "pd-20",
+        "capacity": 1500,
+        "massPerRound": 0.15
+      }
+    },
+    {
+      "id": "core:weapon.cannon.fixed.m",
+      "rev": 1,
+      "source": "core",
+      "name": "Kinetic cannon (fixed)",
+      "category": "weapon",
+      "outline": [
+        [-1.5, -0.5],
+        [1.5, -0.5],
+        [1.5, 0.5],
+        [-1.5, 0.5]
+      ],
+      "edges": ["snap", "function", "snap", "snap"],
+      "mass": 700,
+      "hp": 300,
+      "cost": 60,
+      "weapon": {
+        "kind": "projectile",
+        "mount": "fixed",
+        "muzzle": [1.5, 0],
+        "ammoType": "kinetic-120",
+        "internalMagazine": 4,
+        "fireInterval": 2.5,
+        "heatPerShot": 200000,
+        "range": 3000,
+        "spread": 0.15,
+        "projectile": {
+          "speed": 2200,
+          "mass": 8,
+          "damage": 400,
+          "lifetime": 2
+        }
+      }
+    },
+    {
+      "id": "core:weapon.autocannon.turret.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Autocannon turret",
+      "category": "weapon",
+      "outline": [
+        [0.6929, -0.287],
+        [0.6929, 0.287],
+        [0.287, 0.6929],
+        [-0.287, 0.6929],
+        [-0.6929, 0.287],
+        [-0.6929, -0.287],
+        [-0.287, -0.6929],
+        [0.287, -0.6929]
+      ],
+      "edges": ["hull", "hull", "hull", "hull", "snap", "hull", "hull", "hull"],
+      "mass": 260,
+      "hp": 160,
+      "cost": 35,
+      "weapon": {
+        "kind": "projectile",
+        "mount": "turret",
+        "arc": [-135, 135],
+        "traverseRate": 120,
+        "muzzle": [0, 0],
+        "ammoType": "autocannon-30",
+        "internalMagazine": 30,
+        "fireInterval": 0.12,
+        "heatPerShot": 8000,
+        "range": 1500,
+        "spread": 0.6,
+        "projectile": {
+          "speed": 1400,
+          "mass": 0.6,
+          "damage": 25,
+          "lifetime": 1.6
+        }
+      }
+    },
+    {
+      "id": "core:weapon.autocannon.turret.light",
+      "rev": 1,
+      "source": "core",
+      "name": "Light autocannon turret",
+      "category": "weapon",
+      "outline": [
+        [0.5081, -0.2105],
+        [0.5081, 0.2105],
+        [0.2105, 0.5081],
+        [-0.2105, 0.5081],
+        [-0.5081, 0.2105],
+        [-0.5081, -0.2105],
+        [-0.2105, -0.5081],
+        [0.2105, -0.5081]
+      ],
+      "edges": ["hull", "hull", "hull", "hull", "snap", "hull", "hull", "hull"],
+      "mass": 140,
+      "hp": 90,
+      "cost": 22,
+      "weapon": {
+        "kind": "projectile",
+        "mount": "turret",
+        "arc": [-150, 150],
+        "traverseRate": 240,
+        "muzzle": [0, 0],
+        "ammoType": "autocannon-30",
+        "internalMagazine": 20,
+        "fireInterval": 0.1,
+        "heatPerShot": 5000,
+        "range": 1200,
+        "spread": 0.9,
+        "projectile": {
+          "speed": 1400,
+          "mass": 0.6,
+          "damage": 15,
+          "lifetime": 1.4
+        }
+      }
+    },
+    {
+      "id": "core:weapon.cannon.turret.m",
+      "rev": 1,
+      "source": "core",
+      "name": "Heavy cannon turret",
+      "category": "weapon",
+      "outline": [
+        [1.0163, -0.421],
+        [1.0163, 0.421],
+        [0.421, 1.0163],
+        [-0.421, 1.0163],
+        [-1.0163, 0.421],
+        [-1.0163, -0.421],
+        [-0.421, -1.0163],
+        [0.421, -1.0163]
+      ],
+      "edges": ["hull", "hull", "hull", "hull", "snap", "hull", "hull", "hull"],
+      "mass": 1100,
+      "hp": 450,
+      "cost": 85,
+      "weapon": {
+        "kind": "projectile",
+        "mount": "turret",
+        "arc": [-120, 120],
+        "traverseRate": 35,
+        "muzzle": [0, 0],
+        "ammoType": "kinetic-120",
+        "internalMagazine": 3,
+        "fireInterval": 3,
+        "heatPerShot": 220000,
+        "range": 3000,
+        "spread": 0.2,
+        "projectile": {
+          "speed": 2200,
+          "mass": 8,
+          "damage": 400,
+          "lifetime": 2
+        }
+      }
+    },
+    {
+      "id": "core:weapon.laser.turret.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Laser turret",
+      "category": "weapon",
+      "outline": [
+        [0.6929, -0.287],
+        [0.6929, 0.287],
+        [0.287, 0.6929],
+        [-0.287, 0.6929],
+        [-0.6929, 0.287],
+        [-0.6929, -0.287],
+        [-0.287, -0.6929],
+        [0.287, -0.6929]
+      ],
+      "edges": ["hull", "hull", "hull", "hull", "snap", "hull", "hull", "hull"],
+      "mass": 300,
+      "hp": 140,
+      "cost": 45,
+      "weapon": {
+        "kind": "beam",
+        "mount": "turret",
+        "arc": [-135, 135],
+        "traverseRate": 90,
+        "muzzle": [0, 0],
+        "internalMagazine": 0,
+        "fireInterval": 0.1,
+        "powerDraw": 300000,
+        "heatWhileFiring": 250000,
+        "range": 1200,
+        "spread": 0.05,
+        "beam": {
+          "dps": 120,
+          "falloffStart": 600
+        }
+      }
+    },
+    {
+      "id": "core:weapon.lance.fixed.m",
+      "rev": 1,
+      "source": "core",
+      "name": "Laser lance (fixed)",
+      "category": "weapon",
+      "outline": [
+        [-1.5, -0.5],
+        [1.5, -0.5],
+        [1.5, 0.5],
+        [-1.5, 0.5]
+      ],
+      "edges": ["snap", "function", "snap", "snap"],
+      "mass": 650,
+      "hp": 260,
+      "cost": 70,
+      "weapon": {
+        "kind": "beam",
+        "mount": "fixed",
+        "muzzle": [1.5, 0],
+        "internalMagazine": 0,
+        "fireInterval": 0.1,
+        "powerDraw": 900000,
+        "heatWhileFiring": 700000,
+        "range": 2200,
+        "spread": 0.02,
+        "beam": {
+          "dps": 420,
+          "falloffStart": 1400
+        }
+      }
+    },
+    {
+      "id": "core:weapon.missile.launcher.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Missile launcher",
+      "category": "weapon",
+      "outline": [
+        [-0.75, -0.5],
+        [0.75, -0.5],
+        [0.75, 0.5],
+        [-0.75, 0.5]
+      ],
+      "edges": ["snap", "function", "snap", "snap"],
+      "mass": 220,
+      "hp": 120,
+      "cost": 40,
+      "weapon": {
+        "kind": "missile",
+        "mount": "fixed",
+        "muzzle": [0.75, 0],
+        "ammoType": "missile-std",
+        "internalMagazine": 2,
+        "fireInterval": 1,
+        "heatPerShot": 20000,
+        "range": 4000,
+        "spread": 2,
+        "missile": {
+          "mass": 90,
+          "thrust": 6000,
+          "fuel": 8,
+          "turnRate": 120,
+          "hp": 30,
+          "damage": 600,
+          "proximityFuse": 6,
+          "blastRadius": 15,
+          "guidance": "pn",
+          "navConstant": 3.5
+        }
+      }
+    },
+    {
+      "id": "core:weapon.pd.gatling.s",
+      "rev": 1,
+      "source": "core",
+      "name": "PD gatling",
+      "category": "weapon",
+      "outline": [
+        [0.4619, -0.1913],
+        [0.4619, 0.1913],
+        [0.1913, 0.4619],
+        [-0.1913, 0.4619],
+        [-0.4619, 0.1913],
+        [-0.4619, -0.1913],
+        [-0.1913, -0.4619],
+        [0.1913, -0.4619]
+      ],
+      "edges": ["hull", "hull", "hull", "hull", "snap", "hull", "hull", "hull"],
+      "mass": 120,
+      "hp": 80,
+      "cost": 25,
+      "weapon": {
+        "kind": "pd",
+        "mount": "turret",
+        "arc": [-150, 150],
+        "traverseRate": 360,
+        "muzzle": [0, 0],
+        "ammoType": "pd-20",
+        "internalMagazine": 100,
+        "fireInterval": 0.03,
+        "heatPerShot": 1500,
+        "range": 600,
+        "spread": 0.8,
+        "projectile": {
+          "speed": 1600,
+          "mass": 0.15,
+          "damage": 6,
+          "lifetime": 0.5
+        }
+      }
+    },
+    {
+      "id": "core:weapon.pd.flak.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Flak PD",
+      "category": "weapon",
+      "outline": [
+        [0.5543, -0.2296],
+        [0.5543, 0.2296],
+        [0.2296, 0.5543],
+        [-0.2296, 0.5543],
+        [-0.5543, 0.2296],
+        [-0.5543, -0.2296],
+        [-0.2296, -0.5543],
+        [0.2296, -0.5543]
+      ],
+      "edges": ["hull", "hull", "hull", "hull", "snap", "hull", "hull", "hull"],
+      "mass": 180,
+      "hp": 100,
+      "cost": 30,
+      "weapon": {
+        "kind": "pd",
+        "mount": "turret",
+        "arc": [-150, 150],
+        "traverseRate": 200,
+        "muzzle": [0, 0],
+        "ammoType": "flak-40",
+        "internalMagazine": 20,
+        "fireInterval": 0.25,
+        "heatPerShot": 6000,
+        "range": 900,
+        "spread": 1.5,
+        "projectile": {
+          "speed": 900,
+          "mass": 1.5,
+          "damage": 10,
+          "lifetime": 1.2,
+          "proximityFuse": 8,
+          "burstRadius": 25,
+          "burstDamage": 18
+        }
+      }
+    }
+  ]
+}

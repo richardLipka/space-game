@@ -1,0 +1,92 @@
+{
+  "id": "m1-sandbox",
+  "name": "Flight sandbox",
+  "description": "Asteroid field for flight testing",
+  "budget": 100000,
+  "maxPlayerShips": 3,
+  "arena": {
+    "width": 6000,
+    "height": 6000,
+    "asteroids": [
+      {
+        "position": [300, 120],
+        "angle": 0,
+        "outline": [
+          [-40, -30],
+          [36, -36],
+          [50, 10],
+          [0, 44],
+          [-44, 20]
+        ],
+        "static": true
+      },
+      {
+        "position": [600, -260],
+        "angle": 30,
+        "outline": [
+          [-16, -12],
+          [18, -14],
+          [20, 12],
+          [-14, 16]
+        ],
+        "velocity": [-6, 2],
+        "angularVelocity": 8
+      },
+      {
+        "position": [-400, 380],
+        "angle": 0,
+        "outline": [
+          [-12, -12],
+          [12, -12],
+          [12, 12],
+          [-12, 12]
+        ],
+        "velocity": [4, -3],
+        "angularVelocity": -6
+      },
+      {
+        "position": [900, 500],
+        "angle": 10,
+        "outline": [
+          [-60, -30],
+          [60, -30],
+          [0, 70]
+        ],
+        "static": true
+      },
+      {
+        "position": [-900, -600],
+        "angle": 0,
+        "outline": [
+          [-80, -50],
+          [70, -70],
+          [90, 40],
+          [-20, 90],
+          [-90, 30]
+        ],
+        "static": true
+      },
+      {
+        "position": [1500, 0],
+        "angle": 0,
+        "outline": [
+          [-25, -25],
+          [25, -25],
+          [25, 25],
+          [-25, 25]
+        ],
+        "velocity": [-10, 0],
+        "angularVelocity": 20
+      }
+    ],
+    "gravityWells": []
+  },
+  "playerSpawns": [
+    { "position": [0, 0], "angle": 0 },
+    { "position": [0, -40], "angle": 0 },
+    { "position": [-150, 60], "angle": 0 }
+  ],
+  "enemies": [],
+  "objective": { "type": "destroyAll" },
+  "seed": 1
+}

@@ -1,0 +1,13 @@
+{
+  "formatVersion": 1,
+  "frames": [
+    { "tick": 0, "ship": "ship-000001", "intent": { "thrust": [1, 0], "rotate": 0 } },
+    { "tick": 300, "ship": "ship-000001", "intent": { "thrust": [0, 0], "rotate": 1 } },
+    { "tick": 420, "ship": "ship-000001", "intent": { "thrust": [0, 1], "rotate": 0 } },
+    { "tick": 600, "ship": "ship-000001", "intent": { "thrust": [0, 0], "rotate": 0, "faceAngle": 135 } },
+    { "tick": 900, "ship": "ship-000001", "intent": { "thrust": [1, -0.5], "rotate": 0 } },
+    { "tick": 1500, "ship": "ship-000001", "intent": { "thrust": [0, 0], "rotate": 0, "speedKill": "flip" } },
+    { "tick": 3000, "ship": "ship-000001", "intent": { "thrust": [-1, 0], "rotate": -0.5 } },
+    { "tick": 3300, "ship": "ship-000001", "intent": { "thrust": [0, 0], "rotate": 0, "speedKill": "keep" } }
+  ]
+}
