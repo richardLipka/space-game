@@ -41,7 +41,7 @@ test("palette: categories open and close, search filters, part info shows turret
   await expect(page.getByTestId("palette-core:hull.square.s")).toHaveCount(0);
   await heavy.hover();
   await expect(page.getByTestId("part-info")).toContainText("Heavy cannon turret");
-  await expect(page.getByTestId("part-info")).toContainText("35°/s");
+  await expect(page.getByTestId("part-info")).toContainText("45°/s");
   await page.getByTestId("palette-core:weapon.autocannon.turret.light").hover();
   await expect(page.getByTestId("part-info")).toContainText("240°/s");
 

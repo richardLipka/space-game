@@ -29,11 +29,18 @@ export const GravityWell = Type.Object(
 );
 export type GravityWell = Static<typeof GravityWell>;
 
+/**
+ * Win condition (spec §12). destroyAll: every enemy ship (not drones) defeated. survive: hold out for
+ * `seconds`. protect: the allied ship spawned from `designId` (an `enemies` entry on team 0) must live
+ * until every enemy is defeated. Losing all player ships always loses.
+ */
 export const Objective = Type.Union([
   Type.Object({ type: Type.Literal("destroyAll") }, strict),
   Type.Object({ type: Type.Literal("survive"), seconds: PositiveNumber }, strict),
   Type.Object({ type: Type.Literal("protect"), designId: Uuidish }, strict),
 ]);
+
+export type Objective = Static<typeof Objective>;
 
 export const Scenario = Type.Object(
   {
@@ -61,6 +68,12 @@ export const Scenario = Type.Object(
     ),
     objective: Objective,
     seed: Type.Integer(),
+    /** Order in the scenario list (lower first). */
+    order: Type.Optional(Type.Integer()),
+    /** Short tips shown before and during the battle (tutorial hints, plan M7 task 7). */
+    hints: Type.Optional(Type.Array(Type.String())),
+    /** Player designs known to win this scenario (offered as a starting point; used by test 7.2). */
+    referenceDesigns: Type.Optional(Type.Array(Uuidish)),
   },
   strict,
 );

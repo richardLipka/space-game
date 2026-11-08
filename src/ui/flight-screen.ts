@@ -16,6 +16,8 @@ import { pointInPolygon } from "../sim/core/geometry";
 import { aiProfile } from "../data/ai/index";
 import type { AiProfile } from "../data/schemas/ai";
 import type { Order } from "../sim/ai/brain";
+import { updateBattle, type Battle } from "../sim/scenario/battle";
+import { el } from "./editor/dom";
 
 export interface FlightSetup {
   readonly world: World;
@@ -23,6 +25,12 @@ export interface FlightSetup {
   readonly playerShips: Ship[];
   /** Label shown in the HUD (e.g. "Test flight"). */
   readonly title: string;
+  /** Scenario battle (spec §12): objective tracking and the results screen. */
+  readonly battle?: Battle;
+  /** Called once when the battle ends (results are saved here). */
+  readonly onBattleEnd?: (b: Battle) => void;
+  /** Starts the same battle again. */
+  readonly retry?: () => void;
 }
 
 const TIME_SCALES = [0.25, 0.5, 1, 2] as const;
@@ -70,6 +78,34 @@ export class FlightScreen {
     this.powerPanel.dataset.testid = "power-panel";
     this.powerPanel.hidden = true;
     document.body.append(this.powerPanel);
+    this.resultsPanel = el("div", { class: "results-panel", "data-testid": "results", hidden: "" });
+    document.body.append(this.resultsPanel);
+  }
+
+  private readonly resultsPanel: HTMLElement;
+  private battleShown = false;
+
+  /** Results screen (plan M7 task 2): win or loss, time, damage dealt and taken, parts lost. */
+  private showResults(b: Battle): void {
+    const t = b.tally;
+    const won = b.status === "won";
+    const retry = el("button", { "data-testid": "btn-retry" }, "Retry");
+    retry.addEventListener("click", () => this.setup?.retry?.());
+    const back = el("button", { "data-testid": "btn-results-editor" }, "Back to editor");
+    back.addEventListener("click", () => this.onCommand("exit"));
+    const row = (k: string, v: string, id: string) =>
+      el("div", { class: "row" }, el("span", {}, k), el("b", { "data-testid": `result-${id}` }, v));
+    this.resultsPanel.replaceChildren(
+      el("h2", { class: won ? "won" : "lost", "data-testid": "result-status" }, won ? "Victory" : "Defeat"),
+      el("p", {}, b.reason),
+      row("Scenario", b.scenario.name, "scenario"),
+      row("Time", `${(b.endTime ?? b.world.time).toFixed(1)} s`, "time"),
+      row("Damage dealt", Math.round(t.dealt).toString(), "dealt"),
+      row("Damage taken", Math.round(t.taken).toString(), "taken"),
+      row("Parts lost", t.partsLost.toString(), "parts"),
+      el("div", { class: "actions" }, retry, back),
+    );
+    this.resultsPanel.hidden = false;
   }
 
   /** Live power priority panel (P), spec §7.2. Clicking ▲ moves a group up. */
@@ -155,6 +191,11 @@ export class FlightScreen {
   private ejectAt(screen: { x: number; y: number }): void {
     const uid = this.partUnder(screen);
     if (uid) this.controlledShip?.requestEject(uid);
+  }
+
+  /** Current scenario battle, if any. */
+  get battle(): Battle | null {
+    return this.setup?.battle ?? null;
   }
 
   /** Ids of the player's ships (test helper). */
@@ -271,6 +312,8 @@ export class FlightScreen {
     const ship = setup.playerShips[0];
     if (ship) this.camera.center = setup.world.physics.getWorldCenter(ship.id);
     this.input.speedKillActive = () => this.controlledShip?.flight.speedKill !== "off";
+    this.battleShown = false;
+    this.resultsPanel.hidden = true;
     this.assignAllies();
     this.input.enabled = true;
     this.input.takeCommands();
@@ -292,6 +335,7 @@ export class FlightScreen {
       };
       this.pendingLaunch = false;
       w.step();
+      if (setup.battle) updateBattle(setup.battle);
     });
   }
 
@@ -303,6 +347,7 @@ export class FlightScreen {
     this.input.enabled = false;
     this.hudEl.hidden = true;
     this.powerPanel.hidden = true;
+    this.resultsPanel.hidden = true;
   }
 
   frame(dtReal: number): void {
@@ -447,7 +492,14 @@ export class FlightScreen {
     const hoverUid = this.input.ejectMode ? this.partUnder(this.input.mouse) : null;
     scene.eject = this.input.ejectMode ? { shipId: ship.id, hoverUid } : null;
     scene.render(world, this.camera, alpha);
+    const battle = setup.battle;
+    if (battle && battle.status !== "running" && !this.battleShown) {
+      this.battleShown = true;
+      setup.onBattleEnd?.(battle);
+      this.showResults(battle);
+    }
     this.hud.update({
+      objective: battle ? objectiveLine(battle) : null,
       ship,
       world,
       paused: this.paused,
@@ -483,4 +535,20 @@ export class FlightScreen {
     });
     this.renderPowerPanel();
   }
+}
+
+/** HUD objective line: what to do and how far along (survive: time left; protect: escort hull). */
+function objectiveLine(b: Battle): string {
+  const o = b.scenario.objective;
+  const left = b.enemyShips.filter((s) => !s.defeated).length;
+  if (b.status !== "running") return b.status === "won" ? "complete" : "failed";
+  if (o.type === "survive")
+    return `survive ${Math.max(0, o.seconds - b.world.time).toFixed(0)} s more · ${left} enemies`;
+  if (o.type === "protect" && b.protectId && b.world.hasShip(b.protectId)) {
+    const p = b.world.getShip(b.protectId);
+    const hp =
+      p.parts.reduce((t, x) => t + Math.max(0, x.hp), 0) / p.parts.reduce((t, x) => t + x.def.def.hp, 0);
+    return `protect ${p.design.name.split(" (")[0]} (hull ${Math.round(hp * 100)} %) · ${left} enemies left`;
+  }
+  return `destroy all enemies · ${left} left`;
 }

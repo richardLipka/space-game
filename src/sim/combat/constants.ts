@@ -27,6 +27,8 @@ export const COMBAT = {
    * the ship it hits (decision log: Beam heat). Beams cook ships as well as cutting parts.
    */
   beamHeatToTarget: 0.3,
+  /** AI-mode turrets turn on missiles homing on their ship when impact is this close (s). */
+  turretMissileDefense: 4,
   /** Hit / effect events kept for rendering (s). */
   eventLifetime: 2,
 } as const;

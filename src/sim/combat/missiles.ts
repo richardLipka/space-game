@@ -40,6 +40,8 @@ export interface Missile {
   target: string | null;
   /** Decoys this missile has already had its one chance to be fooled by (sorted ids). */
   readonly rolled: string[];
+  /** Launcher part id, for damage attribution. */
+  readonly source?: string;
 }
 
 export function spawnMissile(
@@ -50,6 +52,7 @@ export function spawnMissile(
   dir: Vec2,
   muzzleVelocity: Vec2,
   targetId: string,
+  source?: string,
 ): Missile {
   const m: Missile = {
     id: world.ids.next("missile"),
@@ -64,6 +67,7 @@ export function spawnMissile(
     def,
     target: targetId,
     rolled: [],
+    ...(source ? { source } : {}),
   };
   world.combat.missiles.push(m);
   world.combat.stats.missilesLaunched++;
@@ -132,7 +136,9 @@ function fusePoint(world: World, m: Missile, from: Vec2, to: Vec2): Vec2 | null 
 }
 
 function detonate(world: World, m: Missile, at: Vec2): void {
-  blast(world, at, m.def.blastRadius, m.def.damage);
+  blast(world, at, m.def.blastRadius, m.def.damage, {
+    source: { ship: m.owner, source: m.source ?? "missile" },
+  });
   pushEvent(world, "explosion", at, m.def.blastRadius * 0.4);
   world.combat.stats.missileHits++;
   m.hp = 0;

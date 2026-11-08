@@ -1,0 +1,251 @@
+{
+  "id": "s08-mixed-fleet",
+  "name": "Mixed fleet",
+  "description": "A full squadron: gunboat, missile frigate and PD picket.",
+  "order": 8,
+  "budget": 650,
+  "maxPlayerShips": 3,
+  "arena": {
+    "width": 8000,
+    "height": 5000,
+    "asteroids": [
+      {
+        "position": [-1004, 660],
+        "angle": 93,
+        "outline": [
+          [47.3, 0.0],
+          [12.8, 39.3],
+          [-37.3, 27.1],
+          [-37.8, -27.4],
+          [13.7, -42.1]
+        ],
+        "static": true
+      },
+      {
+        "position": [-3615, -1899],
+        "angle": 347,
+        "outline": [
+          [45.4, 0.0],
+          [15.3, 47.1],
+          [-35.9, 26.1],
+          [-40.1, -29.2],
+          [14.1, -43.5]
+        ],
+        "velocity": [1.1, 5.6],
+        "angularVelocity": -9.3
+      },
+      {
+        "position": [1712, 1459],
+        "angle": 79,
+        "outline": [
+          [38.1, 0.0],
+          [29.3, 36.8],
+          [-9.6, 42.3],
+          [-41.4, 19.9],
+          [-41.8, -20.1],
+          [-10.3, -44.9],
+          [29.4, -36.9]
+        ],
+        "static": true
+      },
+      {
+        "position": [3025, 1988],
+        "angle": 285,
+        "outline": [
+          [32.0, 0.0],
+          [10.4, 32.0],
+          [-25.2, 18.3],
+          [-31.5, -22.9],
+          [11.0, -33.9]
+        ],
+        "static": true
+      },
+      {
+        "position": [-563, -1345],
+        "angle": 106,
+        "outline": [
+          [39.3, 0.0],
+          [24.1, 30.3],
+          [-7.7, 33.8],
+          [-32.5, 15.7],
+          [-27.9, -13.4],
+          [-7.1, -30.9],
+          [20.3, -25.5]
+        ],
+        "static": true
+      },
+      {
+        "position": [-1408, 1287],
+        "angle": 225,
+        "outline": [
+          [47.0, 0.0],
+          [13.2, 40.6],
+          [-32.2, 23.4],
+          [-36.5, -26.5],
+          [12.9, -39.7]
+        ],
+        "static": true
+      },
+      {
+        "position": [-84, 320],
+        "angle": 93,
+        "outline": [
+          [21.6, 0.0],
+          [13.7, 17.2],
+          [-4.5, 19.9],
+          [-18.6, 9.0],
+          [-18.1, -8.7],
+          [-5.5, -24.2],
+          [15.0, -18.9]
+        ],
+        "velocity": [-5.9, -0.0],
+        "angularVelocity": -4.7
+      },
+      {
+        "position": [-1132, -625],
+        "angle": 307,
+        "outline": [
+          [35.2, 0.0],
+          [21.0, 36.3],
+          [-17.7, 30.7],
+          [-36.3, 0.0],
+          [-18.1, -31.4],
+          [20.5, -35.6]
+        ],
+        "static": true
+      },
+      {
+        "position": [-350, 515],
+        "angle": 167,
+        "outline": [
+          [26.7, 0.0],
+          [11.5, 19.9],
+          [-12.8, 22.1],
+          [-29.0, 0.0],
+          [-12.3, -21.4],
+          [13.2, -22.9]
+        ],
+        "static": true
+      },
+      {
+        "position": [2928, -1140],
+        "angle": 88,
+        "outline": [
+          [35.2, 0.0],
+          [12.2, 37.6],
+          [-31.2, 22.7],
+          [-27.5, -20.0],
+          [10.5, -32.3]
+        ],
+        "static": true
+      },
+      {
+        "position": [904, 351],
+        "angle": 44,
+        "outline": [
+          [38.8, 0.0],
+          [21.1, 36.6],
+          [-18.8, 32.5],
+          [-34.5, 0.0],
+          [-18.5, -32.1],
+          [20.5, -35.5]
+        ],
+        "static": true
+      },
+      {
+        "position": [-2290, -87],
+        "angle": 241,
+        "outline": [
+          [26.0, 0.0],
+          [6.6, 20.4],
+          [-22.2, 16.1],
+          [-21.6, -15.7],
+          [7.6, -23.3]
+        ],
+        "static": true
+      },
+      {
+        "position": [-1743, -2154],
+        "angle": 180,
+        "outline": [
+          [30.2, 0.0],
+          [15.6, 19.6],
+          [-6.8, 29.6],
+          [-24.4, 11.8],
+          [-24.4, -11.8],
+          [-6.1, -26.8],
+          [16.1, -20.2]
+        ],
+        "velocity": [2.1, -2.0],
+        "angularVelocity": -6.5
+      },
+      {
+        "position": [1809, 1934],
+        "angle": 311,
+        "outline": [
+          [50.0, 0.0],
+          [34.1, 42.7],
+          [-12.3, 53.7],
+          [-41.2, 19.8],
+          [-50.9, -24.5],
+          [-12.0, -52.4],
+          [26.9, -33.7]
+        ],
+        "static": true
+      }
+    ],
+    "gravityWells": []
+  },
+  "playerSpawns": [
+    {
+      "position": [-1500, -120],
+      "angle": 0
+    },
+    {
+      "position": [-1500, 0],
+      "angle": 0
+    },
+    {
+      "position": [-1500, 120],
+      "angle": 0
+    }
+  ],
+  "enemies": [
+    {
+      "designId": "demo-gunboat",
+      "aiProfile": "aggressive",
+      "spawn": {
+        "position": [1800, 300],
+        "angle": 180
+      },
+      "team": 1
+    },
+    {
+      "designId": "demo-frigate",
+      "aiProfile": "kiter",
+      "spawn": {
+        "position": [2300, -400],
+        "angle": 180
+      },
+      "team": 1
+    },
+    {
+      "designId": "demo-picket",
+      "aiProfile": "balanced",
+      "spawn": {
+        "position": [2000, 0],
+        "angle": 180
+      },
+      "team": 1
+    }
+  ],
+  "objective": {
+    "type": "destroyAll"
+  },
+  "seed": 57,
+  "hints": [
+    "Tab switches ships; the others follow under AI.",
+    "Concentrate fire: K sends your allies after your target."
+  ],
+  "referenceDesigns": ["arch-autocannon", "arch-missile", "arch-lance"]
+}

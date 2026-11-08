@@ -60,7 +60,8 @@ export class Scene {
   readonly root = new Container();
   private readonly worldLayer = new Container();
   private readonly gridG = new Graphics();
-  private readonly staticG = new Graphics();
+  /** Parent of the asteroid and debris graphics (a Container: Pixi 8 deprecates children on Graphics). */
+  private readonly staticG = new Container();
   private readonly screenG = new Graphics();
   private readonly ships = new Map<string, ShipView>();
   private readonly asteroidViews = new Map<string, { g: Graphics; zoomKey: number; themeVersion: number }>();

@@ -99,7 +99,7 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 300,
-      "hp": 300,
+      "hp": 800,
       "cost": 30,
       "command": {
         "gyroTorque": 6000,
@@ -482,10 +482,10 @@
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 80,
       "hp": 100,
-      "cost": 10,
+      "cost": 20,
       "magazine": {
         "ammoType": "missile-std",
-        "capacity": 6,
+        "capacity": 4,
         "massPerRound": 90
       }
     },
@@ -555,7 +555,7 @@
         "muzzle": [1.5, 0],
         "ammoType": "kinetic-120",
         "internalMagazine": 4,
-        "fireInterval": 2.5,
+        "fireInterval": 2,
         "heatPerShot": 200000,
         "range": 3000,
         "spread": 0.15,
@@ -671,11 +671,11 @@
         "kind": "projectile",
         "mount": "turret",
         "arc": [-120, 120],
-        "traverseRate": 35,
+        "traverseRate": 45,
         "muzzle": [0, 0],
         "ammoType": "kinetic-120",
         "internalMagazine": 3,
-        "fireInterval": 3,
+        "fireInterval": 1.8,
         "heatPerShot": 220000,
         "range": 3000,
         "spread": 0.2,
@@ -715,12 +715,12 @@
         "muzzle": [0, 0],
         "internalMagazine": 0,
         "fireInterval": 0.1,
-        "powerDraw": 300000,
-        "heatWhileFiring": 250000,
+        "powerDraw": 200000,
+        "heatWhileFiring": 100000,
         "range": 1200,
         "spread": 0.05,
         "beam": {
-          "dps": 120,
+          "dps": 140,
           "falloffStart": 600
         }
       }
@@ -752,7 +752,7 @@
         "range": 2200,
         "spread": 0.02,
         "beam": {
-          "dps": 420,
+          "dps": 360,
           "falloffStart": 1400
         }
       }
@@ -772,14 +772,14 @@
       "edges": ["snap", "function", "snap", "snap"],
       "mass": 220,
       "hp": 120,
-      "cost": 40,
+      "cost": 55,
       "weapon": {
         "kind": "missile",
         "mount": "fixed",
         "muzzle": [0.75, 0],
         "ammoType": "missile-std",
         "internalMagazine": 2,
-        "fireInterval": 1,
+        "fireInterval": 2,
         "heatPerShot": 20000,
         "range": 4000,
         "spread": 2,
@@ -789,9 +789,9 @@
           "fuel": 8,
           "turnRate": 120,
           "hp": 30,
-          "damage": 600,
+          "damage": 300,
           "proximityFuse": 6,
-          "blastRadius": 15,
+          "blastRadius": 6,
           "guidance": "pn",
           "navConstant": 3.5
         }
@@ -894,7 +894,7 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 60,
-      "hp": 60,
+      "hp": 120,
       "cost": 8,
       "command": {
         "gyroTorque": 600,
@@ -971,7 +971,7 @@
         "mount": "fixed",
         "muzzle": [0.5, 0],
         "ammoType": "autocannon-30",
-        "internalMagazine": 80,
+        "internalMagazine": 150,
         "fireInterval": 0.15,
         "heatPerShot": 2000,
         "range": 900,
@@ -979,7 +979,7 @@
         "projectile": {
           "speed": 1300,
           "mass": 0.3,
-          "damage": 12,
+          "damage": 16,
           "lifetime": 0.9
         }
       }
@@ -1020,7 +1020,7 @@
       "edges": ["snap", "function", "snap", "snap"],
       "mass": 300,
       "hp": 200,
-      "cost": 30,
+      "cost": 120,
       "hangar": {
         "droneType": "drone-attack",
         "capacity": 4,
@@ -1042,7 +1042,7 @@
       "edges": ["snap", "function", "snap", "snap"],
       "mass": 300,
       "hp": 200,
-      "cost": 30,
+      "cost": 110,
       "hangar": {
         "droneType": "drone-pd",
         "capacity": 2,
@@ -1064,7 +1064,7 @@
       "edges": ["snap", "function", "snap", "snap"],
       "mass": 120,
       "hp": 100,
-      "cost": 12,
+      "cost": 60,
       "hangar": {
         "droneType": "drone-decoy",
         "capacity": 4,

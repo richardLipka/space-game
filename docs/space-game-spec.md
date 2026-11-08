@@ -745,9 +745,15 @@ The `sim` module never imports `render`, `ui` or `editor`. Rendering reads a sim
 | AI profiles | Six profiles in `src/data/ai/profiles.json` (balanced, aggressive, kiter, brawler, sniper, carrier), validated at load: range factor, behaviour weights, retreat threshold, speeds, hit-probability floor, volley interval, drone range, preference for weakened targets |
 | Allies | The player's other ships fly under AI (balanced profile) and follow in formation behind the controlled ship. Followers and holders engage only armed enemies within 2 km of their leader or hold point. Tab hands the previous ship to the AI on the same frame. J follow, K attack my target, L hold position; Ctrl+click selects allies for orders (Ctrl+Shift adds), no selection = all allies; orders work while paused. The debug part-destroy tool moved from K to Y |
 | Skirmish | The editor's Skirmish button flies the player's gunboat and frigate against an AI gunboat (aggressive), frigate (kiter) and PD picket |
+| Balance harness | `npm run balance` fights eight equal-cost weapon archetypes (`src/data/designs/balance/`) AI against AI and writes CSV, JSON and HTML reports with win rates, time to kill, damage by weapon and the 7.6 / 7.7 checks. Pass 1 results and catalogue changes: [balance-pass-1.md](balance-pass-1.md) |
+| Turret missile defense | AI-mode turrets shoot at missiles homing on their own ship when impact is less than 4 s away (`COMBAT.turretMissileDefense`), before engaging ships |
+| Hangar cost | A hangar's cost includes the drones it holds |
+| Scenarios | Eight scenarios in `src/data/scenarios/` teach the mechanics in order: first flight, fixed vs. turret, armor, heat (survive 60 s), power, missiles and PD, escort (protect), mixed fleet. Each has tips and suggested reference designs; a test checks that every scenario's reference fleet, flown by the AI, wins at least one of 20 seeds |
+| Objectives | destroyAll: every enemy ship (drones excluded) defeated. survive: the time passes. protect: the team-0 ship spawned from the objective's design must outlive the enemies. Losing every player ship always loses. The result is decided once and does not change |
+| Fleet and budget | A fleet is one or more designs added in the editor's scenario panel. It may not exceed the scenario's budget (sum of part costs) or ship count, nor use parts outside `allowedParts`; Start stays disabled until it fits. Results (win/loss, time, damage dealt and taken, parts lost) are kept per browser, and the scenario list shows the best one |
 
 Still open (this doesn't block Milestone 1):
-- First-pass numbers for the part catalogue. These will be tuned with the balance harness.
+- Further balance passes: see the open items in [balance-pass-1.md](balance-pass-1.md).
 
 ---
 

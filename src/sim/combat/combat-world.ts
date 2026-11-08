@@ -10,7 +10,14 @@ import { COMBAT, MISSILE } from "./constants";
 import { beamFalloff, collisionDamage, damageAlongRay } from "./damage";
 import type { Missile } from "./missiles";
 import { spawnMissile } from "./missiles";
-import { firstEngageable, orderShipTargets, rankThreats, type Contact, type Defender } from "./targeting";
+import {
+  closestApproach,
+  firstEngageable,
+  orderShipTargets,
+  rankThreats,
+  type Contact,
+  type Defender,
+} from "./targeting";
 import { updateWeapons, type FireOrder, type WeaponTargeting } from "./weapons";
 
 /** A ballistic round in flight (spec §9.3). Not a physics body: hits are found by swept raycasts. */
@@ -26,6 +33,8 @@ export interface Projectile {
   readonly lifetime: number;
   /** Ammo / weapon kind for rendering (e.g. "kinetic-120"). */
   readonly kind: string;
+  /** Weapon part id that fired it, for damage attribution (balance harness). */
+  readonly source?: string;
   /**
    * Burst shell (flak, spec §9.6): bursts when an enemy missile or drone passes within `proximity`, or at
    * `time` (the predicted intercept), damaging everything hostile within `radius`.
@@ -73,6 +82,35 @@ export class CombatState {
   events: CombatEvent[] = [];
   /** Totals for tests and debugging. */
   stats = { shots: 0, hits: 0, missilesLaunched: 0, missilesDown: 0, missileHits: 0 };
+  /**
+   * Hull damage dealt, by attacking ship and weapon part id (drone damage counts for the carrier, as
+   * "drone:<part>"). Read by the balance harness; not part of the simulation state.
+   */
+  damage: Record<string, Record<string, number>> = {};
+}
+
+/** Who did the damage: attacking ship (null for collisions) and the weapon part id. */
+export interface DamageSource {
+  readonly ship: string | null;
+  readonly source: string;
+}
+
+const hullHp = (ship: Ship) => ship.parts.reduce((s, p) => s + Math.max(0, p.hp), 0);
+
+/** Credits hull damage to its source; drones credit their carrier. */
+export function recordDamage(world: World, src: DamageSource | undefined, amount: number): void {
+  if (!src || amount <= 0) return;
+  let attacker = src.ship ?? "environment";
+  let source = src.source;
+  if (src.ship && world.hasShip(src.ship)) {
+    const s = world.getShip(src.ship);
+    if (s.drone) {
+      attacker = s.drone.mother;
+      source = `drone:${source}`;
+    }
+  }
+  const row = (world.combat.damage[attacker] ??= {});
+  row[source] = (row[source] ?? 0) + amount;
 }
 
 interface ShipRayHit {
@@ -176,8 +214,15 @@ export function pushEvent(world: World, kind: CombatEvent["kind"], pos: Vec2, si
 }
 
 /** Applies a hit along a ship ray: wrecks pass part of it on, the first intact part takes the rest. */
-function damageShipAlongRay(world: World, hit: ShipRayHit, damage: number, minDamage: number): string | null {
+function damageShipAlongRay(
+  world: World,
+  hit: ShipRayHit,
+  damage: number,
+  minDamage: number,
+  src?: DamageSource,
+): string | null {
   const ship = hit.ship;
+  const before = hullHp(ship);
   const targets = hit.hits.map((h) => {
     const p = ship.part(h.uid);
     return { uid: h.uid, intact: p.hp > 0, armor: p.def.def.armor ?? 0 };
@@ -186,6 +231,7 @@ function damageShipAlongRay(world: World, hit: ShipRayHit, damage: number, minDa
   for (const a of res.applied)
     if (ship.applyDamage(a.uid, a.damage))
       pushEvent(world, "destroyed", worldPartCenter(world, ship, a.uid), 2);
+  recordDamage(world, src, before - hullHp(ship));
   return res.stoppedBy;
 }
 
@@ -216,17 +262,25 @@ export function blast(
   center: Vec2,
   radius: number,
   damage: number,
-  opts: { hostileTo?: number; missiles?: boolean } = {},
+  opts: { hostileTo?: number; missiles?: boolean; source?: DamageSource } = {},
 ): void {
   for (const ship of world.allShips()) {
     if (opts.hostileTo !== undefined && ship.team === opts.hostileTo) continue;
     const p = pose(world, ship.id);
     if (length(sub(p.position, center)) > ship.layout.boundingRadius + radius) continue;
     const local = rotate(sub(center, p.position), -p.angle);
+    const before = hullHp(ship);
     const destroyed = ship.applyBlast(local, radius, damage, undefined, (part, dist) =>
       shelter(ship, local, part, dist),
     );
     for (const uid of destroyed) pushEvent(world, "destroyed", worldPartCenter(world, ship, uid), 2);
+    // Friendly fire is not credited.
+    if (
+      !opts.source?.ship ||
+      !world.hasShip(opts.source.ship) ||
+      world.getShip(opts.source.ship).team !== ship.team
+    )
+      recordDamage(world, opts.source, before - hullHp(ship));
   }
   if (opts.missiles) {
     for (const m of world.combat.missiles) {
@@ -290,9 +344,21 @@ function targetingFor(world: World, ship: Ship, contacts: readonly Contact[]): W
   };
   let threats: Contact[] | null = null;
   let ships: Contact[] | null = null;
+  let inbound: Contact[] | null = null;
   const shipList = () => (ships ??= orderShipTargets(contacts, me, ship.weaponCommand.targetId));
+  // Missiles homing on this ship and about to arrive: AI-mode turrets shoot at them first (spec §9.5:
+  // any round can down a missile; decision log: Turret missile defense).
+  const inboundList = () =>
+    (inbound ??= rankThreats(contacts, me).filter(
+      (c) =>
+        c.kind === "missile" &&
+        c.targetId === ship.id &&
+        closestApproach(c, me).t < COMBAT.turretMissileDefense,
+    ));
   return {
-    ship: (w, mount) => firstEngageable(w, mount, shipList(), ship.minHitProbability),
+    ship: (w, mount) =>
+      (w.def.mount === "turret" ? firstEngageable(w, mount, inboundList()) : null) ??
+      firstEngageable(w, mount, shipList(), ship.minHitProbability),
     pd: (w, mount) => {
       threats ??= rankThreats(contacts, me);
       return (
@@ -337,7 +403,16 @@ function resolveOrder(world: World, ship: Ship, o: FireOrder, dt: number): void 
   const def = o.weapon.def;
   if (o.kind === "missile" && def.missile && o.targetId) {
     if (!world.hasShip(o.targetId)) return;
-    spawnMissile(world, ship, def.missile, o.muzzle, o.dir, o.muzzleVelocity, o.targetId);
+    spawnMissile(
+      world,
+      ship,
+      def.missile,
+      o.muzzle,
+      o.dir,
+      o.muzzleVelocity,
+      o.targetId,
+      o.weapon.part.def.id,
+    );
     world.physics.applyImpulse(
       ship.id,
       scale(o.dir, -def.missile.mass * MISSILE.launchSpeed * COMBAT.momentumTransfer),
@@ -368,6 +443,7 @@ function resolveOrder(world: World, ship: Ship, o: FireOrder, dt: number): void 
       age: 0,
       lifetime: pr.lifetime,
       kind: def.ammoType ?? def.kind,
+      source: o.weapon.part.def.id,
       ...(burst ? { fuse: burst } : {}),
     });
     // Recoil.
@@ -388,7 +464,10 @@ function resolveOrder(world: World, ship: Ship, o: FireOrder, dt: number): void 
     const strength = beamFalloff(hit.t, def.beam.falloffStart, def.range) * ship.powerFactorOf(o.weapon.uid);
     const dmg = def.beam.dps * dt * strength;
     if (hit.kind === "ship") {
-      damageShipAlongRay(world, hit, dmg, COMBAT.minDamage * dt);
+      damageShipAlongRay(world, hit, dmg, COMBAT.minDamage * dt, {
+        ship: ship.id,
+        source: o.weapon.part.def.id,
+      });
       // Beam heating (decision log: Beam heat): part of the beam's power goes into the target's heat pool.
       hit.ship.addHeat((def.powerDraw ?? 0) * COMBAT.beamHeatToTarget * strength * dt);
     } else if (hit.kind === "missile") damageMissile(world, hit.missile, dmg);
@@ -443,7 +522,11 @@ export function stepProjectiles(world: World, dt: number): void {
     if (pr.fuse) {
       const at = burstPoint(world, pr, pr.pos, end, dt);
       if (at) {
-        blast(world, at, pr.fuse.radius, pr.fuse.damage, { hostileTo: pr.team, missiles: true });
+        blast(world, at, pr.fuse.radius, pr.fuse.damage, {
+          hostileTo: pr.team,
+          missiles: true,
+          source: { ship: pr.owner, source: pr.source ?? pr.kind },
+        });
         pushEvent(world, "burst", at, pr.fuse.radius);
         continue;
       }
@@ -460,7 +543,10 @@ export function stepProjectiles(world: World, dt: number): void {
             scale(sub(pr.vel, vTarget), pr.mass * COMBAT.momentumTransfer),
             at,
           );
-          damageShipAlongRay(world, hit, pr.damage, COMBAT.minDamage);
+          damageShipAlongRay(world, hit, pr.damage, COMBAT.minDamage, {
+            ship: pr.owner,
+            source: pr.source ?? pr.kind,
+          });
           world.combat.stats.hits++;
         } else if (hit.kind === "missile") {
           damageMissile(world, hit.missile, pr.damage);

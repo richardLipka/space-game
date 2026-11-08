@@ -1,0 +1,155 @@
+{
+  "id": "s04-heat",
+  "name": "Heat",
+  "description": "A laser boat cooks its targets from a distance. Hold out for 60 seconds.",
+  "order": 4,
+  "budget": 230,
+  "maxPlayerShips": 1,
+  "arena": {
+    "width": 6000,
+    "height": 4000,
+    "asteroids": [
+      {
+        "position": [-2228, -320],
+        "angle": 3,
+        "outline": [
+          [15.6, 0.0],
+          [9.8, 12.3],
+          [-4.4, 19.5],
+          [-13.7, 6.6],
+          [-16.6, -8.0],
+          [-4.3, -18.9],
+          [9.7, -12.2]
+        ],
+        "velocity": [-3.9, 1.0],
+        "angularVelocity": 5.0
+      },
+      {
+        "position": [-1708, -1220],
+        "angle": 38,
+        "outline": [
+          [37.7, 0.0],
+          [17.9, 31.0],
+          [-16.5, 28.6],
+          [-39.6, 0.0],
+          [-19.6, -33.9],
+          [18.1, -31.3]
+        ],
+        "velocity": [-5.4, -4.9],
+        "angularVelocity": 9.8
+      },
+      {
+        "position": [255, 1194],
+        "angle": 108,
+        "outline": [
+          [20.1, 0.0],
+          [14.2, 17.8],
+          [-4.5, 19.8],
+          [-20.1, 9.7],
+          [-17.9, -8.6],
+          [-4.3, -19.0],
+          [15.2, -19.0]
+        ],
+        "static": true
+      },
+      {
+        "position": [-190, -214],
+        "angle": 300,
+        "outline": [
+          [22.9, 0.0],
+          [15.8, 19.8],
+          [-5.8, 25.4],
+          [-20.5, 9.8],
+          [-27.1, -13.0],
+          [-5.2, -22.9],
+          [16.5, -20.7]
+        ],
+        "static": true
+      },
+      {
+        "position": [1579, 1321],
+        "angle": 317,
+        "outline": [
+          [47.7, 0.0],
+          [31.0, 38.9],
+          [-11.8, 51.5],
+          [-41.7, 20.1],
+          [-39.3, -18.9],
+          [-11.9, -52.0],
+          [32.2, -40.4]
+        ],
+        "static": true
+      },
+      {
+        "position": [278, 1635],
+        "angle": 344,
+        "outline": [
+          [35.5, 0.0],
+          [14.5, 25.1],
+          [-14.7, 25.5],
+          [-35.1, 0.0],
+          [-14.9, -25.7],
+          [18.4, -31.9]
+        ],
+        "velocity": [-3.5, 3.8],
+        "angularVelocity": -8.1
+      },
+      {
+        "position": [-1968, -312],
+        "angle": 268,
+        "outline": [
+          [43.2, 0.0],
+          [24.4, 30.6],
+          [-9.9, 43.2],
+          [-42.6, 20.5],
+          [-39.4, -19.0],
+          [-10.3, -45.2],
+          [27.3, -34.2]
+        ],
+        "static": true
+      },
+      {
+        "position": [2106, 1240],
+        "angle": 216,
+        "outline": [
+          [28.1, 0.0],
+          [13.8, 24.0],
+          [-11.9, 20.6],
+          [-24.4, 0.0],
+          [-11.9, -20.6],
+          [11.0, -19.0]
+        ],
+        "static": true
+      }
+    ],
+    "gravityWells": []
+  },
+  "playerSpawns": [
+    {
+      "position": [-1500, 0],
+      "angle": 0
+    }
+  ],
+  "enemies": [
+    {
+      "designId": "arch-laser",
+      "aiProfile": "sniper",
+      "spawn": {
+        "position": [1600, 200],
+        "angle": 180
+      },
+      "team": 1
+    }
+  ],
+  "objective": {
+    "type": "survive",
+    "seconds": 60
+  },
+  "seed": 29,
+  "hints": [
+    "Beams heat the ship they hit. Watch the heat line in the HUD.",
+    "Above 70 % heat everything is throttled; above 100 % parts burn.",
+    "Radiators shed heat when exposed; R retracts them to protect them."
+  ],
+  "referenceDesigns": ["arch-cannon"]
+}

@@ -15,6 +15,8 @@ export interface HudInfo {
   readonly showHelp: boolean;
   readonly fps: number;
   readonly title?: string;
+  /** Scenario objective and progress. */
+  readonly objective?: string | null;
   readonly selectedGroups?: ReadonlySet<number>;
   readonly targetId?: string | null;
   /** Allied ships under AI control, with their order, behaviour and whether they are selected. */
@@ -71,6 +73,10 @@ export class Hud {
     const lines: string[] = [];
     if (info.title)
       lines.push(`<span class="warn">${esc(info.title)}</span> <span class="dim">Esc: back to editor</span>`);
+    if (info.objective)
+      lines.push(
+        `<span class="warn">objective</span> <span data-testid="objective">${esc(info.objective)}</span>`,
+      );
     lines.push(`<b>${esc(ship.design.name)}</b> <span class="dim">${ship.id}</span>`);
     lines.push(
       `speed <span data-testid="speed">${speed.toFixed(1)}</span> m/s   ω ${radToDeg(s.angularVelocity).toFixed(1)}°/s   hdg ${(((radToDeg(s.angle) % 360) + 360) % 360).toFixed(0)}°`,

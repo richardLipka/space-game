@@ -34,7 +34,7 @@ describe("part info", () => {
     const rate = (id: string) => partInfoRows(byId(id)).find(([k]) => k === "Turn rate")?.[1];
     expect(rate("core:weapon.autocannon.turret.light")).toBe("240°/s");
     expect(rate("core:weapon.autocannon.turret.s")).toBe("120°/s");
-    expect(rate("core:weapon.cannon.turret.m")).toBe("35°/s");
+    expect(rate("core:weapon.cannon.turret.m")).toBe("45°/s");
     expect(rate("core:weapon.cannon.fixed.m")).toBeUndefined();
   });
 

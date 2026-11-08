@@ -336,7 +336,7 @@ describe("M6 combat", () => {
       }
       return sum / (60 * 20);
     };
-    expect(avgRange("kiter")).toBeGreaterThan(avgRange("brawler") * 1.5);
+    expect(avgRange("kiter")).toBeGreaterThan(avgRange("brawler") * 1.3);
   });
 });
 

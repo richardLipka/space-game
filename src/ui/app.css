@@ -517,3 +517,76 @@ body {
 .ed-graph .ok {
   color: #3ccf7f;
 }
+
+/* Scenario results (M7) */
+.results-panel {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(360px, calc(100vw - 32px));
+  padding: 14px 18px;
+  font:
+    13px/1.5 ui-monospace,
+    "Cascadia Mono",
+    Consolas,
+    monospace;
+  color: var(--hud-fg);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  z-index: 20;
+}
+.results-panel[hidden] {
+  display: none;
+}
+.results-panel h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+.results-panel h2.won {
+  color: #3ccf7f;
+}
+.results-panel h2.lost {
+  color: var(--hud-alert, #ff4f7b);
+}
+.results-panel .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.results-panel .actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.results-panel button {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+/* Scenario panel in the editor (M7) */
+.ed-scenario {
+  border-bottom: 1px solid var(--panel-border);
+  padding-bottom: 6px;
+}
+.ed-scenario[hidden] {
+  display: none;
+}
+.ed-scenario .over {
+  color: var(--danger);
+}
+.ed-scenario-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0;
+}
+.ed-hints {
+  margin: 4px 0;
+  padding-left: 18px;
+  color: var(--panel-dim);
+}

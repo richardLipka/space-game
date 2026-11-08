@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { performance } from "node:perf_hooks";
 import type { ShipDesign } from "../../src/data/schemas/design";
 import type { PartDef, WeaponDef } from "../../src/data/schemas/part";
 import { PartCatalogue } from "../../src/sim/ship/catalogue";
 import { World, type SpawnOptions } from "../../src/sim/world";
-import { angleOf, degToRad, length, vec2, type Vec2 } from "../../src/sim/core/vec2";
+import { angleOf, degToRad, vec2, type Vec2 } from "../../src/sim/core/vec2";
 import { Rng } from "../../src/sim/core/rng";
 import { SIM_DT } from "../../src/sim/core/loop";
 import { afterArmor, beamFalloff, collisionDamage, damageAlongRay } from "../../src/sim/combat/damage";
@@ -12,7 +11,7 @@ import { intercept } from "../../src/sim/combat/lead";
 import { stepProjectiles } from "../../src/sim/combat/combat-world";
 import { weaponPerformance } from "../../src/sim/combat/weapons";
 import { COMBAT } from "../../src/sim/combat/constants";
-import { design, PERF_RETRY, perfBudget, testCatalogue } from "../helpers";
+import { design, testCatalogue } from "../helpers";
 
 const base = testCatalogue();
 const sq = base.get("core:test.square").def;
@@ -626,51 +625,5 @@ describe("M4 defeat", () => {
     const w0 = w.physics.getBodyState(s.id).angularVelocity;
     w.run(30);
     expect(w.physics.getBodyState(s.id).angularVelocity).toBeCloseTo(w0, 9);
-  });
-});
-
-describe("M4 performance", () => {
-  it("4.23 500 projectiles + 10 ships: one tick under 4 ms", PERF_RETRY, () => {
-    const w = new World({ seed: 1 });
-    for (let i = 0; i < 10; i++)
-      addShip(
-        w,
-        [
-          ["core:test.command", 0, 0],
-          ["core:test.square", 1, 0],
-          ["core:test.square", -1, 0],
-          ["core:test.engine", 0, 1, 90],
-          ["core:test.fueltank", 0, -1],
-        ],
-        { position: vec2(i * 40, 300) },
-      );
-    const refill = () => {
-      while (w.combat.projectiles.length < 500) {
-        const i = w.combat.projectiles.length;
-        w.combat.projectiles.push({
-          id: 10_000 + i,
-          owner: "x",
-          team: 9,
-          pos: vec2(i * 2, -200),
-          vel: vec2(0, 50),
-          mass: 0.1,
-          damage: 1,
-          age: 0,
-          lifetime: 1000,
-          kind: "t",
-        });
-      }
-    };
-    refill();
-    w.run(30);
-    refill();
-    const t0 = performance.now();
-    const n = 120;
-    for (let i = 0; i < n; i++) w.step();
-    const ms = (performance.now() - t0) / n;
-    console.log(`500 projectiles + 10 ships: ${ms.toFixed(2)} ms/tick`);
-    expect(w.combat.projectiles.length).toBeGreaterThan(400);
-    expect(ms).toBeLessThan(perfBudget(4));
-    void length;
   });
 });

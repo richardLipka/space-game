@@ -1,0 +1,163 @@
+{
+  "id": "s07-drones",
+  "name": "Escort",
+  "description": "Keep the hauler alive while a drone carrier attacks it.",
+  "order": 7,
+  "budget": 400,
+  "maxPlayerShips": 2,
+  "arena": {
+    "width": 6000,
+    "height": 4000,
+    "asteroids": [
+      {
+        "position": [-2605, 451],
+        "angle": 250,
+        "outline": [
+          [30.6, 0.0],
+          [14.6, 25.4],
+          [-16.4, 28.4],
+          [-29.7, 0.0],
+          [-15.3, -26.5],
+          [13.8, -23.9]
+        ],
+        "static": true
+      },
+      {
+        "position": [-176, 457],
+        "angle": 188,
+        "outline": [
+          [28.7, 0.0],
+          [19.2, 24.1],
+          [-6.0, 26.1],
+          [-26.0, 12.5],
+          [-24.3, -11.7],
+          [-5.6, -24.6],
+          [19.3, -24.2]
+        ],
+        "static": true
+      },
+      {
+        "position": [610, -18],
+        "angle": 341,
+        "outline": [
+          [18.5, 0.0],
+          [10.4, 18.1],
+          [-10.2, 17.6],
+          [-23.3, 0.0],
+          [-9.5, -16.5],
+          [10.4, -18.0]
+        ],
+        "static": true
+      },
+      {
+        "position": [-884, 345],
+        "angle": 101,
+        "outline": [
+          [19.3, 0.0],
+          [8.6, 14.9],
+          [-8.6, 15.0],
+          [-15.8, 0.0],
+          [-8.4, -14.5],
+          [9.9, -17.1]
+        ],
+        "static": true
+      },
+      {
+        "position": [193, -1021],
+        "angle": 241,
+        "outline": [
+          [51.7, 0.0],
+          [26.1, 45.3],
+          [-26.9, 46.5],
+          [-51.1, 0.0],
+          [-26.0, -45.0],
+          [21.6, -37.4]
+        ],
+        "static": true
+      },
+      {
+        "position": [700, 1551],
+        "angle": 307,
+        "outline": [
+          [38.9, 0.0],
+          [23.3, 29.2],
+          [-7.6, 33.3],
+          [-30.2, 14.5],
+          [-31.5, -15.2],
+          [-8.3, -36.2],
+          [21.8, -27.3]
+        ],
+        "static": true
+      },
+      {
+        "position": [450, -999],
+        "angle": 32,
+        "outline": [
+          [53.7, 0.0],
+          [29.1, 36.4],
+          [-9.6, 41.9],
+          [-38.6, 18.6],
+          [-50.2, -24.2],
+          [-9.4, -41.3],
+          [26.8, -33.6]
+        ],
+        "velocity": [-5.8, -0.6],
+        "angularVelocity": -7.1
+      },
+      {
+        "position": [1758, -1609],
+        "angle": 116,
+        "outline": [
+          [34.4, 0.0],
+          [19.1, 33.1],
+          [-16.1, 27.9],
+          [-39.1, 0.0],
+          [-15.9, -27.6],
+          [17.2, -29.7]
+        ],
+        "static": true
+      }
+    ],
+    "gravityWells": []
+  },
+  "playerSpawns": [
+    {
+      "position": [-1500, -60],
+      "angle": 0
+    },
+    {
+      "position": [-1500, 60],
+      "angle": 0
+    }
+  ],
+  "enemies": [
+    {
+      "designId": "demo-hauler",
+      "aiProfile": "balanced",
+      "spawn": {
+        "position": [-1200, 600],
+        "angle": 0
+      },
+      "team": 0
+    },
+    {
+      "designId": "arch-carrier",
+      "aiProfile": "carrier",
+      "spawn": {
+        "position": [1700, 200],
+        "angle": 180
+      },
+      "team": 1
+    }
+  ],
+  "objective": {
+    "type": "protect",
+    "designId": "demo-hauler"
+  },
+  "seed": 50,
+  "hints": [
+    "H launches your drones. Enemy drones are fast but fragile: turrets and PD handle them.",
+    "J/K/L order your other ships to follow, attack your target or hold."
+  ],
+  "referenceDesigns": ["arch-autocannon", "arch-laser"]
+}

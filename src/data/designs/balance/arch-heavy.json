@@ -1,0 +1,81 @@
+{
+  "formatVersion": 1,
+  "id": "arch-heavy",
+  "name": "Mortar (heavy turret)",
+  "createdAt": "2026-11-08T00:00:00Z",
+  "modifiedAt": "2026-11-08T00:00:00Z",
+  "parts": [
+    {
+      "uid": "cmd",
+      "partId": "core:command.s",
+      "x": 0,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "tank",
+      "partId": "core:tank.fuel.s",
+      "x": -1.25,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "eng",
+      "partId": "core:engine.main.s",
+      "x": -2.25,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "rcs-l",
+      "partId": "core:rcs.s",
+      "x": -1.25,
+      "y": 0.75,
+      "angle": 180
+    },
+    {
+      "uid": "rcs-r",
+      "partId": "core:rcs.s",
+      "x": -1.25,
+      "y": -0.75,
+      "angle": 0
+    },
+    {
+      "uid": "mag",
+      "partId": "core:magazine.kinetic.s",
+      "x": 0,
+      "y": 1.25,
+      "angle": 0
+    },
+    {
+      "uid": "tur",
+      "partId": "core:weapon.cannon.turret.m",
+      "x": 1.7663,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "ar-t",
+      "partId": "core:hull.square.s",
+      "x": 0,
+      "y": 2.25,
+      "angle": 0
+    },
+    {
+      "uid": "ar-b",
+      "partId": "core:hull.square.s",
+      "x": 0,
+      "y": -1.25,
+      "angle": 0
+    },
+    {
+      "uid": "ar-b2",
+      "partId": "core:hull.square.s",
+      "x": 0,
+      "y": -2.25,
+      "angle": 0
+    }
+  ],
+  "weaponGroupModes": {},
+  "powerPriority": ["gyro", "propulsion", "pointDefense", "weapons", "hangar"]
+}

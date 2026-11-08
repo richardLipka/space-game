@@ -13,12 +13,13 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run",
+    "test": "vitest run --exclude \"test/perf/**\" && vitest run test/perf",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "sim": "tsx src/headless/cli.ts",
     "golden:update": "tsx test/golden/update.ts",
-    "check": "npm run lint && npm run format:check && npm run typecheck && npm run test"
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm run test",
+    "balance": "tsx src/headless/balance-cli.ts"
   },
   "type": "module",
   "dependencies": {

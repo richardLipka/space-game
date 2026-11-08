@@ -39,8 +39,10 @@ export interface CapabilityProfile {
       readonly fixed: boolean;
     }[];
   };
+  /** Launchers aboard, launchers holding a round, launchers ready to fire now, missiles left, range. */
   readonly missiles: {
     readonly launchers: number;
+    readonly loaded: number;
     readonly ready: number;
     readonly stock: number;
     readonly range: number;
@@ -86,6 +88,7 @@ export function capabilityProfile(ship: Ship): CapabilityProfile {
   let ammoReady = 0;
   let launchers = 0;
   let ready = 0;
+  let loaded = 0;
   let missileRange = 0;
   const stockOf = (type: string) =>
     ship.parts.reduce(
@@ -99,6 +102,7 @@ export function capabilityProfile(ship: Ship): CapabilityProfile {
     if (d.kind === "pd") continue;
     if (d.kind === "missile") {
       launchers++;
+      if (p.ammo >= 1) loaded++;
       if (p.ammo >= 1 && w.cooldown <= 1e-9) ready++;
       missileRange = Math.max(missileRange, d.range);
       continue;
@@ -168,7 +172,7 @@ export function capabilityProfile(ship: Ship): CapabilityProfile {
       fixedSpeed,
       guns,
     },
-    missiles: { launchers, ready, stock: missileStock, range: missileRange },
+    missiles: { launchers, loaded, ready, stock: missileStock, range: missileRange },
     drones: { stored, decoys },
     heat: ship.heatLevel,
     powerHeadroom: pw.supply > 0 ? Math.max(0, 1 - pw.used / pw.supply) : 0,

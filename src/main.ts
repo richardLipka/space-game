@@ -17,7 +17,11 @@ import type { PartDef } from "./data/schemas/part";
 import { IdbLibrary } from "./data/share/idb-library";
 import { MemoryLibrary, type Library } from "./data/share/library";
 import { degToRad, vec2 } from "./sim/core/vec2";
-import { aiProfile } from "./data/ai/index";
+import { aiProfile, AI_PROFILES } from "./data/ai/index";
+import { BUNDLED_DESIGNS } from "./data/designs/index";
+import { startBattle } from "./sim/scenario/battle";
+import type { Scenario } from "./data/schemas/scenario";
+import { ResultStore } from "./ui/results";
 import { createWorldFromScenario } from "./sim/scenario/setup";
 import { PartCatalogue } from "./sim/ship/catalogue";
 import { applyTheme, domStyleSource, ThemeResolver, THEMES, type ThemeName } from "./render/theme";
@@ -156,6 +160,44 @@ async function main(): Promise<void> {
     flight.start({ world, playerShips: ships, title });
   };
 
+  const results = new ResultStore();
+  /** Scenario battle (spec §12): enemies from bundled and library designs, results saved locally. */
+  const startScenario = (scenario: Scenario, fleet: ShipDesign[]) => {
+    void library.listDesigns().then((saved) => {
+      const designs = new Map(BUNDLED_DESIGNS);
+      for (const d of saved) if (!designs.has(d.id)) designs.set(d.id, d);
+      const battle = startBattle(scenario, fleet, catalogue, {
+        designs,
+        profiles: AI_PROFILES,
+        droneDesigns: [...droneDesigns.values()],
+      });
+      editor.hide();
+      mode = "flight";
+      flight.start({
+        world: battle.world,
+        playerShips: battle.playerShips,
+        title: `Scenario ${scenario.order ?? ""}: ${scenario.name}`,
+        battle,
+        onBattleEnd: (b) =>
+          results.add({
+            scenarioId: scenario.id,
+            won: b.status === "won",
+            time: b.endTime ?? b.world.time,
+            dealt: Math.round(b.tally.dealt),
+            taken: Math.round(b.tally.taken),
+            partsLost: b.tally.partsLost,
+            cost: fleet.reduce(
+              (t, d) => t + d.parts.reduce((u, p) => u + catalogue.get(p.partId).def.cost, 0),
+              0,
+            ),
+            fleet: fleet.map((d) => d.name),
+            at: new Date().toISOString(),
+          }),
+        retry: () => startScenario(scenario, fleet),
+      });
+    });
+  };
+
   const services: EditorServices = {
     library,
     core: () => core,
@@ -184,6 +226,9 @@ async function main(): Promise<void> {
           { design: picket, profile: "balanced", x: 3800, y: 900 },
         ],
       ),
+    startScenario,
+    results,
+    bundledDesign: (id) => BUNDLED_DESIGNS.get(id),
     cycleTheme,
     toast,
   };
@@ -214,6 +259,14 @@ async function main(): Promise<void> {
     resolveStyle: (classes: string) => theme.resolve(classes),
     openSandbox: () => services.openSandbox(),
     openSkirmish: () => services.openSkirmish(),
+    /** Scenario battle state (tests): status, enemies left, results shown. */
+    battle: () => {
+      const b = flight.battle;
+      return b ? { status: b.status, enemies: b.enemyShips.map((s) => s.id), reason: b.reason } : null;
+    },
+    /** Destroys every enemy's command module (scripted fight for tests). */
+    killEnemies: () =>
+      flight.battle?.enemyShips.forEach((s) => s.destroyPart(s.parts.find((p) => p.def.def.command)!.uid)),
     /** AI state of a ship (behaviour, order, target), for tests. */
     ai: (id: string) => {
       const st = flight.world?.ai.get(id);

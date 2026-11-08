@@ -1,0 +1,150 @@
+{
+  "id": "s05-power",
+  "name": "Power",
+  "description": "A laser lance draws more power than most ships make.",
+  "order": 5,
+  "budget": 240,
+  "maxPlayerShips": 1,
+  "arena": {
+    "width": 6000,
+    "height": 4000,
+    "asteroids": [
+      {
+        "position": [-1892, 1171],
+        "angle": 303,
+        "outline": [
+          [27.6, 0.0],
+          [13.8, 23.9],
+          [-13.1, 22.6],
+          [-26.6, 0.0],
+          [-14.9, -25.8],
+          [14.1, -24.4]
+        ],
+        "static": true
+      },
+      {
+        "position": [192, 754],
+        "angle": 269,
+        "outline": [
+          [49.0, 0.0],
+          [25.3, 31.7],
+          [-8.4, 36.7],
+          [-36.8, 17.7],
+          [-36.1, -17.4],
+          [-10.4, -45.7],
+          [29.3, -36.7]
+        ],
+        "static": true
+      },
+      {
+        "position": [1496, 1670],
+        "angle": 297,
+        "outline": [
+          [47.5, 0.0],
+          [20.6, 35.6],
+          [-20.2, 34.9],
+          [-39.6, 0.0],
+          [-19.1, -33.0],
+          [23.2, -40.1]
+        ],
+        "static": true
+      },
+      {
+        "position": [1981, -244],
+        "angle": 319,
+        "outline": [
+          [47.0, 0.0],
+          [16.9, 51.9],
+          [-41.0, 29.8],
+          [-47.6, -34.6],
+          [13.8, -42.5]
+        ],
+        "velocity": [-1.9, -2.6],
+        "angularVelocity": 9.9
+      },
+      {
+        "position": [-921, 1101],
+        "angle": 71,
+        "outline": [
+          [36.2, 0.0],
+          [20.2, 25.3],
+          [-8.6, 37.6],
+          [-31.6, 15.2],
+          [-37.6, -18.1],
+          [-9.2, -40.2],
+          [23.3, -29.2]
+        ],
+        "static": true
+      },
+      {
+        "position": [804, 29],
+        "angle": 36,
+        "outline": [
+          [38.5, 0.0],
+          [27.0, 33.9],
+          [-8.1, 35.3],
+          [-33.7, 16.2],
+          [-39.4, -19.0],
+          [-8.3, -36.4],
+          [26.4, -33.1]
+        ],
+        "static": true
+      },
+      {
+        "position": [-233, -994],
+        "angle": 255,
+        "outline": [
+          [45.5, 0.0],
+          [35.7, 44.7],
+          [-12.1, 53.0],
+          [-46.3, 22.3],
+          [-40.2, -19.4],
+          [-11.3, -49.6],
+          [27.3, -34.3]
+        ],
+        "static": true
+      },
+      {
+        "position": [234, -1424],
+        "angle": 321,
+        "outline": [
+          [48.7, 0.0],
+          [25.3, 43.8],
+          [-23.4, 40.6],
+          [-51.9, 0.0],
+          [-23.9, -41.4],
+          [27.1, -46.9]
+        ],
+        "velocity": [-3.8, 2.2],
+        "angularVelocity": 0.9
+      }
+    ],
+    "gravityWells": []
+  },
+  "playerSpawns": [
+    {
+      "position": [-1500, 0],
+      "angle": 0
+    }
+  ],
+  "enemies": [
+    {
+      "designId": "arch-lance",
+      "aiProfile": "kiter",
+      "spawn": {
+        "position": [1600, -200],
+        "angle": 180
+      },
+      "team": 1
+    }
+  ],
+  "objective": {
+    "type": "destroyAll"
+  },
+  "seed": 36,
+  "hints": [
+    "Beams and gyros need reactor power. P opens the power priority panel.",
+    "A browned-out beam does less damage and makes less heat."
+  ],
+  "referenceDesigns": ["arch-missile"]
+}

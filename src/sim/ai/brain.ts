@@ -413,7 +413,9 @@ function fireControl(world: World, ship: Ship, st: AiState, me: Pose, caps: Capa
   if (
     t &&
     caps.missiles.launchers > 0 &&
-    caps.missiles.ready >= caps.missiles.launchers &&
+    // A volley waits for every launcher that still has a round; empty launchers do not hold it up.
+    caps.missiles.ready > 0 &&
+    caps.missiles.ready >= caps.missiles.loaded &&
     dist <= caps.missiles.range * 0.85 &&
     world.tick - st.lastVolleyTick >= st.profile.volleyInterval * 60
   ) {

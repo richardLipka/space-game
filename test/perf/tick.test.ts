@@ -7,7 +7,7 @@ import { PartCatalogue } from "../../src/sim/ship/catalogue";
 import type { ShipDesign } from "../../src/data/schemas/design";
 import { World } from "../../src/sim/world";
 import { vec2 } from "../../src/sim/core/vec2";
-import { PERF_RETRY, perfBudget } from "../helpers";
+import { design as fixtureDesign, PERF_RETRY, perfBudget, testCatalogue } from "../helpers";
 
 const r = validateCatalogue(catalogueJson);
 if (!r.ok) throw new Error(r.errors.join("\n"));
@@ -111,5 +111,51 @@ describe("M5 performance", () => {
     const ms = total / ticks;
     console.log(`M5 load (10 ships, 30 drones, 40 missiles, 500 rounds): ${ms.toFixed(2)} ms/tick`);
     expect(ms).toBeLessThan(perfBudget(8));
+  });
+});
+
+describe("M4 performance", () => {
+  it("4.23 500 projectiles + 10 ships: one tick under 4 ms", PERF_RETRY, () => {
+    const w = new World({ seed: 1 });
+    const testCat = testCatalogue();
+    const small: ShipDesign = {
+      ...fixtureDesign("brick"),
+      id: "perf-small",
+      parts: [
+        { uid: "p1", partId: "core:test.command", x: 0, y: 0, angle: 0 },
+        { uid: "p2", partId: "core:test.square", x: 1, y: 0, angle: 0 },
+        { uid: "p3", partId: "core:test.square", x: -1, y: 0, angle: 0 },
+        { uid: "p4", partId: "core:test.engine", x: 0, y: 1, angle: 90 },
+        { uid: "p5", partId: "core:test.fueltank", x: 0, y: -1, angle: 0 },
+      ],
+    };
+    for (let i = 0; i < 10; i++) w.addShip(small, testCat, { position: vec2(i * 40, 300) });
+    const refill = () => {
+      while (w.combat.projectiles.length < 500) {
+        const i = w.combat.projectiles.length;
+        w.combat.projectiles.push({
+          id: 10_000 + i,
+          owner: "x",
+          team: 9,
+          pos: vec2(i * 2, -200),
+          vel: vec2(0, 50),
+          mass: 0.1,
+          damage: 1,
+          age: 0,
+          lifetime: 1000,
+          kind: "t",
+        });
+      }
+    };
+    refill();
+    w.run(30);
+    refill();
+    const t0 = performance.now();
+    const n = 120;
+    for (let i = 0; i < n; i++) w.step();
+    const ms = (performance.now() - t0) / n;
+    console.log(`500 projectiles + 10 ships: ${ms.toFixed(2)} ms/tick`);
+    expect(w.combat.projectiles.length).toBeGreaterThan(400);
+    expect(ms).toBeLessThan(perfBudget(4));
   });
 });

@@ -15,7 +15,7 @@ Design docs: [docs/space-game-spec.md](docs/space-game-spec.md) and [docs/implem
 | Playtest 1 fixes         | Done: speed kill turns and burns when there is no retro thrust, damped recoil, per-turret turn rate shown in part info, palette search and collapsible categories, HUD ammo and heat breakdown, hull radiation, glowing radiators, ejecting parts (B) |
 | M5 Missiles, PD, drones  | Done: guided missiles (proportional navigation, proximity fuse, blast, can be shot down), automatic PD and flak, shared targeting, AI-mode weapons, three drone types with hangars, decoys                                                            |
 | M6 AI                    | Done: capability profile, steering with asteroid and boundary avoidance, utility behaviours, fire control, target selection, six AI profiles, allies with Tab hand-off and J/K/L orders, Skirmish mode                                                |
-| M7 Scenarios and balance | Next                                                                                                                                                                                                                                                  |
+| M7 Scenarios and balance | In progress: balance harness and tuning pass ([balance-pass-1.md](docs/balance-pass-1.md)), eight scenarios with objectives, budget, scenario select and results screen; polish (settings, pause menu, scenario export) next                          |
 
 ## Commands
 
@@ -26,9 +26,12 @@ npm run check        # lint + format check + typecheck + unit/integration/golden
 npm run test:e2e     # Playwright (first time: npx playwright install chromium)
 npm run sim -- --scenario test/fixtures/scenarios/asteroid-field.json --ticks 6000
 npm run golden:update  # re-baseline golden hashes (explain every change in the PR)
+npm run balance -- --seeds 8   # balance matrix of the weapon archetypes → balance-report/report.html
 ```
 
 ## Controls
+
+**Scenarios:** Scenarios (toolbar) → choose one → add designs to the fleet (or take the suggested fleet) within the budget → Start battle → results → back to the editor.
 
 **Editor:** search the palette or open a category, hover a part for its numbers, click it, then click to place (stays in placing mode; Esc/right-click stops) ·
 green edges = where the part can connect; the status line says what will connect ·

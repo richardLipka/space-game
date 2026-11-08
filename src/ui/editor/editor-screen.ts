@@ -27,6 +27,10 @@ import { LibraryDialog } from "./library-dialog";
 import { el, fmt, partThumbnail } from "./dom";
 import { matchesSearch, partInfoRows } from "./part-info";
 import { connectionGraph } from "../../editor/graph";
+import type { Scenario } from "../../data/schemas/scenario";
+import { checkFleet } from "../../sim/scenario/battle";
+import type { ResultStore } from "../results";
+import { objectiveText, ScenarioDialog } from "./scenario-dialog";
 
 export interface EditorServices {
   readonly library: Library;
@@ -41,6 +45,12 @@ export interface EditorServices {
   openSandbox(): void;
   /** Player squadron against an AI squadron (M6). */
   openSkirmish(): void;
+  /** Starts a scenario battle with this fleet (spec §12). */
+  startScenario(scenario: Scenario, fleet: ShipDesign[]): void;
+  /** Saved scenario results. */
+  readonly results: ResultStore;
+  /** Designs shipped with the game (scenario reference fleets). */
+  bundledDesign(id: string): ShipDesign | undefined;
   cycleTheme(): void;
   toast(message: string, kind?: "info" | "error"): void;
 }
@@ -135,6 +145,10 @@ export class EditorScreen {
   private readonly overlayBoxes = new Map<keyof EditorOverlays, HTMLInputElement>();
   private readonly importDialog: ImportDialog;
   private readonly libraryDialog: LibraryDialog;
+  private readonly scenarioDialog: ScenarioDialog;
+  /** Scenario being prepared (plan M7 task 2) and the fleet the player has put together for it. */
+  scenario: Scenario | null = null;
+  readonly fleet: ShipDesign[] = [];
   private readonly ui: Record<string, HTMLElement> = {};
   /** Palette row the info card belongs to. */
   private infoAnchor: HTMLElement | null = null;
@@ -156,6 +170,7 @@ export class EditorScreen {
     document.body.appendChild(this.root);
     this.importDialog = new ImportDialog(services, (d) => this.loadDesign(d));
     this.libraryDialog = new LibraryDialog(services, (d) => this.loadDesign(d));
+    this.scenarioDialog = new ScenarioDialog(services.results, (s) => this.setScenario(s));
     this.attachInput();
     window.addEventListener("resize", () => this.syncToolbarHeight());
     this.camera.mode = "free";
@@ -281,6 +296,7 @@ export class EditorScreen {
       overlays,
       el("span", { class: "ed-sep" }),
       this.button("Test flight", "btn-test-flight", () => this.testFlight()),
+      this.button("Scenarios", "btn-scenarios", () => this.scenarioDialog.open(), "Pick a scenario to fight"),
       this.button("Sandbox", "btn-sandbox", () => this.services.openSandbox()),
       this.button(
         "Skirmish",
@@ -295,10 +311,12 @@ export class EditorScreen {
     this.ui.issues = el("section", { class: "ed-issues", "data-testid": "issues" });
     this.ui.groups = el("section", { class: "ed-groups", "data-testid": "groups" });
     this.ui.graph = el("section", { class: "ed-graph", "data-testid": "graph-panel" });
+    this.ui.scenario = el("section", { class: "ed-scenario", "data-testid": "scenario-panel", hidden: "" });
     this.ui.power = el("section", { class: "ed-power", "data-testid": "power" });
     const side = el(
       "aside",
       { class: "ed-side" },
+      this.ui.scenario,
       this.ui.stats,
       this.ui.issues,
       this.ui.graph,
@@ -464,7 +482,7 @@ export class EditorScreen {
 
   private renderPanels(): void {
     const m = this.model;
-    const key = `${this.overlays.graph}|${m.design.modifiedAt}|${m.design.parts.length}|${[...this.selected].join()}|${m.mirror}|${this.dirty}|${m.catalogue.version}`;
+    const key = `${this.scenario?.id}|${this.fleet.length}|${this.overlays.graph}|${m.design.modifiedAt}|${m.design.parts.length}|${[...this.selected].join()}|${m.mirror}|${this.dirty}|${m.catalogue.version}`;
     if (key === this.panelKey) return;
     this.panelKey = key;
     const name = this.ui.name as HTMLInputElement;
@@ -522,10 +540,111 @@ export class EditorScreen {
       issues.append(li);
     }
 
+    this.renderScenario();
     this.renderGraph();
     this.renderGroups();
     this.renderPower();
     this.updateStatus();
+  }
+
+  /** Enters scenario preparation: the side panel shows budget, objective, hints and the fleet. */
+  setScenario(s: Scenario | null): void {
+    this.scenario = s;
+    this.fleet.length = 0;
+    this.panelKey = "";
+  }
+
+  /** Adds a copy of the design in the editor to the scenario fleet. */
+  addCurrentToFleet(): void {
+    this.fleet.push(structuredClone(this.model.design));
+    this.panelKey = "";
+  }
+
+  /** Replaces the fleet with the scenario's suggested designs. */
+  useSuggestedFleet(): void {
+    const s = this.scenario;
+    if (!s) return;
+    this.fleet.length = 0;
+    for (const id of s.referenceDesigns ?? []) {
+      const d = this.services.bundledDesign(id);
+      if (d) this.fleet.push(structuredClone(d));
+    }
+    this.panelKey = "";
+  }
+
+  /** Scenario panel (plan M7 task 2): objective, budget, hints, fleet and the start button. */
+  private renderScenario(): void {
+    const box = this.ui.scenario!;
+    const s = this.scenario;
+    box.hidden = !s;
+    if (!s) return;
+    const cat = this.model.catalogue;
+    const check = checkFleet(s, this.fleet, cat);
+    const current = this.model.design.parts.reduce(
+      (t, p) => t + (cat.has(p.partId) ? cat.get(p.partId).def.cost : 0),
+      0,
+    );
+    box.replaceChildren(
+      el("h3", {}, `Scenario ${s.order ?? ""}: ${s.name}`),
+      el("p", {}, s.description),
+      el(
+        "div",
+        { class: "row" },
+        el("span", {}, "Objective"),
+        el("b", { "data-testid": "scenario-objective" }, objectiveText(s)),
+      ),
+      el(
+        "div",
+        { class: "row" },
+        el("span", {}, "Fleet cost"),
+        el(
+          "b",
+          { "data-testid": "fleet-cost", class: check.cost > s.budget ? "over" : "" },
+          `${check.cost} / ${s.budget}`,
+        ),
+      ),
+      el(
+        "div",
+        { class: "row" },
+        el("span", {}, "Ships"),
+        el("b", {}, `${this.fleet.length} / ${s.maxPlayerShips}`),
+      ),
+    );
+    const list = el("div", { "data-testid": "fleet-list" });
+    this.fleet.forEach((d, i) => {
+      const cost = d.parts.reduce((t, p) => t + (cat.has(p.partId) ? cat.get(p.partId).def.cost : 0), 0);
+      const rm = this.button("✕", `fleet-remove-${i}`, () => {
+        this.fleet.splice(i, 1);
+        this.panelKey = "";
+      });
+      list.append(el("div", { class: "row" }, el("span", {}, `${d.name} · ${cost}`), rm));
+    });
+    if (this.fleet.length === 0) list.append(el("p", { class: "dim" }, "No ships yet."));
+    box.append(list);
+    const actions = el(
+      "div",
+      { class: "ed-scenario-actions" },
+      this.button(`Add current (${current})`, "btn-fleet-add", () => this.addCurrentToFleet()),
+      this.button("Suggested fleet", "btn-fleet-suggested", () => this.useSuggestedFleet()),
+    );
+    box.append(actions);
+    for (const e of check.errors)
+      box.append(el("div", { class: "issue error", "data-testid": "fleet-error" }, e));
+    const start = this.button("Start battle", "btn-start-battle", () => {
+      if (checkFleet(s, this.fleet, cat).ok)
+        this.services.startScenario(
+          s,
+          this.fleet.map((d) => structuredClone(d)),
+        );
+    });
+    if (!check.ok) start.setAttribute("disabled", "");
+    const leave = this.button("Leave scenario", "btn-leave-scenario", () => this.setScenario(null));
+    box.append(el("div", { class: "ed-scenario-actions" }, start, leave));
+    if (s.hints?.length) {
+      const hints = el("ul", { class: "ed-hints" });
+      for (const h of s.hints) hints.append(el("li", {}, h));
+      box.append(el("h3", {}, "Tips"), hints);
+    }
   }
 
   setOverlay(k: keyof EditorOverlays, on: boolean): void {

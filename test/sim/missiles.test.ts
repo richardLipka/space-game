@@ -313,7 +313,7 @@ describe("M5 point defense", () => {
     spawnMissile(w, enemy, def, vec2(700, 0), vec2(-1, 0), vec2(-300, 0), ship.id);
     w.run(90);
     expect(w.combat.stats.shots).toBeGreaterThan(0); // the PD
-    expect(ship.part("gun").ammo).toBe(80); // the manual gun never fired
+    expect(ship.part("gun").ammo).toBe(150); // the manual gun never fired (full internal magazine)
   });
 
   it("5.14 a decoy pulls ≥ 70 % of incoming missiles off their target (seeded batch)", () => {
