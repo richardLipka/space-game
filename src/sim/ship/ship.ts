@@ -17,6 +17,11 @@ export interface PartInstance {
   charge: number;
   /** Rounds: magazine stock, or a weapon's internal magazine (spec §7.3). */
   ammo: number;
+  /**
+   * "Shadow life" of a wreck (decision log: Wreck shadow life): starts at the part's full HP; hits on the
+   * wreck wear it down, and at zero the wreck breaks off the ship and is gone.
+   */
+  wreckHp: number;
 }
 
 export interface MassProps {
@@ -95,6 +100,7 @@ export function instantiateParts(
       fuel: (def.def.fuelTank?.capacity ?? 0) * fuelFraction,
       charge: (def.def.battery?.capacity ?? 0) * chargeFraction,
       ammo: def.def.magazine?.capacity ?? def.def.weapon?.internalMagazine ?? def.def.hangar?.capacity ?? 0,
+      wreckHp: def.def.hp,
     };
   });
 }

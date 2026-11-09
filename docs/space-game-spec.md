@@ -704,7 +704,7 @@ The `sim` module never imports `render`, `ui` or `editor`. Rendering reads a sim
 | Cut-off sections | No player or AI control. Automatic PD still works while it has power and ammo (Section 7.1) |
 | Speed kill | X keeps orientation when it can, otherwise flips; Shift+X always flips and burns (Section 6.7) |
 | Budget | Per fleet, set by the scenario (Section 12) |
-| Wrecks | Weakened armor that absorbs 50% of each hit and passes the rest on (Section 8) |
+| Wrecks | Weakened armor that absorbs 50% of each hit and passes the rest on, until its shadow life runs out (Section 8; see Wreck shadow life) |
 | Gimbal | Cos φ thrust loss. Can't fire outside the gimbal limit, so main engines never make torque (Section 6.3) |
 | Visuals | Neon wireframe, abstract geometry, themed by CSS (Section 13.7) |
 | Scale | Mixed classes from drones to cruisers (Section 2.1) |
@@ -751,6 +751,10 @@ The `sim` module never imports `render`, `ui` or `editor`. Rendering reads a sim
 | Scenarios | Eight scenarios in `src/data/scenarios/` teach the mechanics in order: first flight, fixed vs. turret, armor, heat (survive 60 s), power, missiles and PD, escort (protect), mixed fleet. Each has tips and suggested reference designs; a test checks that every scenario's reference fleet, flown by the AI, wins at least one of 20 seeds |
 | Objectives | destroyAll: every enemy ship (drones excluded) defeated. survive: the time passes. protect: the team-0 ship spawned from the objective's design must outlive the enemies. Losing every player ship always loses. The result is decided once and does not change |
 | Fleet and budget | A fleet is one or more designs added in the editor's scenario panel. It may not exceed the scenario's budget (sum of part costs) or ship count, nor use parts outside `allowedParts`; Start stays disabled until it fits. Results (win/loss, time, damage dealt and taken, parts lost) are kept per browser, and the scenario list shows the best one |
+| Editor drag | Moving or rotating a part carries everything that hangs on it, by the same rule as jettison: every part that would lose its connection to the command module without it. The group keeps its shape (rotation turns it about the moved part) and is one undo step. Ctrl+drag moves the part alone; the command module always moves alone |
+| Weapon bar | The flight screen shows every weapon group along the bottom: number, mode, weapons alive and loaded rounds, with the selected groups highlighted. Clicking a group selects it, Shift+click adds it |
+| Wreck shadow life | A destroyed part keeps a "shadow life" equal to its full HP. Hits wear it down by the share the wreck absorbs (rays) or takes (blasts, collisions). At zero the wreck breaks off with a flash and is gone, and whatever hung only on it drifts off as debris (the jettison rule). The command module's wreck never breaks off. This replaces "Wrecks: absorb 50 % forever" |
+| Store explosions | Destroyed fuel tanks and magazines explode in proportion to what they still hold: peak damage 0.6 per kg of fuel or 1.2 per kg of ammunition, radius 3 m × cube root of the stored mass relative to a full small tank (500 kg) or magazine (340 kg); under 5 kg nothing explodes. Replaces the fixed 300 / 400 blasts |
 
 Still open (this doesn't block Milestone 1):
 - Further balance passes: see the open items in [balance-pass-1.md](balance-pass-1.md).

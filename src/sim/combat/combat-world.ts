@@ -231,6 +231,7 @@ function damageShipAlongRay(
   for (const a of res.applied)
     if (ship.applyDamage(a.uid, a.damage))
       pushEvent(world, "destroyed", worldPartCenter(world, ship, a.uid), 2);
+  for (const a of res.absorbed) ship.damageWreck(a.uid, a.damage);
   recordDamage(world, src, before - hullHp(ship));
   return res.stoppedBy;
 }

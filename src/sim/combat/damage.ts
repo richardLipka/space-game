@@ -16,6 +16,8 @@ export interface RayTarget {
 export interface RayDamageResult {
   /** Damage applied per part uid (intact parts only). */
   readonly applied: { uid: string; damage: number }[];
+  /** Share of the hit each wreck on the way absorbed (goes to its shadow life). */
+  readonly absorbed: { uid: string; damage: number }[];
   /** Part that stopped the ray (first intact part hit), if any. */
   readonly stoppedBy: string | null;
 }
@@ -31,14 +33,20 @@ export function damageAlongRay(
   minDamage: number = COMBAT.minDamage,
 ): RayDamageResult {
   let remaining = hit;
+  const absorbed: { uid: string; damage: number }[] = [];
   for (const h of hits) {
     if (!h.intact) {
+      absorbed.push({ uid: h.uid, damage: remaining * COMBAT.wreckAbsorb });
       remaining *= 1 - COMBAT.wreckAbsorb;
       continue;
     }
-    return { applied: [{ uid: h.uid, damage: afterArmor(remaining, h.armor, minDamage) }], stoppedBy: h.uid };
+    return {
+      applied: [{ uid: h.uid, damage: afterArmor(remaining, h.armor, minDamage) }],
+      absorbed,
+      stoppedBy: h.uid,
+    };
   }
-  return { applied: [], stoppedBy: null };
+  return { applied: [], absorbed, stoppedBy: null };
 }
 
 /** Beam damage falloff: full up to falloffStart, then linear to zero at max range. */

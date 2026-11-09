@@ -590,3 +590,62 @@ body {
   padding-left: 18px;
   color: var(--panel-dim);
 }
+
+/* Weapon-group bar along the bottom of the flight screen */
+.weapon-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  max-width: calc(100vw - 32px);
+  z-index: 5;
+  font:
+    12px/1.3 ui-monospace,
+    "Cascadia Mono",
+    Consolas,
+    monospace;
+}
+.weapon-bar[hidden] {
+  display: none;
+}
+.wb-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  font: inherit;
+  color: var(--hud-dim, #7d8b99);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  cursor: pointer;
+}
+.wb-group.sel {
+  color: var(--hud-fg);
+  border-color: var(--hud-fg);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--hud-fg) 40%, transparent);
+}
+.wb-group.dead {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+.wb-key {
+  font-weight: 700;
+  font-size: 14px;
+}
+.wb-mode {
+  padding: 0 4px;
+  border: 1px solid currentColor;
+}
+.wb-group.mode-ai .wb-mode {
+  color: var(--hud-warn, #ffb347);
+}
+.wb-group.mode-hold .wb-mode {
+  opacity: 0.6;
+}
+.wb-ammo.reloading {
+  opacity: 0.6;
+}

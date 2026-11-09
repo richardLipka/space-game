@@ -32,7 +32,7 @@ import {
   type WeaponState,
 } from "../combat/weapons";
 import { afterArmor } from "../combat/damage";
-import { EXPLOSION } from "../combat/constants";
+import { EXPLOSION, storeBlast } from "../combat/constants";
 import { partCentroid } from "./ship";
 import {
   computeMassProps,
@@ -608,6 +608,7 @@ export class Ship {
       this.reactorOutput.delete(p.uid);
     }
     this.pendingExplosions = this.pendingExplosions.filter((e) => !gone.has(e.uid));
+    this.pendingShatter = this.pendingShatter.filter((u) => !gone.has(u));
     this.rebuildStructure();
     this.markNetworksDirty();
     this.updateNetworks();
@@ -635,8 +636,8 @@ export class Ship {
   private queueExplosion(p: PartInstance): void {
     const d = p.def.def;
     let e: { radius: number; damage: number } | null = null;
-    if (d.fuelTank && p.fuel >= d.fuelTank.capacity * EXPLOSION.fuelTank.minFill) e = EXPLOSION.fuelTank;
-    else if (d.magazine && p.ammo >= d.magazine.capacity * EXPLOSION.magazine.minFill) e = EXPLOSION.magazine;
+    if (d.fuelTank) e = storeBlast("fuelTank", p.fuel);
+    else if (d.magazine) e = storeBlast("magazine", Math.floor(p.ammo) * d.magazine.massPerRound);
     else if (d.reactor && !d.command) e = EXPLOSION.reactor;
     if (e)
       this.pendingExplosions.push({
@@ -647,10 +648,29 @@ export class Ship {
       });
   }
 
-  /** Applies damage to a part (armor already applied by the caller). Returns true if this destroyed it. */
+  /** Wrecks whose shadow life ran out; the world breaks them off at the end of the tick. */
+  pendingShatter: string[] = [];
+
+  /** Wears down a wreck's shadow life; at zero it is queued to break off (never the command module). */
+  damageWreck(uid: string, damage: number): void {
+    const p = this.part(uid);
+    if (p.hp > 0 || damage <= 0 || p.wreckHp <= 0) return;
+    p.wreckHp -= damage;
+    if (p.wreckHp <= 0 && !p.def.def.command && !this.pendingShatter.includes(uid))
+      this.pendingShatter.push(uid);
+  }
+
+  /**
+   * Applies damage to a part (armor already applied by the caller). Returns true if this destroyed it.
+   * Damage to a wreck goes to its shadow life.
+   */
   applyDamage(uid: string, damage: number): boolean {
     const p = this.part(uid);
-    if (p.hp <= 0 || damage <= 0) return false;
+    if (p.hp <= 0) {
+      this.damageWreck(uid, damage);
+      return false;
+    }
+    if (damage <= 0) return false;
     if (p.hp - damage <= 0) {
       this.onDestroyed(p);
       return true;
@@ -675,7 +695,7 @@ export class Ship {
     // not shelter the parts behind them.
     const hits: { uid: string; dmg: number }[] = [];
     for (const p of [...this.parts].sort((a, b) => compareIds(a.uid, b.uid))) {
-      if (p.uid === exceptUid || p.hp <= 0) continue;
+      if (p.uid === exceptUid) continue;
       const c = partCentroid(p);
       const dist = Math.hypot(c.x - center.x, c.y - center.y);
       if (dist >= radius) continue;
@@ -684,6 +704,7 @@ export class Ship {
       hits.push({ uid: p.uid, dmg: afterArmor(damage * (1 - dist / radius) * k, p.def.def.armor ?? 0) });
     }
     const destroyed: string[] = [];
+    // Wrecks in the blast lose shadow life (applyDamage routes it there).
     for (const h of hits) if (this.applyDamage(h.uid, h.dmg)) destroyed.push(h.uid);
     return destroyed;
   }
@@ -814,7 +835,14 @@ export class Ship {
       defeated: this.defeated,
       weapons: this.weapons.map((w) => ({ uid: w.uid, turret: w.turret, cooldown: w.cooldown })),
       powerPriority: this.powerPriority,
-      parts: this.parts.map((p) => ({ uid: p.uid, hp: p.hp, fuel: p.fuel, charge: p.charge, ammo: p.ammo })),
+      parts: this.parts.map((p) => ({
+        uid: p.uid,
+        hp: p.hp,
+        wreckHp: p.wreckHp,
+        fuel: p.fuel,
+        charge: p.charge,
+        ammo: p.ammo,
+      })),
       throttles: this.throttles,
     };
   }

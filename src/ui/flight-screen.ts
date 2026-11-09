@@ -80,6 +80,79 @@ export class FlightScreen {
     document.body.append(this.powerPanel);
     this.resultsPanel = el("div", { class: "results-panel", "data-testid": "results", hidden: "" });
     document.body.append(this.resultsPanel);
+    this.weaponBar = el("div", { class: "weapon-bar", "data-testid": "weapon-bar", hidden: "" });
+    document.body.append(this.weaponBar);
+  }
+
+  private readonly weaponBar: HTMLElement;
+  private weaponBarKey = "";
+
+  /**
+   * Weapon groups along the bottom of the screen (spec §9.2): number, mode, weapons and loaded rounds for
+   * every group, the selected ones highlighted. Click selects a group, Shift+click adds it.
+   */
+  private renderWeaponBar(): void {
+    const ship = this.controlledShip;
+    const bar = this.weaponBar;
+    const ws = ship ? ship.weapons.filter((w) => w.def.kind !== "pd") : [];
+    if (!ship || ws.length === 0) {
+      bar.hidden = true;
+      this.weaponBarKey = "";
+      return;
+    }
+    const groups = [...new Set(ws.map((w) => w.group))].sort((a, b) => a - b);
+    const info = groups.map((g) => {
+      const list = ws.filter((w) => w.group === g);
+      const alive = list.filter((w) => w.part.hp > 0);
+      const mode = ship.groupModes.get(g) ?? "manual";
+      const names = [...new Set(list.map((w) => w.part.def.def.name.replace(/ \(.*\)$/, "")))].join(", ");
+      const usesAmmo = list.some((w) => w.def.ammoType && w.def.internalMagazine > 0);
+      const loaded = alive.reduce((n, w) => n + Math.floor(w.part.ammo), 0);
+      const cap = alive.reduce((n, w) => n + w.def.internalMagazine, 0);
+      const ready = alive.some((w) => w.cooldown <= 1e-9);
+      return {
+        g,
+        mode,
+        names,
+        alive: alive.length,
+        total: list.length,
+        ammo: usesAmmo ? `${loaded}/${cap}` : "power",
+        ready,
+      };
+    });
+    const key = `${ship.id}|${[...this.selectedGroups].join()}|${JSON.stringify(info)}`;
+    bar.hidden = false;
+    if (key === this.weaponBarKey) return;
+    this.weaponBarKey = key;
+    bar.replaceChildren();
+    for (const x of info) {
+      const sel = this.selectedGroups.has(x.g);
+      const chip = el(
+        "button",
+        {
+          class: `wb-group mode-${x.mode}${sel ? " sel" : ""}${x.alive === 0 ? " dead" : ""}`,
+          "data-testid": `wb-group-${x.g}`,
+          "aria-pressed": String(sel),
+          title: "Click selects, Shift+click adds · G cycles the mode of the selected groups",
+        },
+        el("span", { class: "wb-key" }, String(x.g)),
+        el("span", { class: "wb-mode", "data-testid": `wb-mode-${x.g}` }, x.mode.toUpperCase()),
+        el("span", { class: "wb-names" }, `${x.alive}/${x.total} ${x.names}`),
+        el("span", { class: `wb-ammo${x.ready ? "" : " reloading"}` }, x.ammo),
+      );
+      chip.addEventListener("mousedown", (e) => e.stopPropagation());
+      chip.addEventListener("click", (e) => {
+        if (e.shiftKey) {
+          if (this.selectedGroups.has(x.g) && this.selectedGroups.size > 1) this.selectedGroups.delete(x.g);
+          else this.selectedGroups.add(x.g);
+        } else {
+          this.selectedGroups.clear();
+          this.selectedGroups.add(x.g);
+        }
+        (e.currentTarget as HTMLElement).blur();
+      });
+      bar.append(chip);
+    }
   }
 
   private readonly resultsPanel: HTMLElement;
@@ -314,6 +387,7 @@ export class FlightScreen {
     this.input.speedKillActive = () => this.controlledShip?.flight.speedKill !== "off";
     this.battleShown = false;
     this.resultsPanel.hidden = true;
+    this.weaponBar.hidden = true;
     this.assignAllies();
     this.input.enabled = true;
     this.input.takeCommands();
@@ -534,6 +608,7 @@ export class FlightScreen {
       })(),
     });
     this.renderPowerPanel();
+    this.renderWeaponBar();
   }
 }
 

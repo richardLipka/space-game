@@ -82,6 +82,7 @@ describe("M1 geometry and mass properties", () => {
         fuel: (def.def.fuelTank?.capacity ?? 0) * s.fuel,
         charge: 0,
         ammo: 0,
+        wreckHp: def.def.hp,
       };
     });
 

@@ -27,6 +27,7 @@ import { LibraryDialog } from "./library-dialog";
 import { el, fmt, partThumbnail } from "./dom";
 import { matchesSearch, partInfoRows } from "./part-info";
 import { connectionGraph } from "../../editor/graph";
+import { attachedTo } from "../../editor/attached";
 import type { Scenario } from "../../data/schemas/scenario";
 import { checkFleet } from "../../sim/scenario/battle";
 import type { ResultStore } from "../results";
@@ -58,7 +59,16 @@ export interface EditorServices {
 type Mode =
   | { kind: "idle" }
   | { kind: "placing"; def: RuntimePartDef; angle: number }
-  | { kind: "dragging"; uid: string; grab: Vec2; angle: number; moved: boolean; downScreen: Vec2 };
+  | {
+      kind: "dragging";
+      uid: string;
+      grab: Vec2;
+      angle: number;
+      moved: boolean;
+      downScreen: Vec2;
+      /** Parts that hang on the dragged one and move with it (Ctrl+drag moves the part alone). */
+      carry: string[];
+    };
 
 /** Palette categories open by default (the player's choice is remembered afterwards). */
 const DEFAULT_OPEN = ["command", "structure"];
@@ -974,6 +984,7 @@ export class EditorScreen {
         angle: degToRad(pl.angle),
         moved: false,
         downScreen: this.mouseScreen,
+        carry: e.ctrlKey ? [] : attachedTo(this.model.design, this.model.layout, hit),
       };
       this.model.beginDrag();
     });
@@ -1118,9 +1129,10 @@ export class EditorScreen {
     } else if (this.selected.size === 1) {
       const uid = [...this.selected][0]!;
       const pl = this.model.design.parts.find((p) => p.uid === uid)!;
+      const carry = attachedTo(this.model.design, this.model.layout, uid);
       this.edit(() => {
         this.model.beginDrag();
-        this.model.dragTo(uid, pl.x, pl.y, quantizeAngle(degToRad(pl.angle) + step));
+        this.model.dragTo(uid, pl.x, pl.y, quantizeAngle(degToRad(pl.angle) + step), carry);
         this.model.endDrag();
       });
     }
@@ -1153,14 +1165,15 @@ export class EditorScreen {
       )
         return;
       m.moved = true;
-      // Snap against everything except the dragged part (layout from the drag base).
-      const exclude = new Set([m.uid]);
+      // Snap against everything except the dragged part and what it carries (layout from the drag base).
+      const exclude = new Set([m.uid, ...m.carry]);
       const snap = this.altHeld ? null : findSnap(this.model.layout, def, target, m.angle, exclude);
       this.model.dragTo(
         m.uid,
         snap?.position.x ?? target.x,
         snap?.position.y ?? target.y,
         snap?.angle ?? m.angle,
+        m.carry,
       );
       this.panelKey = "";
       const pl = this.model.design.parts.find((p) => p.uid === m.uid)!;
@@ -1172,7 +1185,15 @@ export class EditorScreen {
         ghostEdges: ghostEdges(def, pos, ang),
         contacts: preview.contacts,
       };
-      this.setHint(describePreview(preview, this.model.design.parts.length === 1, def.def.name));
+      const hint = describePreview(preview, this.model.design.parts.length === 1, def.def.name);
+      this.setHint(
+        m.carry.length
+          ? {
+              ...hint,
+              text: `${hint.text} · carrying ${m.carry.length} attached part(s) (Ctrl+drag moves it alone)`,
+            }
+          : hint,
+      );
     } else {
       this.ghost = null;
       this.clearGuide();

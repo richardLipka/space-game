@@ -10,10 +10,12 @@ import type { PartCatalogue } from "./ship/catalogue";
 import {
   computeMassProps,
   instantiateParts,
+  partCentroid,
   partPiecesShipFrame,
   type InstantiateOptions,
 } from "./ship/ship";
 import { transformPoints } from "./core/geometry";
+import { EXPLOSION } from "./combat/constants";
 import { Ship } from "./ship/ship-entity";
 import type { ControlIntent } from "./flight/controller";
 import {
@@ -210,10 +212,23 @@ export class World {
    * Jettisons a part (decision log: Ejection): it leaves as a separate debris body pushed away from the
    * ship at EJECT.speed, with an equal and opposite push on the ship. Fuel, ammo and its heat go with it.
    */
-  ejectPart(shipId: string, uid: string): Debris | null {
+  ejectPart(shipId: string, uid: string, opts: { vanish?: boolean } = {}): Debris | null {
     const ship = this.getShip(shipId);
-    const uids = ship.ejectionSet(uid);
-    if (uids.length === 0) return null;
+    const all = ship.ejectionSet(uid);
+    if (all.length === 0) return null;
+    if (opts.vanish) {
+      // The part itself breaks up and is gone (wreck shadow life spent); what hung on it drifts off as debris.
+      const s = this.physics.getBodyState(shipId);
+      const p = ship.part(uid);
+      const at = add(s.position, rotate(partCentroid(p), s.angle));
+      ship.removeParts([uid]);
+      this.physics.removeFixtures(shipId, `${shipId}/${uid}`);
+      this.physics.setMassProps(shipId, ship.massProps);
+      this.combat.events.push({ tick: this.tick, kind: "explosion", pos: at, size: EXPLOSION.wreckBreak });
+      const rest = all.filter((u) => u !== uid);
+      return rest.length ? this.ejectPart(shipId, rest[0]!) : null;
+    }
+    const uids = all;
     const pose = this.physics.getBodyState(shipId);
     const shipCenter = this.physics.getWorldCenter(shipId);
     const leaving = uids.map((u) => ship.part(u));
@@ -310,6 +325,13 @@ export class World {
     // 11–12: heat, overheat damage, ammo refill.
     for (const ship of this.allShips()) ship.postStep(dt);
     processExplosions(this);
+    // 12b: wrecks whose shadow life ran out break off (decision log: Wreck shadow life).
+    for (const ship of this.allShips()) {
+      const queued = ship.pendingShatter;
+      ship.pendingShatter = [];
+      for (const uid of [...queued].sort(compareIds))
+        if (ship.parts.some((p) => p.uid === uid)) this.ejectPart(ship.id, uid, { vanish: true });
+    }
     // 13: mass properties after fuel and ammo use.
     for (const ship of this.allShips()) {
       if (ship.maybeRecomputeMass()) this.physics.setMassProps(ship.id, ship.massProps);

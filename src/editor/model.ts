@@ -147,19 +147,46 @@ export class EditorModel {
     this.dragBase = this.design;
   }
 
-  dragTo(uid: string, x: number, y: number, angleRad: number): void {
+  /**
+   * Moves `uid` to (x, y, angle). Parts in `carry` (what hangs on it, see attachedTo) keep their pose
+   * relative to it: same rotation, positions turned about the moved part. In mirror mode each moved part's
+   * twin follows mirrored, unless the twin is itself being moved.
+   */
+  dragTo(uid: string, x: number, y: number, angleRad: number, carry: readonly string[] = []): void {
     const base = this.dragBase ?? this.design;
-    const twin = this.mirror ? this.twinOf(uid, base.parts) : undefined;
+    const from = base.parts.find((p) => p.uid === uid);
+    if (!from) return;
+    const dTheta = angleRad - (from.angle * Math.PI) / 180;
+    const cos = Math.cos(dTheta);
+    const sin = Math.sin(dTheta);
+    const moving = new Set([uid, ...carry]);
     const parts = base.parts.map((p) => {
       if (p.uid === uid)
         return { ...p, ...placementFromPose(uid, p.partId, x, y, angleRad), weaponGroup: p.weaponGroup };
-      return p;
+      if (!moving.has(p.uid)) return p;
+      const rx = p.x - from.x;
+      const ry = p.y - from.y;
+      return {
+        ...p,
+        ...placementFromPose(
+          p.uid,
+          p.partId,
+          x + rx * cos - ry * sin,
+          y + rx * sin + ry * cos,
+          (p.angle * Math.PI) / 180 + dTheta,
+        ),
+        weaponGroup: p.weaponGroup,
+      };
     });
-    if (twin) {
-      const moved = parts.find((p) => p.uid === uid)!;
-      const m = mirrorPlacement(moved, this.catalogue);
-      const i = parts.findIndex((p) => p.uid === twin.uid);
-      parts[i] = { ...parts[i]!, partId: m.partId, x: m.x, y: m.y, angle: m.angle };
+    if (this.mirror) {
+      for (const u of moving) {
+        const twin = this.twinOf(u, base.parts);
+        if (!twin || moving.has(twin.uid)) continue;
+        const moved = parts.find((p) => p.uid === u)!;
+        const m = mirrorPlacement(moved, this.catalogue);
+        const i = parts.findIndex((p) => p.uid === twin.uid);
+        parts[i] = { ...parts[i]!, partId: m.partId, x: m.x, y: m.y, angle: m.angle };
+      }
     }
     const next = { ...base, parts, modifiedAt: this.now() };
     if (this.dragBase) this.history.replace(next);

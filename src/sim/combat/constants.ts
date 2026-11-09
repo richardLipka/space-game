@@ -33,12 +33,28 @@ export const COMBAT = {
   eventLifetime: 2,
 } as const;
 
-/** Explosions of destroyed parts (spec §8, "Should"): blast radius (m) and peak damage. */
+/**
+ * Explosions of destroyed parts (spec §8; decision log: Store explosions). Fuel tanks and magazines blow up
+ * in proportion to what they still hold: peak damage = damagePerKg × stored mass, radius grows with the
+ * cube root of the stored mass (radius at refMass). Below minMass nothing explodes. Reactors are fixed.
+ */
 export const EXPLOSION = {
-  fuelTank: { radius: 3, damage: 300, minFill: 0.1 },
-  magazine: { radius: 3, damage: 400, minFill: 0.1 },
-  reactor: { radius: 4, damage: 600, minFill: 0 },
+  fuelTank: { damagePerKg: 0.6, radius: 3, refMass: 500, minMass: 5 },
+  magazine: { damagePerKg: 1.2, radius: 3, refMass: 340, minMass: 5 },
+  reactor: { radius: 4, damage: 600 },
+  /** Size of the flash when a wreck's shadow life runs out and it breaks away (m). */
+  wreckBreak: 1.5,
 } as const;
+
+/** Blast from a store of `mass` kg (fuel or ammunition), or null below the minimum. */
+export function storeBlast(
+  kind: "fuelTank" | "magazine",
+  mass: number,
+): { radius: number; damage: number } | null {
+  const e = EXPLOSION[kind];
+  if (mass < e.minMass) return null;
+  return { radius: Math.max(1, e.radius * Math.cbrt(mass / e.refMass)), damage: e.damagePerKg * mass };
+}
 
 /** Missiles (spec §9.5). Per-missile numbers live in the launcher's MissileDef. */
 export const MISSILE = {

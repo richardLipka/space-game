@@ -34,6 +34,7 @@ function engineAt(angleDeg = 0): PartInstance {
     fuel: 0,
     charge: 0,
     ammo: 0,
+    wreckHp: def.def.hp,
   };
 }
 
@@ -117,6 +118,7 @@ describe("M1 propulsion: main engines, RCS, gyro", () => {
       fuel: 0,
       charge: 0,
       ammo: 0,
+      wreckHp: def.def.hp,
     };
     const { actuators } = buildPropulsion(
       [p],
