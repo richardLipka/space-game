@@ -1,0 +1,213 @@
+{
+  "formatVersion": 1,
+  "id": "demo-frigate-missile",
+  "name": "Tempest (missile frigate)",
+  "createdAt": "2026-11-09T00:00:00Z",
+  "modifiedAt": "2026-11-09T00:00:00Z",
+  "parts": [
+    {
+      "uid": "hm40",
+      "partId": "core:hull.square.m",
+      "x": -4,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "hm20",
+      "partId": "core:hull.square.m",
+      "x": -2,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "h2m2",
+      "partId": "core:hull.square.m",
+      "x": 2,
+      "y": -2,
+      "angle": 0
+    },
+    {
+      "uid": "h22",
+      "partId": "core:hull.square.m",
+      "x": 2,
+      "y": 2,
+      "angle": 0
+    },
+    {
+      "uid": "h40",
+      "partId": "core:hull.square.m",
+      "x": 4,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "h4m2",
+      "partId": "core:hull.square.m",
+      "x": 4,
+      "y": -2,
+      "angle": 0
+    },
+    {
+      "uid": "h42",
+      "partId": "core:hull.square.m",
+      "x": 4,
+      "y": 2,
+      "angle": 0
+    },
+    {
+      "uid": "h0m2",
+      "partId": "core:hull.square.m",
+      "x": 0,
+      "y": -2,
+      "angle": 0
+    },
+    {
+      "uid": "cmd",
+      "partId": "core:command.s",
+      "x": 0,
+      "y": -0.25,
+      "angle": 0
+    },
+    {
+      "uid": "mag-1",
+      "partId": "core:magazine.missile.s",
+      "x": 2,
+      "y": -0.5,
+      "angle": 0
+    },
+    {
+      "uid": "mag-2",
+      "partId": "core:magazine.missile.s",
+      "x": 2,
+      "y": 0.5,
+      "angle": 0
+    },
+    {
+      "uid": "ml-1",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": 5.75,
+      "y": -2.5,
+      "angle": 0,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "ml-2",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": 5.75,
+      "y": -0.5,
+      "angle": 0,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "ml-3",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": 5.75,
+      "y": 0.5,
+      "angle": 0,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "ml-4",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": 5.75,
+      "y": 2.5,
+      "angle": 0,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "pd-t",
+      "partId": "core:weapon.pd.gatling.s",
+      "x": 2,
+      "y": 3.4619,
+      "angle": 90
+    },
+    {
+      "uid": "pd-b",
+      "partId": "core:weapon.pd.gatling.s",
+      "x": 2,
+      "y": -3.4619,
+      "angle": -90
+    },
+    {
+      "uid": "mag-pd",
+      "partId": "core:magazine.pd.s",
+      "x": -2,
+      "y": 1.5,
+      "angle": 0
+    },
+    {
+      "uid": "ac-t",
+      "partId": "core:weapon.autocannon.turret.light",
+      "x": 4,
+      "y": 3.5081,
+      "angle": 90,
+      "weaponGroup": 2
+    },
+    {
+      "uid": "ac-b",
+      "partId": "core:weapon.autocannon.turret.light",
+      "x": 4,
+      "y": -3.5081,
+      "angle": -90,
+      "weaponGroup": 2
+    },
+    {
+      "uid": "mag-a",
+      "partId": "core:magazine.autocannon.s",
+      "x": -4,
+      "y": -1.5,
+      "angle": 0
+    },
+    {
+      "uid": "tank",
+      "partId": "core:tank.fuel.m",
+      "x": -2,
+      "y": -2,
+      "angle": 0
+    },
+    {
+      "uid": "eng",
+      "partId": "core:engine.main.l",
+      "x": -6,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "decoys",
+      "partId": "core:hangar.decoy.s",
+      "x": -4,
+      "y": 1.5,
+      "angle": 90
+    },
+    {
+      "uid": "rcs-l",
+      "partId": "core:rcs.s",
+      "x": -4.75,
+      "y": 1.25,
+      "angle": 180
+    },
+    {
+      "uid": "rcs-r",
+      "partId": "core:rcs.s",
+      "x": -4.75,
+      "y": -1.25,
+      "angle": 0
+    }
+  ],
+  "weaponGroupModes": {
+    "1": "manual",
+    "2": "ai"
+  },
+  "weaponGroups": {
+    "1": {
+      "name": "Missiles",
+      "priority": "threat"
+    },
+    "2": {
+      "name": "Close defense",
+      "range": 900,
+      "priority": "drones"
+    }
+  },
+  "powerPriority": ["gyro", "propulsion", "pointDefense", "weapons", "hangar"]
+}

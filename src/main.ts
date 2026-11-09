@@ -36,7 +36,7 @@ function must<T>(r: ValidationResult<T>, what: string): T {
 }
 
 const LAST_DESIGN_KEY = "space-game.lastDesignId";
-const SEEDED_KEY = "space-game.seeded.v3";
+const SEEDED_KEY = "space-game.seeded.v4";
 const safeStorage = {
   get(k: string): string | null {
     try {
@@ -72,6 +72,8 @@ async function main(): Promise<void> {
   const hauler = must(validateDesign(haulerJson), "hauler");
   const gunboat = must(validateDesign(gunboatJson), "gunboat");
   const frigate = must(validateDesign(frigateJson), "frigate");
+  /** Larger classes: gun cruiser (broadside) and missile frigate. */
+  const newClasses = ["demo-cruiser-guns", "demo-frigate-missile"].map((id) => BUNDLED_DESIGNS.get(id)!);
   const picket = must(validateDesign(picketJson), "picket");
   /** Drone types the core hangars launch (spec §9.7); library copies with the same id override them. */
   const coreDrones = [droneAttackJson, dronePdJson, droneDecoyJson].map((j) =>
@@ -86,7 +88,7 @@ async function main(): Promise<void> {
     library = new MemoryLibrary();
   }
   if (!safeStorage.get(SEEDED_KEY)) {
-    for (const d of [fighter, hauler, gunboat, frigate, picket, ...coreDrones])
+    for (const d of [fighter, hauler, gunboat, frigate, picket, ...coreDrones, ...newClasses])
       if (!(await library.getDesign(d.id))) await library.putDesign(d);
     safeStorage.set(SEEDED_KEY, "1");
   }

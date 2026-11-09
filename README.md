@@ -39,7 +39,7 @@ npm run balance -- --seeds 8   # balance matrix of the weapon archetypes → bal
 **Editor:** search the palette or open a category, hover a part for its numbers, click it, then click to place (stays in placing mode; Esc/right-click stops) ·
 green edges = where the part can connect; the status line says what will connect ·
 G connection graph (what power, fuel and ammo flow where) · Q/E rotate (Shift: 15° steps) · Alt: place without snapping · drag to move (parts hanging on it come along; Ctrl+drag moves it alone) · Del delete · M mirror ·
-1–9 weapon group (0 clears) · Ctrl+Z/Ctrl+Y undo/redo · Ctrl+S save · F fit view · wheel zoom · middle-drag pan ·
+1–9 weapon group (0 clears; the side panel creates groups and sets mode, fire range and target priority) · Ctrl+Z/Ctrl+Y undo/redo · Ctrl+S save · F fit view · wheel zoom · middle-drag pan ·
 paste or drop a ship file / `SG1:` code anywhere to import
 
 **Flight:**
@@ -49,7 +49,7 @@ Tab switch ship · C camera mode · wheel zoom · middle-drag pan (free camera) 
 Space pause · T theme · V overlays · ? help · Esc back to editor ·
 P power priority panel · R radiators in/out · N show resource networks · hold Y + click: destroy a part (debug) ·
 LMB fire selected groups at the cursor · 1–9 select weapon group (Shift adds) · G cycle group mode (manual/hold/AI) · RMB target a ship ·
-M launch missiles at the target · H launch drones · O PD also fires at ships ·
+M launch a missile (Shift+M salvo) · H launch a drone (Shift+H all) · O PD also fires at ships ·
 J allies follow · K allies attack my target · L allies hold · Ctrl+click select allies (Ctrl+Shift adds) ·
 B eject mode (click a part to jettison it and everything hanging on it; B/Esc leaves) · Shift+B jettison all wrecks
 

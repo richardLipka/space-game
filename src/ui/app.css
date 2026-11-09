@@ -649,3 +649,48 @@ body {
 .wb-ammo.reloading {
   opacity: 0.6;
 }
+
+/* Weapon group cards in the editor */
+.ed-group {
+  border: 1px solid var(--panel-border);
+  padding: 4px 6px;
+  margin: 6px 0;
+}
+.ed-group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.ed-group-name {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: var(--panel-fg);
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  padding: 2px 4px;
+}
+.ed-group select,
+.ed-group input[type="number"] {
+  font: inherit;
+  color: var(--panel-fg);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  max-width: 170px;
+}
+.ed-group input[type="number"] {
+  width: 90px;
+}
+.ed-group-members span {
+  cursor: pointer;
+}
+.ed-group-members .sel {
+  color: var(--accent);
+}
+.wb-launch {
+  cursor: default;
+}
+.wb-launch.ready .wb-ammo {
+  color: #3ccf7f;
+}

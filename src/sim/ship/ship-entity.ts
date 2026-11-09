@@ -1,4 +1,4 @@
-import type { PowerGroup, ShipDesign } from "../../data/schemas/design";
+import type { PowerGroup, ShipDesign, WeaponGroupSettings } from "../../data/schemas/design";
 import { allocate, wrenchOf, type Wrench } from "../flight/allocator";
 import { flightControl, IDLE_INTENT, type ControlIntent, type FlightState } from "../flight/controller";
 import {
@@ -145,6 +145,8 @@ export class Ship {
   weapons: WeaponState[] = [];
   weaponCommand: WeaponCommand = { ...IDLE_WEAPONS, selected: new Set(IDLE_WEAPONS.selected) };
   readonly groupModes = new Map<number, GroupMode>();
+  /** Per-group fire range and target priority from the design (decision log: Weapon groups). */
+  readonly groupSettings = new Map<number, WeaponGroupSettings>();
   /** Set once defeat conditions are met (spec §8.1); never cleared. */
   defeated = false;
   defeatReason: "command-destroyed" | "incapacitated" | null = null;
@@ -180,6 +182,7 @@ export class Ship {
     const groupOf = new Map(design.parts.map((p) => [p.uid, p.weaponGroup]));
     this.rebuildStructure((p, blocked) => createWeaponState(p, groupOf.get(p.uid), blocked));
     for (const [g, mode] of Object.entries(design.weaponGroupModes)) this.groupModes.set(Number(g), mode);
+    for (const [g, set] of Object.entries(design.weaponGroups ?? {})) this.groupSettings.set(Number(g), set);
     this.updateNetworks();
   }
 
@@ -791,6 +794,35 @@ export class Ship {
       if (only && !only(p.def.def.hangar.droneType)) continue;
       this.hangarPending.set(p.uid, Math.floor(p.ammo));
     }
+  }
+
+  /**
+   * Launches a single drone (H): the first intact hangar (by uid) that has a drone, nothing queued and its
+   * launch cooldown over. Returns false when every hangar is empty or still cooling down.
+   */
+  launchOneDrone(only?: (droneType: string) => boolean): boolean {
+    for (const p of [...this.parts].sort((a, b) => compareIds(a.uid, b.uid))) {
+      const h = p.def.def.hangar;
+      if (!h || p.hp <= 0 || p.ammo < 1 || (only && !only(h.droneType))) continue;
+      if ((this.hangarPending.get(p.uid) ?? 0) > 0 || (this.hangarCooldown.get(p.uid) ?? 0) > 1e-9) continue;
+      this.hangarPending.set(p.uid, 1);
+      return true;
+    }
+    return false;
+  }
+
+  /** Seconds until any hangar can launch again (0 = ready now, Infinity = no drones left). */
+  get droneCooldown(): number {
+    let best = Infinity;
+    for (const p of this.parts) {
+      if (!p.def.def.hangar || p.hp <= 0 || p.ammo < 1) continue;
+      const pending = (this.hangarPending.get(p.uid) ?? 0) > 0;
+      best = Math.min(
+        best,
+        pending ? p.def.def.hangar.launchInterval : (this.hangarCooldown.get(p.uid) ?? 0),
+      );
+    }
+    return best;
   }
 
   /** Drones left in hangars. */

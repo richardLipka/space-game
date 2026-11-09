@@ -31,9 +31,10 @@ export class InputPlayer {
         aimPoint: f.intent.aim ? vec2(f.intent.aim[0], f.intent.aim[1]) : null,
         selected: new Set(f.intent.groups ?? [1]),
         targetId: f.intent.target !== undefined ? f.intent.target : ship.weaponCommand.targetId,
-        launch: f.intent.launch ?? false,
+        launch: f.intent.launchOne ? "one" : (f.intent.launch ?? false),
       };
       if (f.intent.drones) ship.requestDroneLaunch();
+      if (f.intent.droneOne) ship.launchOneDrone();
       if (f.intent.pdShips !== undefined) ship.pdEngageShips = f.intent.pdShips;
     }
   }

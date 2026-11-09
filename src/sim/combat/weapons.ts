@@ -38,8 +38,11 @@ export interface WeaponCommand {
   selected: ReadonlySet<number>;
   /** Selected target ship id (RMB), used by AI-mode groups and missiles. */
   targetId: string | null;
-  /** One-shot (M): every ready missile launcher fires one missile at the selected target. */
-  launch?: boolean;
+  /**
+   * One-shot missile launch at the selected target: "one" (M) fires the first ready launcher, "salvo"
+   * (Shift+M, and true for older callers) fires every ready launcher. Each launcher then reloads.
+   */
+  launch?: boolean | "one" | "salvo";
   /** Beams hold fire (AI cool-down, spec §11.2). */
   holdBeams?: boolean;
   /** AI-mode launchers wait for `launch` instead of firing on their own, so missiles go out in volleys. */
@@ -152,6 +155,7 @@ export function updateWeapons(
   enabled: boolean,
 ): FireOrder[] {
   const orders: FireOrder[] = [];
+  let launchedOne = false;
   for (const w of weapons) {
     w.cooldown = Math.max(0, w.cooldown - dt);
     const def = w.def;
@@ -169,7 +173,8 @@ export function updateWeapons(
     if (def.kind === "missile") {
       // Launchers do not aim: missiles steer themselves (spec §9.5).
       let targetId: string | null = null;
-      if (cmd.launch || (mode === "manual" && cmd.selected.has(w.group) && cmd.trigger))
+      const launching = cmd.launch === "one" ? !launchedOne : !!cmd.launch;
+      if (launching || (mode === "manual" && cmd.selected.has(w.group) && cmd.trigger))
         targetId = cmd.targetId;
       else if (mode === "ai" && !cmd.missileVolleys) targetId = targeting.ship(w, mount)?.id ?? null;
       w.aimError = 0;
@@ -177,6 +182,7 @@ export function updateWeapons(
       if (def.ammoType && host.drawRounds(w.uid, 1) < 1) continue;
       const perf = weaponPerformance(w);
       w.cooldown += perf.interval;
+      if (cmd.launch === "one") launchedOne = true;
       if (def.heatPerShot) host.addHeat(def.heatPerShot);
       const angle = mountAngle + (perf.spread > 0 ? rng.normal(0, perf.spread) : 0);
       orders.push({

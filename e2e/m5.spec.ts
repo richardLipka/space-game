@@ -28,16 +28,22 @@ test("M5: Harrier launches missiles at its target (M), drones (H), and toggles P
   // Target the Sentinel picket (the last enemy) and launch.
   await game(page, (g) => g.setTarget(g.enemies().at(-1)!));
   await expect(page.getByTestId("target")).toContainText("Sentinel");
+  // M launches one missile; Shift+M fires every launcher that is ready (the first is still reloading).
   await page.keyboard.press("m");
+  await expect.poll(() => game(page, (g) => g.world!.combat.stats.missilesLaunched)).toBe(1);
+  await expect(page.getByTestId("wb-missiles")).toContainText("1/2 ready");
+  await page.keyboard.press("Shift+M");
   await expect.poll(() => game(page, (g) => g.world!.combat.stats.missilesLaunched)).toBe(2);
   await expect(page.getByTestId("missiles-out")).not.toHaveText("0");
 
   // Drones: 4 attack drones and 4 decoys queue up.
   await expect(page.getByTestId("drones-stored")).toHaveText("8");
-  await page.keyboard.press("h");
+  await page.keyboard.press("h"); // one drone
+  await expect.poll(async () => Number(await page.getByTestId("drones-out").textContent())).toBe(1);
+  await page.keyboard.press("Shift+H"); // the rest: the other hangar launches now, then one every 10 s
   await expect
     .poll(async () => Number(await page.getByTestId("drones-out").textContent()), { timeout: 10_000 })
-    .toBeGreaterThanOrEqual(3);
+    .toBeGreaterThanOrEqual(2);
 
   await expect(page.getByTestId("pd-ships")).toHaveText("off");
   await page.keyboard.press("o");

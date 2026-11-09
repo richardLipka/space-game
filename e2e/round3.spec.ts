@@ -86,3 +86,37 @@ test("flight: the weapon-group bar shows every group, its mode and the selection
   await page.screenshot({ path: "test-results/weapon-bar.png" });
   expect(errors).toEqual([]);
 });
+
+test("editor: weapon groups can be created and configured (mode, fire range, target priority)", async ({
+  page,
+}) => {
+  const errors = await open(page);
+  await page.getByTestId("btn-library").click();
+  await page.getByTestId("lib-load-demo-gunboat").click();
+  await expect(page.getByTestId("design-name")).toHaveValue(/Lancer/);
+  await expect(page.getByTestId("group-card-1")).toContainText("Kinetic cannon");
+  await expect(page.getByTestId("group-card-2")).toContainText("Autocannon turret");
+  // Range and targets only apply to automatic groups.
+  await expect(page.getByTestId("group-range-2")).toBeDisabled();
+  await page.getByTestId("group-mode-2").selectOption("ai");
+  await expect(page.getByTestId("group-range-2")).toBeEnabled();
+  await page.getByTestId("group-range-2").fill("900");
+  await page.getByTestId("group-range-2").press("Tab");
+  await page.getByTestId("group-priority-2").selectOption("drones");
+  await page.getByTestId("group-name-2").fill("Flak");
+  await page.getByTestId("group-name-2").press("Tab");
+  // A new group, and a weapon moved into it.
+  await page.getByTestId("btn-group-new").click();
+  await expect(page.getByTestId("group-card-3")).toBeVisible();
+  await page.getByTestId("weapon-group-tur-r").selectOption("3");
+  await expect(page.getByTestId("group-card-3")).toContainText("tur-r");
+  const d = await editor<{ modes: Record<string, string>; groups: Record<string, unknown>; g: number }>(
+    page,
+    `const d = e.model.design; return { modes: d.weaponGroupModes, groups: d.weaponGroups, g: d.parts.find((p) => p.uid === "tur-r").weaponGroup };`,
+  );
+  expect(d.modes["2"]).toBe("ai");
+  expect(d.groups["2"]).toEqual({ range: 900, priority: "drones", name: "Flak" });
+  expect(d.g).toBe(3);
+  await page.screenshot({ path: "test-results/editor-groups.png" });
+  expect(errors).toEqual([]);
+});

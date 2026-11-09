@@ -31,11 +31,13 @@ function bayOf(world: World, ship: Ship, uid: string): { point: Vec2; normal: Ve
  */
 export function launchDrones(world: World, dt: number): void {
   for (const ship of world.allShips()) {
+    // Launch cooldowns run down whether or not anything is queued (single launches need them too).
+    for (const [uid, cd] of ship.hangarCooldown)
+      if (cd > 0) ship.hangarCooldown.set(uid, Math.max(0, cd - dt));
     if (ship.hangarPending.size === 0) continue;
     const disabled = ship.inert || (world.enforceDefeat && ship.defeated);
     for (const uid of [...ship.hangarPending.keys()].sort(compareIds)) {
-      const cd = Math.max(0, (ship.hangarCooldown.get(uid) ?? 0) - dt);
-      ship.hangarCooldown.set(uid, cd);
+      const cd = ship.hangarCooldown.get(uid) ?? 0;
       const part = ship.parts.find((p) => p.uid === uid);
       const pending = ship.hangarPending.get(uid) ?? 0;
       const h = part?.def.def.hangar;

@@ -541,8 +541,8 @@ interface MissileDef { mass: number; thrust: number; fuel: number /*s of burn*/;
 | RMB | Select target (missiles, AI-mode weapons, allied orders later) |
 | 1–9 / Shift+1–9 | Select / add weapon group |
 | G | Cycle selected groups' mode (hold → manual → AI) |
-| M | Launch missile(s) at target |
-| H | Launch drones (help is ? / F1) |
+| M / Shift+M | Launch one missile / a salvo at the target |
+| H / Shift+H | Launch one drone / all drones (help is ? / F1) |
 | R | Extend / retract radiators |
 | O | PD also engages ships when no missiles or drones are in reach |
 | B | Eject mode: click a part of your ship to jettison it, with everything attached only through it (not the command module). B or Esc leaves |
@@ -755,6 +755,12 @@ The `sim` module never imports `render`, `ui` or `editor`. Rendering reads a sim
 | Weapon bar | The flight screen shows every weapon group along the bottom: number, mode, weapons alive and loaded rounds, with the selected groups highlighted. Clicking a group selects it, Shift+click adds it |
 | Wreck shadow life | A destroyed part keeps a "shadow life" equal to its full HP. Hits wear it down by the share the wreck absorbs (rays) or takes (blasts, collisions). At zero the wreck breaks off with a flash and is gone, and whatever hung only on it drifts off as debris (the jettison rule). The command module's wreck never breaks off. This replaces "Wrecks: absorb 50 % forever" |
 | Store explosions | Destroyed fuel tanks and magazines explode in proportion to what they still hold: peak damage 0.6 per kg of fuel or 1.2 per kg of ammunition, radius 3 m × cube root of the stored mass relative to a full small tank (500 kg) or magazine (340 kg); under 5 kg nothing explodes. Replaces the fixed 300 / 400 blasts |
+| Weapon group settings | The editor's weapon-group panel creates groups (lowest free number, optionally from the selected weapons), names them, moves weapons between them and deletes them. Each group has a default mode (manual: fires on the trigger; automatic: picks targets and fires by itself; hold) and, for automatic groups, a fire range (m, defaults to each weapon's own range) and a target priority: selected target then nearest, nearest, most dangerous (gun damage per second for its distance), most damaged, drones first, or missiles first (guns shoot down any missile homing on the ship before anything else; without it turrets only take missiles under 4 s from impact). Saved as `weaponGroups` in the design; AI-flown ships use them too |
+| Single launches | M launches one missile from the first ready launcher, Shift+M fires every ready launcher; each launcher then reloads for its fire interval (2 s). H launches one drone from the first hangar that is ready, Shift+H queues every drone; each hangar then cools down for its launch interval. The weapon bar shows missiles left, launchers ready and drone stock, with the time until the next launch |
+| Armor strips | Armor strip S (1 × ⅓ m) and M (2 × ⅔ m): a third as wide as the armor plates, with a third of their mass, HP and cost and the same armor value, for thin armored skins |
+| Launch reload | Missile launchers reload for 10 s after each missile and every hangar waits 10 s between drone launches (was 2 s, and 0.5–1.5 s for hangars), so missiles and drones come in paced volleys |
+| Large classes | Two bundled designs for ~2000-point fleets: Warden (gun cruiser, cost 1023, 18 t) with two heavy cannon and two autocannon turrets on each flank for broadside fire, two forward PD turrets, a reactor and gyros; and Tempest (missile frigate, cost 713) with four launchers, two missile magazines, two PD turrets, two light autocannon turrets for close defense and a decoy launcher. Both ship with weapon-group settings (Warden: heavy guns manual, autocannons automatic within 1 km; Tempest: missiles manual, close defense automatic against drones first) |
+| Fleet scenarios | Scenario 9 "Fleet action" (budget 2000, up to 4 ships) against a gun cruiser, a missile frigate and a PD picket; scenario 10 "Missile storm" (budget 2000, up to 3 ships) against two missile frigates and a PD picket. Test 7.2 now flies every reference ship with its own AI (no follow order), as the enemies are |
 
 Still open (this doesn't block Milestone 1):
 - Further balance passes: see the open items in [balance-pass-1.md](balance-pass-1.md).

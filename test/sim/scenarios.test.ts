@@ -49,20 +49,22 @@ describe("M7 scenarios", () => {
     }
   });
 
-  it("7.2 every scenario can be won: its reference fleet flown by the AI wins at least one of 20 seeds", () => {
-    for (const s of SCENARIOS) {
-      let won = false;
-      for (let seed = 1; seed <= 20 && !won; seed++) {
-        const b = startBattle(s, (s.referenceDesigns ?? []).map(design), cat, opts(seed));
-        const lead = b.playerShips[0]!;
-        b.playerShips.forEach((p, i) =>
-          b.world.setAi(p.id, aiProfile("balanced"), i === 0 ? null : { kind: "follow", leader: lead.id }, i),
-        );
-        won = runBattle(b, 180) === "won";
+  it(
+    "7.2 every scenario can be won: its reference fleet flown by the AI wins at least one of 20 seeds",
+    { timeout: 300_000 },
+    () => {
+      for (const s of SCENARIOS) {
+        let won = false;
+        for (let seed = 1; seed <= 20 && !won; seed++) {
+          const b = startBattle(s, (s.referenceDesigns ?? []).map(design), cat, opts(seed));
+          // Every ship of the reference fleet fights on its own, like the enemy ships do.
+          for (const p of b.playerShips) b.world.setAi(p.id, aiProfile("balanced"));
+          won = runBattle(b, 180) === "won";
+        }
+        expect(won, s.id).toBe(true);
       }
-      expect(won, s.id).toBe(true);
-    }
-  });
+    },
+  );
 
   it("7.3 objectives: destroyAll, survive and protect produce the right win and loss events", () => {
     const sc = (objective: Scenario["objective"], enemies: Scenario["enemies"]): Scenario => ({

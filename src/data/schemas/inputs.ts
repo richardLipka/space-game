@@ -19,8 +19,12 @@ export const ControlIntentJson = Type.Object(
     target: Type.Optional(Type.Union([Type.String({ minLength: 1 }), Type.Null()])),
     /** One-shot: launch a missile from every ready launcher at the target (M). */
     launch: Type.Optional(Type.Boolean()),
-    /** One-shot: launch all drones (H). */
+    /** One-shot: launch a single missile from the first ready launcher (M). */
+    launchOne: Type.Optional(Type.Boolean()),
+    /** One-shot: launch all drones (Shift+H). */
     drones: Type.Optional(Type.Boolean()),
+    /** One-shot: launch a single drone (H). */
+    droneOne: Type.Optional(Type.Boolean()),
     /** Persistent: PD may engage ships when no missiles or drones are in reach. */
     pdShips: Type.Optional(Type.Boolean()),
     /** One-shot: part uids to jettison on this tick (decision log: Ejection). */

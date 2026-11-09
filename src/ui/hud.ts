@@ -45,7 +45,7 @@ C camera   wheel zoom   middle-drag pan (free cam)
 +/- time scale   Space pause   T theme   V overlays   ? help   Esc editor
 P power priority   R radiators   N networks   hold Y + click: destroy part (debug)
 LMB fire   1–9 weapon group (Shift adds)   G group mode   RMB target
-M launch missiles at target   H launch drones   O PD also fires at ships
+M launch a missile (Shift+M salvo)   H launch a drone (Shift+H all)   O PD also fires at ships
 J allies follow   K allies attack my target   L allies hold   Ctrl+click select allies (Shift adds)
 B eject mode (click a part to jettison)   Shift+B eject all wrecks`;
 
@@ -204,7 +204,7 @@ export class Hud {
     if (launchers || mine || incoming) {
       const hint = launchers
         ? info.targetId
-          ? '<span class="dim">M launch</span>'
+          ? '<span class="dim">M one · Shift+M salvo</span>'
           : '<span class="dim">M launch (right-click a target first)</span>'
         : "";
       lines.push(
@@ -228,7 +228,7 @@ export class Hud {
         .map(([r, n]) => `${r} ${n}`);
       const queued = [...ship.hangarPending.values()].reduce((a, b) => a + b, 0);
       lines.push(
-        `drones stored <span data-testid="drones-stored">${ship.dronesStored}</span>  out <span data-testid="drones-out">${live.length}</span>${roles.length ? ` (${roles.join(", ")})` : ""}${drones.length > live.length ? `  <span class="dim">lost ${drones.length - live.length}</span>` : ""}${queued ? `  <span class="warn">launching ${queued}</span>` : ""}  <span class="dim">H launch</span>`,
+        `drones stored <span data-testid="drones-stored">${ship.dronesStored}</span>  out <span data-testid="drones-out">${live.length}</span>${roles.length ? ` (${roles.join(", ")})` : ""}${drones.length > live.length ? `  <span class="dim">lost ${drones.length - live.length}</span>` : ""}${queued ? `  <span class="warn">launching ${queued}</span>` : ""}  <span class="dim">H one · Shift+H all</span>`,
       );
     }
     if (info.targetId && world.hasShip(info.targetId)) {

@@ -1,0 +1,278 @@
+{
+  "id": "s10-missile-storm",
+  "name": "Missile storm",
+  "description": "Two missile frigates and a point-defense picket. Expect volleys.",
+  "order": 10,
+  "budget": 2000,
+  "maxPlayerShips": 3,
+  "arena": {
+    "width": 9000,
+    "height": 6000,
+    "asteroids": [
+      {
+        "position": [3522, 397],
+        "angle": 128,
+        "outline": [
+          [52.4, 0.0],
+          [27.9, 48.3],
+          [-28.9, 50.0],
+          [-56.7, 0.0],
+          [-27.4, -47.4],
+          [25.2, -43.7]
+        ],
+        "velocity": [-2.2, -4.6],
+        "angularVelocity": 0.3
+      },
+      {
+        "position": [-2647, 1138],
+        "angle": 350,
+        "outline": [
+          [46.6, 0.0],
+          [19.5, 33.7],
+          [-20.6, 35.6],
+          [-47.8, 0.0],
+          [-22.5, -38.9],
+          [20.4, -35.3]
+        ],
+        "static": true
+      },
+      {
+        "position": [-2957, 879],
+        "angle": 20,
+        "outline": [
+          [28.8, 0.0],
+          [7.1, 21.8],
+          [-21.8, 15.8],
+          [-22.0, -16.0],
+          [9.0, -27.7]
+        ],
+        "velocity": [4.4, -2.1],
+        "angularVelocity": 4.3
+      },
+      {
+        "position": [-2227, 2342],
+        "angle": 52,
+        "outline": [
+          [28.1, 0.0],
+          [15.3, 26.4],
+          [-12.7, 22.0],
+          [-28.5, 0.0],
+          [-14.9, -25.8],
+          [15.4, -26.7]
+        ],
+        "static": true
+      },
+      {
+        "position": [-1893, 694],
+        "angle": 78,
+        "outline": [
+          [64.2, 0.0],
+          [21.5, 66.3],
+          [-51.2, 37.2],
+          [-50.8, -36.9],
+          [20.5, -63.2]
+        ],
+        "static": true
+      },
+      {
+        "position": [2275, 1982],
+        "angle": 18,
+        "outline": [
+          [65.7, 0.0],
+          [45.9, 57.5],
+          [-15.9, 69.8],
+          [-60.2, 29.0],
+          [-65.6, -31.6],
+          [-16.2, -71.0],
+          [42.7, -53.6]
+        ],
+        "static": true
+      },
+      {
+        "position": [-3601, 269],
+        "angle": 126,
+        "outline": [
+          [30.8, 0.0],
+          [15.9, 27.6],
+          [-18.5, 32.0],
+          [-34.5, 0.0],
+          [-16.3, -28.3],
+          [18.5, -32.1]
+        ],
+        "static": true
+      },
+      {
+        "position": [2002, 853],
+        "angle": 61,
+        "outline": [
+          [55.9, 0.0],
+          [16.6, 51.0],
+          [-35.6, 25.9],
+          [-35.6, -25.8],
+          [16.5, -50.9]
+        ],
+        "static": true
+      },
+      {
+        "position": [1460, -2583],
+        "angle": 285,
+        "outline": [
+          [25.2, 0.0],
+          [9.0, 27.6],
+          [-19.3, 14.0],
+          [-22.2, -16.1],
+          [8.5, -26.1]
+        ],
+        "static": true
+      },
+      {
+        "position": [2430, 878],
+        "angle": 280,
+        "outline": [
+          [53.5, 0.0],
+          [29.9, 51.8],
+          [-30.1, 52.2],
+          [-61.2, 0.0],
+          [-28.9, -50.0],
+          [24.8, -42.9]
+        ],
+        "velocity": [-2.6, 3.3],
+        "angularVelocity": 1.7
+      },
+      {
+        "position": [-2887, -600],
+        "angle": 309,
+        "outline": [
+          [58.2, 0.0],
+          [17.7, 54.5],
+          [-53.3, 38.7],
+          [-55.3, -40.2],
+          [19.3, -59.2]
+        ],
+        "static": true
+      },
+      {
+        "position": [-1318, 1378],
+        "angle": 296,
+        "outline": [
+          [42.1, 0.0],
+          [12.1, 37.2],
+          [-30.3, 22.0],
+          [-35.7, -25.9],
+          [13.3, -41.0]
+        ],
+        "static": true
+      },
+      {
+        "position": [1654, -478],
+        "angle": 103,
+        "outline": [
+          [34.2, 0.0],
+          [16.5, 28.7],
+          [-14.2, 24.7],
+          [-36.7, 0.0],
+          [-15.2, -26.4],
+          [14.2, -24.5]
+        ],
+        "static": true
+      },
+      {
+        "position": [-2786, 2195],
+        "angle": 311,
+        "outline": [
+          [39.6, 0.0],
+          [24.7, 30.9],
+          [-8.9, 39.2],
+          [-33.4, 16.1],
+          [-28.0, -13.5],
+          [-7.4, -32.6],
+          [22.4, -28.1]
+        ],
+        "velocity": [-4.4, -1.9],
+        "angularVelocity": -5.2
+      },
+      {
+        "position": [-1513, 2247],
+        "angle": 327,
+        "outline": [
+          [63.4, 0.0],
+          [42.6, 53.4],
+          [-13.7, 60.0],
+          [-59.9, 28.9],
+          [-61.4, -29.5],
+          [-14.5, -63.6],
+          [41.8, -52.5]
+        ],
+        "static": true
+      },
+      {
+        "position": [1080, 2507],
+        "angle": 47,
+        "outline": [
+          [63.4, 0.0],
+          [42.3, 53.1],
+          [-13.1, 57.4],
+          [-52.4, 25.2],
+          [-53.8, -25.9],
+          [-14.1, -61.8],
+          [38.6, -48.4]
+        ],
+        "static": true
+      }
+    ],
+    "gravityWells": []
+  },
+  "playerSpawns": [
+    {
+      "position": [-2200, -260],
+      "angle": 0
+    },
+    {
+      "position": [-2200, 0],
+      "angle": 0
+    },
+    {
+      "position": [-2200, 260],
+      "angle": 0
+    }
+  ],
+  "enemies": [
+    {
+      "designId": "demo-frigate-missile",
+      "aiProfile": "sniper",
+      "spawn": {
+        "position": [3000, 600],
+        "angle": 180
+      },
+      "team": 1
+    },
+    {
+      "designId": "demo-frigate-missile",
+      "aiProfile": "sniper",
+      "spawn": {
+        "position": [3000, -600],
+        "angle": 180
+      },
+      "team": 1
+    },
+    {
+      "designId": "demo-picket",
+      "aiProfile": "balanced",
+      "spawn": {
+        "position": [2600, 0],
+        "angle": 180
+      },
+      "team": 1
+    }
+  ],
+  "objective": {
+    "type": "destroyAll"
+  },
+  "seed": 71,
+  "hints": [
+    "Point defense and turrets set to �Missiles first� keep volleys off you.",
+    "Decoys pull missiles away; H launches one, Shift+H all of them.",
+    "Each launcher needs 10 s to reload after a missile: rush the frigates after a volley."
+  ],
+  "referenceDesigns": ["demo-cruiser-guns", "demo-frigate", "arch-carrier"]
+}

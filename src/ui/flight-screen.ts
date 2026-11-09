@@ -54,8 +54,8 @@ export class FlightScreen {
   targetId: string | null = null;
   /** Test hook: hold the trigger regardless of the mouse. */
   debugTrigger = false;
-  /** M pressed: launch on the next tick (needs a target). */
-  private pendingLaunch = false;
+  /** M (one) or Shift+M (salvo) pressed: launch on the next tick (needs a target). */
+  private pendingLaunch: false | "one" | "salvo" = false;
   /** Allies picked with Ctrl+click for orders (empty = all allies). */
   readonly selectedAllies = new Set<string>();
   /** Profile allied ships fly with. */
@@ -95,7 +95,7 @@ export class FlightScreen {
     const ship = this.controlledShip;
     const bar = this.weaponBar;
     const ws = ship ? ship.weapons.filter((w) => w.def.kind !== "pd") : [];
-    if (!ship || ws.length === 0) {
+    if (!ship || (ws.length === 0 && !ship.parts.some((p) => p.def.def.hangar))) {
       bar.hidden = true;
       this.weaponBarKey = "";
       return;
@@ -120,7 +120,24 @@ export class FlightScreen {
         ready,
       };
     });
-    const key = `${ship.id}|${[...this.selectedGroups].join()}|${JSON.stringify(info)}`;
+    // Launch status (M / H): ready, or seconds until the next launcher or hangar can launch.
+    const launchers = ship.weapons.filter((w) => w.def.kind === "missile" && w.part.hp > 0);
+    const loadedL = launchers.filter((w) => w.part.ammo >= 1);
+    const readyL = loadedL.filter((w) => w.cooldown <= 1e-9).length;
+    const missileWait = loadedL.length ? Math.min(...loadedL.map((w) => w.cooldown)) : Infinity;
+    const missiles = launchers.length
+      ? {
+          ready: readyL,
+          total: launchers.length,
+          left: launchers.reduce((n, w) => n + Math.floor(w.part.ammo), 0),
+          wait: readyL ? 0 : Math.ceil(missileWait * 10) / 10,
+        }
+      : null;
+    const hangars = ship.parts.some((p) => p.def.def.hangar);
+    const drones = hangars
+      ? { stored: ship.dronesStored, wait: Math.ceil(ship.droneCooldown * 10) / 10 }
+      : null;
+    const key = `${ship.id}|${[...this.selectedGroups].join()}|${JSON.stringify(info)}|${JSON.stringify(missiles)}|${JSON.stringify(drones)}`;
     bar.hidden = false;
     if (key === this.weaponBarKey) return;
     this.weaponBarKey = key;
@@ -152,6 +169,42 @@ export class FlightScreen {
         (e.currentTarget as HTMLElement).blur();
       });
       bar.append(chip);
+    }
+    const status = (wait: number, empty: boolean) =>
+      empty ? "empty" : wait <= 0 ? "ready" : Number.isFinite(wait) ? `${wait.toFixed(1)} s` : "empty";
+    if (missiles) {
+      const empty = missiles.left === 0;
+      bar.append(
+        el(
+          "div",
+          {
+            class: `wb-group wb-launch${missiles.wait > 0 || empty ? "" : " ready"}`,
+            "data-testid": "wb-missiles",
+          },
+          el("span", { class: "wb-key" }, "M"),
+          el(
+            "span",
+            { class: "wb-names" },
+            `missiles ${missiles.left} · ${missiles.ready}/${missiles.total} ready`,
+          ),
+          el("span", { class: "wb-ammo", "data-testid": "wb-missiles-status" }, status(missiles.wait, empty)),
+        ),
+      );
+    }
+    if (drones) {
+      const empty = drones.stored === 0;
+      bar.append(
+        el(
+          "div",
+          {
+            class: `wb-group wb-launch${drones.wait > 0 || empty ? "" : " ready"}`,
+            "data-testid": "wb-drones",
+          },
+          el("span", { class: "wb-key" }, "H"),
+          el("span", { class: "wb-names" }, `drones ${drones.stored}`),
+          el("span", { class: "wb-ammo", "data-testid": "wb-drones-status" }, status(drones.wait, empty)),
+        ),
+      );
     }
   }
 
@@ -496,11 +549,15 @@ export class FlightScreen {
           this.showNetworks = !this.showNetworks;
           scene.showNetworks = this.showNetworks;
           break;
-        case "launch-missiles": {
-          const ship = this.controlledShip;
-          if (ship) this.pendingLaunch = true;
+        case "launch-missile":
+          if (this.controlledShip) this.pendingLaunch = "one";
           break;
-        }
+        case "launch-salvo":
+          if (this.controlledShip) this.pendingLaunch = "salvo";
+          break;
+        case "launch-drone":
+          this.controlledShip?.launchOneDrone();
+          break;
         case "launch-drones":
           this.controlledShip?.requestDroneLaunch();
           break;

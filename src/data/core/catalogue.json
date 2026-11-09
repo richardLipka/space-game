@@ -1,5 +1,5 @@
 {
-  "catalogueVersion": "v0-4",
+  "catalogueVersion": "v0-5",
   "parts": [
     {
       "id": "core:hull.square.s",
@@ -316,6 +316,42 @@
       "hp": 200,
       "cost": 6,
       "armor": 20
+    },
+    {
+      "id": "core:armor.strip.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Armor strip S",
+      "category": "armor",
+      "outline": [
+        [-0.5, -0.16667],
+        [0.5, -0.16667],
+        [0.5, 0.16667],
+        [-0.5, 0.16667]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 53,
+      "hp": 133,
+      "cost": 4,
+      "armor": 20
+    },
+    {
+      "id": "core:armor.strip.m",
+      "rev": 1,
+      "source": "core",
+      "name": "Armor strip M",
+      "category": "armor",
+      "outline": [
+        [-1.0, -0.33333],
+        [1.0, -0.33333],
+        [1.0, 0.33333],
+        [-1.0, 0.33333]
+      ],
+      "edges": ["snap", "snap", "snap", "snap"],
+      "mass": 213,
+      "hp": 533,
+      "cost": 12,
+      "armor": 30
     },
     {
       "id": "core:reactor.s",
@@ -779,7 +815,7 @@
         "muzzle": [0.75, 0],
         "ammoType": "missile-std",
         "internalMagazine": 2,
-        "fireInterval": 2,
+        "fireInterval": 10,
         "heatPerShot": 20000,
         "range": 4000,
         "spread": 2,
@@ -1024,7 +1060,7 @@
       "hangar": {
         "droneType": "drone-attack",
         "capacity": 4,
-        "launchInterval": 1
+        "launchInterval": 10
       }
     },
     {
@@ -1046,7 +1082,7 @@
       "hangar": {
         "droneType": "drone-pd",
         "capacity": 2,
-        "launchInterval": 1.5
+        "launchInterval": 10
       }
     },
     {
@@ -1068,7 +1104,7 @@
       "hangar": {
         "droneType": "drone-decoy",
         "capacity": 4,
-        "launchInterval": 0.5
+        "launchInterval": 10
       }
     }
   ]

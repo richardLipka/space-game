@@ -41,6 +41,10 @@ Behaviour changes found by the harness:
   is less than 4 s away (spec §9.5 lets any round down a missile). Without it, only PD could answer missiles.
 - **Missile volleys**: a volley no longer waits for launchers that have run out of rounds.
 
+## Later changes
+
+- Missile launchers and hangars now take 10 s between launches (decision log: Launch reload). The win rates above were measured before that change.
+
 ## Open items
 
 - Laser-vs-laser and carrier-vs-carrier mirrors rarely finish within 90 s: laser ships heat each other into

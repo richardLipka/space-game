@@ -3,6 +3,7 @@ import { rayPolygon } from "../core/geometry";
 import { gravityAccel } from "../physics/forces";
 import type { ContactImpulse } from "../physics/planck-adapter";
 import type { PartInstance } from "../ship/ship";
+import type { TargetPriority } from "../../data/schemas/design";
 import { partCentroid } from "../ship/ship";
 import type { Ship } from "../ship/ship-entity";
 import type { World } from "../world";
@@ -14,6 +15,7 @@ import {
   closestApproach,
   firstEngageable,
   orderShipTargets,
+  orderByPriority,
   rankThreats,
   type Contact,
   type Defender,
@@ -303,6 +305,28 @@ function shelter(ship: Ship, center: Vec2, part: PartInstance, dist: number): nu
   return k;
 }
 
+/** Rough damage per second of a ship's working guns and beams (threat priority). */
+function gunDps(s: Ship): number {
+  let dps = 0;
+  for (const w of s.weapons) {
+    if (w.part.hp <= 0 || w.def.kind === "pd") continue;
+    if (w.def.projectile) dps += w.def.projectile.damage / w.def.fireInterval;
+    else if (w.def.beam) dps += w.def.beam.dps;
+    else if (w.def.missile) dps += w.def.missile.damage / w.def.fireInterval;
+  }
+  return dps;
+}
+
+function hullFraction(s: Ship): number {
+  let hp = 0;
+  let max = 0;
+  for (const p of s.parts) {
+    hp += Math.max(0, p.hp);
+    max += p.def.def.hp;
+  }
+  return max > 0 ? hp / max : 0;
+}
+
 /** Everything that can be targeted this tick (spec §9.6): live ships, drones and missiles. */
 export function contactsOf(world: World): Contact[] {
   const out: Contact[] = [];
@@ -317,6 +341,8 @@ export function contactsOf(world: World): Contact[] {
       targetId: null,
       decoy: s.decoyStrength > 0,
       radius: Math.max(1, s.layout.boundingRadius * 0.6),
+      threat: gunDps(s),
+      hull: hullFraction(s),
     });
   }
   for (const m of world.combat.missiles) {
@@ -346,7 +372,19 @@ function targetingFor(world: World, ship: Ship, contacts: readonly Contact[]): W
   let threats: Contact[] | null = null;
   let ships: Contact[] | null = null;
   let inbound: Contact[] | null = null;
+  let homing: Contact[] | null = null;
+  const byPriority = new Map<TargetPriority, Contact[]>();
   const shipList = () => (ships ??= orderShipTargets(contacts, me, ship.weaponCommand.targetId));
+  const priorityList = (p: TargetPriority): Contact[] => {
+    const cached = byPriority.get(p);
+    if (cached) return cached;
+    const l = orderByPriority(contacts, me, p, ship.weaponCommand.targetId);
+    byPriority.set(p, l);
+    return l;
+  };
+  // Every missile homing on this ship, most urgent first (groups with the "missiles" priority).
+  const homingList = () =>
+    (homing ??= rankThreats(contacts, me).filter((c) => c.kind === "missile" && c.targetId === ship.id));
   // Missiles homing on this ship and about to arrive: AI-mode turrets shoot at them first (spec §9.5:
   // any round can down a missile; decision log: Turret missile defense).
   const inboundList = () =>
@@ -357,9 +395,20 @@ function targetingFor(world: World, ship: Ship, contacts: readonly Contact[]): W
         closestApproach(c, me).t < COMBAT.turretMissileDefense,
     ));
   return {
-    ship: (w, mount) =>
-      (w.def.mount === "turret" ? firstEngageable(w, mount, inboundList()) : null) ??
-      firstEngageable(w, mount, shipList(), ship.minHitProbability),
+    ship: (w, mount) => {
+      // Group settings from the design (decision log: Weapon groups): fire range and target priority.
+      const g = ship.groupSettings.get(w.group);
+      const priority = (g?.priority ?? "target") as TargetPriority;
+      const range = g?.range ?? Infinity;
+      if (priority === "missiles") {
+        const m = firstEngageable(w, mount, homingList(), 0, range);
+        if (m) return m;
+      } else if (w.def.mount === "turret") {
+        const m = firstEngageable(w, mount, inboundList(), 0, range);
+        if (m) return m;
+      }
+      return firstEngageable(w, mount, priorityList(priority), ship.minHitProbability, range);
+    },
     pd: (w, mount) => {
       threats ??= rankThreats(contacts, me);
       return (

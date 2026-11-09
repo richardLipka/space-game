@@ -1,0 +1,299 @@
+{
+  "formatVersion": 1,
+  "id": "demo-cruiser-guns",
+  "name": "Warden (gun cruiser)",
+  "createdAt": "2026-11-09T00:00:00Z",
+  "modifiedAt": "2026-11-09T00:00:00Z",
+  "parts": [
+    {
+      "uid": "hm4m2",
+      "partId": "core:hull.square.m",
+      "x": -4,
+      "y": -2,
+      "angle": 0
+    },
+    {
+      "uid": "hm42",
+      "partId": "core:hull.square.m",
+      "x": -4,
+      "y": 2,
+      "angle": 0
+    },
+    {
+      "uid": "hm2m2",
+      "partId": "core:hull.square.m",
+      "x": -2,
+      "y": -2,
+      "angle": 0
+    },
+    {
+      "uid": "hm22",
+      "partId": "core:hull.square.m",
+      "x": -2,
+      "y": 2,
+      "angle": 0
+    },
+    {
+      "uid": "h0m2",
+      "partId": "core:hull.square.m",
+      "x": 0,
+      "y": -2,
+      "angle": 0
+    },
+    {
+      "uid": "h02",
+      "partId": "core:hull.square.m",
+      "x": 0,
+      "y": 2,
+      "angle": 0
+    },
+    {
+      "uid": "h2m2",
+      "partId": "core:hull.square.m",
+      "x": 2,
+      "y": -2,
+      "angle": 0
+    },
+    {
+      "uid": "h22",
+      "partId": "core:hull.square.m",
+      "x": 2,
+      "y": 2,
+      "angle": 0
+    },
+    {
+      "uid": "h4m2",
+      "partId": "core:hull.square.m",
+      "x": 4,
+      "y": -2,
+      "angle": 0
+    },
+    {
+      "uid": "h42",
+      "partId": "core:hull.square.m",
+      "x": 4,
+      "y": 2,
+      "angle": 0
+    },
+    {
+      "uid": "h6m2",
+      "partId": "core:hull.square.m",
+      "x": 6,
+      "y": -2,
+      "angle": 0
+    },
+    {
+      "uid": "h60",
+      "partId": "core:hull.square.m",
+      "x": 6,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "h62",
+      "partId": "core:hull.square.m",
+      "x": 6,
+      "y": 2,
+      "angle": 0
+    },
+    {
+      "uid": "cmd",
+      "partId": "core:command.s",
+      "x": 0,
+      "y": -0.25,
+      "angle": 0
+    },
+    {
+      "uid": "rea",
+      "partId": "core:reactor.s",
+      "x": 2,
+      "y": -0.25,
+      "angle": 0
+    },
+    {
+      "uid": "gyro-a",
+      "partId": "core:gyro.s",
+      "x": -2.5,
+      "y": -0.5,
+      "angle": 0
+    },
+    {
+      "uid": "gyro-b",
+      "partId": "core:gyro.s",
+      "x": -1.5,
+      "y": -0.5,
+      "angle": 0
+    },
+    {
+      "uid": "mag-a",
+      "partId": "core:magazine.autocannon.s",
+      "x": -4.5,
+      "y": -0.5,
+      "angle": 0
+    },
+    {
+      "uid": "mag-k",
+      "partId": "core:magazine.kinetic.s",
+      "x": -3.5,
+      "y": -0.5,
+      "angle": 0
+    },
+    {
+      "uid": "mag-pd",
+      "partId": "core:magazine.pd.s",
+      "x": 4,
+      "y": -0.5,
+      "angle": 0
+    },
+    {
+      "uid": "tankm2",
+      "partId": "core:tank.fuel.m",
+      "x": -6,
+      "y": -2,
+      "angle": 0
+    },
+    {
+      "uid": "tank0",
+      "partId": "core:tank.fuel.m",
+      "x": -6,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "tank2",
+      "partId": "core:tank.fuel.m",
+      "x": -6,
+      "y": 2,
+      "angle": 0
+    },
+    {
+      "uid": "eng",
+      "partId": "core:engine.main.l",
+      "x": -8,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "ac1-t",
+      "partId": "core:weapon.autocannon.turret.s",
+      "x": -4.5,
+      "y": 3.6929,
+      "angle": 90,
+      "weaponGroup": 2
+    },
+    {
+      "uid": "hv1-t",
+      "partId": "core:weapon.cannon.turret.m",
+      "x": -1.5,
+      "y": 4.0163,
+      "angle": 90,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "ac2-t",
+      "partId": "core:weapon.autocannon.turret.s",
+      "x": 1.5,
+      "y": 3.6929,
+      "angle": 90,
+      "weaponGroup": 2
+    },
+    {
+      "uid": "hv2-t",
+      "partId": "core:weapon.cannon.turret.m",
+      "x": 4.5,
+      "y": 4.0163,
+      "angle": 90,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "ac1-b",
+      "partId": "core:weapon.autocannon.turret.s",
+      "x": -4.5,
+      "y": -3.6929,
+      "angle": -90,
+      "weaponGroup": 2
+    },
+    {
+      "uid": "hv1-b",
+      "partId": "core:weapon.cannon.turret.m",
+      "x": -1.5,
+      "y": -4.0163,
+      "angle": -90,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "ac2-b",
+      "partId": "core:weapon.autocannon.turret.s",
+      "x": 1.5,
+      "y": -3.6929,
+      "angle": -90,
+      "weaponGroup": 2
+    },
+    {
+      "uid": "hv2-b",
+      "partId": "core:weapon.cannon.turret.m",
+      "x": 4.5,
+      "y": -4.0163,
+      "angle": -90,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "pd-t",
+      "partId": "core:weapon.pd.gatling.s",
+      "x": 7.4619,
+      "y": 1.5,
+      "angle": 0
+    },
+    {
+      "uid": "pd-b",
+      "partId": "core:weapon.pd.gatling.s",
+      "x": 7.4619,
+      "y": -1.5,
+      "angle": 0
+    },
+    {
+      "uid": "rcs-ft",
+      "partId": "core:rcs.s",
+      "x": 6.5,
+      "y": 3.25,
+      "angle": 180
+    },
+    {
+      "uid": "rcs-fb",
+      "partId": "core:rcs.s",
+      "x": 6.5,
+      "y": -3.25,
+      "angle": 0
+    },
+    {
+      "uid": "rcs-at",
+      "partId": "core:rcs.s",
+      "x": -6.5,
+      "y": 3.25,
+      "angle": 180
+    },
+    {
+      "uid": "rcs-ab",
+      "partId": "core:rcs.s",
+      "x": -6.5,
+      "y": -3.25,
+      "angle": 0
+    }
+  ],
+  "weaponGroupModes": {
+    "1": "manual",
+    "2": "ai"
+  },
+  "weaponGroups": {
+    "1": {
+      "name": "Heavy guns",
+      "priority": "threat"
+    },
+    "2": {
+      "name": "Autocannons",
+      "range": 1000,
+      "priority": "target"
+    }
+  },
+  "powerPriority": ["gyro", "propulsion", "pointDefense", "weapons", "hangar"]
+}

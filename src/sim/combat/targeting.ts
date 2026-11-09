@@ -2,6 +2,7 @@ import { type Vec2, angleOf, degToRad, dot, length, lengthSq, sub } from "../cor
 import { compareIds } from "../core/ids";
 import { COMBAT, PD } from "./constants";
 import { intercept } from "./lead";
+import type { TargetPriority } from "../../data/schemas/design";
 import type { WeaponState } from "./weapons";
 
 /**
@@ -24,6 +25,9 @@ export interface Contact {
   readonly decoy: boolean;
   /** Rough size for hit-probability estimates (m); defaults to 1. */
   readonly radius?: number;
+  /** Ships: rough damage per second of their guns (threat priority) and hull fraction left (weakest). */
+  readonly threat?: number;
+  readonly hull?: number;
 }
 
 /** The ship doing the defending. */
@@ -108,6 +112,7 @@ export function engageSolution(
   mount: Mount,
   target: { readonly position: Vec2; readonly velocity: Vec2; readonly radius?: number },
   minHitProbability = 0,
+  maxRange = Infinity,
 ): { aimPoint: Vec2; t: number } | null {
   const def = w.def;
   let aimPoint = target.position;
@@ -120,7 +125,7 @@ export function engageSolution(
     t = sol.t;
   }
   const dist = length(sub(aimPoint, mount.muzzle));
-  if (dist > def.range) return null;
+  if (dist > Math.min(def.range, maxRange)) return null;
   if (minHitProbability > 0 && hitProbability(w, dist, target.radius ?? 1) < minHitProbability) return null;
   if (def.kind === "missile") return { aimPoint, t: dist / 300 };
   if (def.kind === "beam") t = 0;
@@ -139,9 +144,10 @@ export function firstEngageable(
   mount: Mount,
   ordered: readonly Contact[],
   minHitProbability = 0,
+  maxRange = Infinity,
 ): Engagement | null {
   for (const c of ordered) {
-    const sol = engageSolution(w, mount, c, minHitProbability);
+    const sol = engageSolution(w, mount, c, minHitProbability, maxRange);
     if (sol) return { id: c.id, ...sol };
   }
   return null;
@@ -164,4 +170,32 @@ export function orderShipTargets(
       dist(a) - dist(b) ||
       compareIds(a.id, b.id),
   );
+}
+
+/**
+ * Enemy ships and drones in the order a weapon group's priority asks for (decision log: Weapon groups).
+ * Ties fall back to distance, then id, so the order is deterministic.
+ */
+export function orderByPriority(
+  contacts: readonly Contact[],
+  d: Defender,
+  priority: TargetPriority,
+  preferredId: string | null,
+): Contact[] {
+  if (priority === "target" || priority === "missiles") return orderShipTargets(contacts, d, preferredId);
+  const enemies = contacts.filter((c) => c.team !== d.team && (c.kind === "ship" || c.kind === "drone"));
+  const dist = (c: Contact) => length(sub(c.position, d.position));
+  const key = (c: Contact): number => {
+    switch (priority) {
+      case "threat":
+        return -((c.threat ?? 0) + 1) / Math.max(100, dist(c));
+      case "weakest":
+        return c.hull ?? 1;
+      case "drones":
+        return c.kind === "drone" ? 0 : 1;
+      default:
+        return 0;
+    }
+  };
+  return enemies.sort((a, b) => key(a) - key(b) || dist(a) - dist(b) || compareIds(a.id, b.id));
 }

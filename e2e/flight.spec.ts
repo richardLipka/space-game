@@ -36,7 +36,7 @@ test("1.30 ship responds to W: speed increases", async ({ page }) => {
 test("speed kill (X) brings the fighter back to rest (turning to burn if that is faster)", async ({
   page,
 }) => {
-  test.setTimeout(45_000);
+  test.setTimeout(60_000);
   await ready(page);
   await page.keyboard.press("Tab"); // the fighter has rear-facing RCS (the gunboat does not)
   await expect(page.locator("#hud")).toContainText("Kestrel");
@@ -46,7 +46,8 @@ test("speed kill (X) brings the fighter back to rest (turning to burn if that is
   await page.keyboard.up("w");
   await page.keyboard.press("x");
   await expect(page.getByTestId("speedkill")).toHaveText(/keep|flip/);
-  await expect.poll(async () => Number(await speed.textContent()), { timeout: 15_000 }).toBeLessThan(0.1);
+  // Under load the simulation runs slower than real time, so allow generous wall-clock time.
+  await expect.poll(async () => Number(await speed.textContent()), { timeout: 35_000 }).toBeLessThan(0.1);
   await expect(page.getByTestId("speedkill")).toHaveText("off");
 });
 

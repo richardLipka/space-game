@@ -18,7 +18,9 @@ export type UiCommand =
   | "networks"
   | "cycle-group-mode"
   | "eject-wrecks"
-  | "launch-missiles"
+  | "launch-missile"
+  | "launch-salvo"
+  | "launch-drone"
   | "launch-drones"
   | "pd-ships"
   | "order-follow"
@@ -114,10 +116,10 @@ export class InputController {
           this.commands.push("help");
           break;
         case "m":
-          this.commands.push("launch-missiles");
+          this.commands.push(e.shiftKey ? "launch-salvo" : "launch-missile");
           break;
         case "h":
-          this.commands.push("launch-drones");
+          this.commands.push(e.shiftKey ? "launch-drones" : "launch-drone");
           break;
         case "o":
           this.commands.push("pd-ships");

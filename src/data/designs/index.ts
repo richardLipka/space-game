@@ -5,6 +5,8 @@ import fighter from "./demo-fighter.json";
 import hauler from "./demo-hauler.json";
 import frigate from "./demo-frigate.json";
 import picket from "./demo-picket.json";
+import gunCruiser from "./demo-cruiser-guns.json";
+import missileFrigate from "./demo-frigate-missile.json";
 import droneAttack from "./drone-attack.json";
 import dronePd from "./drone-pd.json";
 import droneDecoy from "./drone-decoy.json";
@@ -34,7 +36,7 @@ export const CORE_DRONES: readonly ShipDesign[] = load([droneAttack, dronePd, dr
  */
 export const BUNDLED_DESIGNS: ReadonlyMap<string, ShipDesign> = new Map(
   [
-    ...load([gunboat, fighter, hauler, frigate, picket]),
+    ...load([gunboat, fighter, hauler, frigate, picket, gunCruiser, missileFrigate]),
     ...CORE_DRONES,
     ...load([
       archArmor,

@@ -1,4 +1,4 @@
-import type { PartPlacement, PowerGroup, ShipDesign } from "../data/schemas/design";
+import type { PartPlacement, PowerGroup, ShipDesign, WeaponGroupSettings } from "../data/schemas/design";
 import type { PartCatalogue } from "../sim/ship/catalogue";
 import type { LayoutIndex } from "../sim/ship/layout";
 import { History } from "./history";
@@ -222,6 +222,62 @@ export class EditorModel {
     this.commit([...this.design.parts], {
       weaponGroupModes: { ...this.design.weaponGroupModes, [String(group)]: mode },
     });
+  }
+
+  /** Groups 1–9 that exist: used by a weapon, given a mode or given settings. */
+  groupsInUse(): number[] {
+    const d = this.design;
+    const set = new Set<number>();
+    for (const p of d.parts) if (p.weaponGroup !== undefined) set.add(p.weaponGroup);
+    for (const g of Object.keys(d.weaponGroupModes)) set.add(Number(g));
+    for (const g of Object.keys(d.weaponGroups ?? {})) set.add(Number(g));
+    return [...set].sort((a, b) => a - b);
+  }
+
+  /**
+   * Creates the lowest free group (1–9) with default settings and moves `uids` into it.
+   * Returns the new group, or null when all nine are taken.
+   */
+  createGroup(uids: readonly string[] = []): number | null {
+    const used = new Set(this.groupsInUse());
+    let g = 1;
+    while (g <= 9 && used.has(g)) g++;
+    if (g > 9) return null;
+    const move = new Set(uids);
+    this.commit(
+      this.design.parts.map((p) => (move.has(p.uid) ? { ...p, weaponGroup: g } : p)),
+      {
+        weaponGroupModes: { ...this.design.weaponGroupModes, [String(g)]: "manual" },
+        weaponGroups: { ...(this.design.weaponGroups ?? {}), [String(g)]: { priority: "target" } },
+      },
+    );
+    return g;
+  }
+
+  /** Changes a group's name, fire range or target priority (undefined clears a field). */
+  setGroupSettings(group: number, patch: Partial<WeaponGroupSettings>): void {
+    const cur = this.design.weaponGroups?.[String(group)] ?? {};
+    const next: Record<string, unknown> = { ...cur, ...patch };
+    for (const k of Object.keys(next)) if (next[k] === undefined || next[k] === "") delete next[k];
+    this.commit([...this.design.parts], {
+      weaponGroups: { ...(this.design.weaponGroups ?? {}), [String(group)]: next as WeaponGroupSettings },
+    });
+  }
+
+  /** Removes a group: its weapons become ungrouped (they fire with group 1), its settings go. */
+  deleteGroup(group: number): void {
+    const modes = { ...this.design.weaponGroupModes };
+    delete modes[String(group)];
+    const groups = { ...(this.design.weaponGroups ?? {}) };
+    delete groups[String(group)];
+    this.commit(
+      this.design.parts.map((p) => {
+        if (p.weaponGroup !== group) return p;
+        const { weaponGroup: _old, ...rest } = p;
+        return rest;
+      }),
+      { weaponGroupModes: modes, weaponGroups: groups },
+    );
   }
 
   setPowerPriority(order: PowerGroup[]): void {

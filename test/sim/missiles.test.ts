@@ -353,18 +353,18 @@ describe("M5 drones", () => {
     ["hg", "hangar.attack.m", 0, 1.5],
   ]);
 
-  it("5.15 hangar: capacity 4, launch interval 1 s → 4 drones in about 3 s; a 5th launch is refused", () => {
+  it("5.15 hangar: capacity 4, launch interval 10 s → 4 drones in about 30 s; a 5th launch is refused", () => {
     const w = new World({ seed: 1 });
     w.registerDesign(design("drone-attack"));
     const c = w.addShip(carrier, cat);
     c.requestDroneLaunch();
     const launched: number[] = [];
-    for (let i = 0; i < 60 * 4; i++) {
+    for (let i = 0; i < 60 * 31; i++) {
       const before = w.allShips().length;
       w.step();
       if (w.allShips().length > before) launched.push(w.tick - 1);
     }
-    expect(launched).toEqual([0, 60, 120, 180]);
+    expect(launched).toEqual([0, 600, 1200, 1800]);
     expect(c.dronesStored).toBe(0);
     c.requestDroneLaunch();
     w.run(120);

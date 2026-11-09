@@ -703,43 +703,147 @@ export class EditorScreen {
     box.append(list);
   }
 
+  /**
+   * Weapon groups (decision log: Weapon groups): create groups, choose each group's default mode
+   * (manual, automatic or hold), the distance at which automatic fire starts and how it picks targets,
+   * and which weapons belong to it. Point defense is always automatic and stays out of groups.
+   */
   private renderGroups(): void {
     const m = this.model;
     const box = this.ui.groups!;
     box.replaceChildren(el("h3", {}, "Weapon groups"));
-    const weapons = m.design.parts.filter(
-      (p) => m.catalogue.get(p.partId).def.weapon && m.catalogue.get(p.partId).def.weapon!.kind !== "pd",
-    );
+    const weapons = m.design.parts.filter((p) => {
+      const w = m.catalogue.get(p.partId).def.weapon;
+      return w && w.kind !== "pd";
+    });
     if (weapons.length === 0) {
       box.append(el("p", { class: "dim" }, "No group weapons. Point defense is always automatic."));
       return;
     }
-    const used = [
-      ...new Set(weapons.map((w) => w.weaponGroup).filter((g): g is number => g !== undefined)),
-    ].sort();
-    for (const g of used) {
-      const sel = el("select", { "data-testid": `group-mode-${g}` }) as HTMLSelectElement;
-      for (const mode of ["manual", "hold", "ai"]) sel.append(el("option", { value: mode }, mode));
-      sel.value = m.design.weaponGroupModes[String(g)] ?? "manual";
-      sel.addEventListener("change", () =>
-        this.edit(() => m.setGroupMode(g, sel.value as "hold" | "manual" | "ai")),
+    const groups = m.groupsInUse();
+    const selectedWeapons = weapons.filter((w) => this.selected.has(w.uid)).map((w) => w.uid);
+    const add = this.button(
+      selectedWeapons.length ? `New group from ${selectedWeapons.length} selected` : "New group",
+      "btn-group-new",
+      () => this.edit(() => m.createGroup(selectedWeapons)),
+      "Creates the next free group (1–9); selected weapons move into it",
+    );
+    if (groups.length >= 9) add.setAttribute("disabled", "");
+    box.append(el("div", { class: "ed-scenario-actions" }, add));
+
+    const option = (value: string, label: string, current: string) => {
+      const o = el("option", { value }, label) as HTMLOptionElement;
+      if (value === current) o.selected = true;
+      return o;
+    };
+    for (const g of groups) {
+      const set = m.design.weaponGroups?.[String(g)] ?? {};
+      const mode = m.design.weaponGroupModes[String(g)] ?? "manual";
+      const members = weapons.filter((w) => (w.weaponGroup ?? 1) === g);
+      const card = el("div", { class: "ed-group", "data-testid": `group-card-${g}` });
+      const name = el("input", {
+        class: "ed-group-name",
+        "data-testid": `group-name-${g}`,
+        placeholder: `Group ${g}`,
+        maxlength: "40",
+      }) as HTMLInputElement;
+      name.value = set.name ?? "";
+      name.addEventListener("keydown", (e) => e.stopPropagation());
+      name.addEventListener("change", () =>
+        this.edit(() => m.setGroupSettings(g, { name: name.value.trim() || undefined })),
       );
-      box.append(
-        el(
-          "div",
-          { class: "row" },
-          el("span", {}, `Group ${g} · ${weapons.filter((w) => w.weaponGroup === g).length} weapon(s)`),
-          sel,
-        ),
+      const del = this.button(
+        "✕",
+        `group-delete-${g}`,
+        () => this.edit(() => m.deleteGroup(g)),
+        "Delete group",
       );
+      card.append(el("div", { class: "ed-group-head" }, el("b", {}, String(g)), name, del));
+
+      const modeSel = el("select", {
+        "data-testid": `group-mode-${g}`,
+        title:
+          "Manual: fires on your trigger when selected · Automatic: picks targets and fires by itself · Hold: never fires",
+      }) as HTMLSelectElement;
+      modeSel.append(
+        option("manual", "Manual", mode),
+        option("ai", "Automatic", mode),
+        option("hold", "Hold", mode),
+      );
+      modeSel.addEventListener("change", () =>
+        this.edit(() => m.setGroupMode(g, modeSel.value as "hold" | "manual" | "ai")),
+      );
+      card.append(el("label", { class: "row" }, el("span", {}, "Mode"), modeSel));
+
+      const auto = mode === "ai";
+      const maxRange = Math.max(0, ...members.map((w) => m.catalogue.get(w.partId).def.weapon!.range));
+      const range = el("input", {
+        type: "number",
+        min: "50",
+        step: "50",
+        max: String(maxRange || 5000),
+        placeholder: maxRange ? `${maxRange} (max)` : "max",
+        "data-testid": `group-range-${g}`,
+      }) as HTMLInputElement;
+      range.value = set.range !== undefined ? String(set.range) : "";
+      range.addEventListener("keydown", (e) => e.stopPropagation());
+      range.addEventListener("change", () => {
+        const v = Number(range.value);
+        this.edit(() => m.setGroupSettings(g, { range: range.value && v > 0 ? v : undefined }));
+      });
+      const prio = el("select", {
+        "data-testid": `group-priority-${g}`,
+        title:
+          "Which enemy an automatic group shoots first. Missiles first: shoots down missiles aimed at this ship before anything else",
+      }) as HTMLSelectElement;
+      const cur = set.priority ?? "target";
+      prio.append(
+        option("target", "Target, then nearest", cur),
+        option("nearest", "Nearest", cur),
+        option("threat", "Most dangerous", cur),
+        option("weakest", "Most damaged", cur),
+        option("drones", "Drones first", cur),
+        option("missiles", "Missiles first", cur),
+      );
+      prio.addEventListener("change", () =>
+        this.edit(() => m.setGroupSettings(g, { priority: prio.value as "target" })),
+      );
+      if (!auto) {
+        range.setAttribute("disabled", "");
+        prio.setAttribute("disabled", "");
+      }
+      card.append(
+        el("label", { class: "row" }, el("span", {}, "Fire within (m)"), range),
+        el("label", { class: "row" }, el("span", {}, "Targets"), prio),
+      );
+      if (!auto) card.append(el("p", { class: "dim" }, "Range and targets apply in automatic mode."));
+
+      const list = el("div", { class: "ed-group-members" });
+      for (const w of members) {
+        const def = m.catalogue.get(w.partId).def;
+        const move = el("select", {
+          "data-testid": `weapon-group-${w.uid}`,
+          title: "Move to group",
+        }) as HTMLSelectElement;
+        for (const h of groups) move.append(option(String(h), String(h), String(g)));
+        move.addEventListener("change", () => this.edit(() => m.setWeaponGroup(w.uid, Number(move.value))));
+        const label = el("span", { class: this.selected.has(w.uid) ? "sel" : "" }, `${def.name} (${w.uid})`);
+        label.addEventListener("click", () => this.selectParts([w.uid]));
+        list.append(el("div", { class: "row" }, label, move));
+      }
+      if (members.length === 0)
+        list.append(
+          el(
+            "p",
+            { class: "dim" },
+            "Empty: select weapons and press the number key, or use “Move to group”.",
+          ),
+        );
+      card.append(list);
+      box.append(card);
     }
-    const unassigned = weapons.filter((w) => w.weaponGroup === undefined).length;
     box.append(
-      el(
-        "p",
-        { class: "dim" },
-        `${unassigned ? `${unassigned} unassigned. ` : ""}Select a weapon and press 1–9 (0 clears).`,
-      ),
+      el("p", { class: "dim" }, "Select weapons and press 1–9 to move them into a group (0 clears)."),
     );
   }
 
