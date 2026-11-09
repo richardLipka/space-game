@@ -1,6 +1,9 @@
 # Space Game (prototype)
 
 2D tactical space combat where the ship's physical construction decides how it flies, fights and fails.
+
+**Play in the browser: https://richardlipka.github.io/space-game/** (updated automatically after CI passes on `main`; designs and results are saved in your browser).
+
 Design docs: [docs/space-game-spec.md](docs/space-game-spec.md) and [docs/implementation-plan.md](docs/implementation-plan.md).
 
 ## Status
