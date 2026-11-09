@@ -128,6 +128,57 @@ describe("M5 missiles", () => {
     expect((v0.y - m.vel.y) / SIM_DT).toBeCloseTo(g, 1); // pulled toward the well
   });
 
+  it("a burnt-out missile stops steering and flies straight past a target off its line", () => {
+    const w = new World({ seed: 1 });
+    const ship = w.addShip(shooter, cat, { position: vec2(-500, 0) });
+    const t = w.addShip(block, cat, { position: vec2(600, 300), team: 1 });
+    const def = cat.get("core:weapon.missile.launcher.s").def.weapon!.missile!;
+    const m = spawnMissile(w, ship, def, vec2(0, 0), vec2(1, 0), vec2(175, 0), t.id);
+    m.fuel = 0;
+    for (let i = 0; i < 60 * 4; i++) stepMissiles(w, SIM_DT);
+    expect(w.combat.missiles).toContain(m);
+    expect(m.vel.x).toBeCloseTo(200, 9);
+    expect(m.vel.y).toBeCloseTo(0, 9);
+    expect(m.pos.y).toBeCloseTo(0, 9);
+    expect(m.heading).toBeCloseTo(0, 9);
+  });
+
+  it("a burnt-out missile still detonates on a ship in its path", () => {
+    const w = new World({ seed: 1 });
+    const ship = w.addShip(shooter, cat, { position: vec2(-500, 0) });
+    const t = w.addShip(block, cat, { position: vec2(400, 0), team: 1 });
+    const def = cat.get("core:weapon.missile.launcher.s").def.weapon!.missile!;
+    // Aimed at the block but told to chase the shooter: without fuel it cannot turn away.
+    const m = spawnMissile(w, ship, def, vec2(0, 0), vec2(1, 0), vec2(175, 0), ship.id);
+    m.fuel = 0;
+    for (let i = 0; i < 60 * 3 && w.combat.missiles.length; i++) stepMissiles(w, SIM_DT);
+    expect(w.combat.events.some((e) => e.kind === "explosion")).toBe(true);
+    expect(hp(t)).toBeLessThan(hp(w.addShip(block, cat, { position: vec2(0, 3000), team: 1 })));
+  });
+
+  it("a coasting missile is removed once it leaves the arena, or after MISSILE.maxCoastTime", () => {
+    const w = new World({ seed: 1 });
+    w.arena = { width: 2000, height: 2000 };
+    const ship = w.addShip(shooter, cat, { position: vec2(-500, 0) });
+    const def = cat.get("core:weapon.missile.launcher.s").def.weapon!.missile!;
+    spawnMissile(w, ship, def, vec2(0, 0), vec2(1, 0), vec2(175, 0), ship.id).fuel = 0;
+    // 200 m/s: past the edge (1000 m) plus the margin after about 7.5 s.
+    for (let i = 0; i < 60 * 7; i++) stepMissiles(w, SIM_DT);
+    expect(w.combat.missiles).toHaveLength(1);
+    for (let i = 0; i < 60; i++) stepMissiles(w, SIM_DT);
+    expect(w.combat.missiles).toHaveLength(0);
+    // Without an arena it coasts until its time is up.
+    const w2 = new World({ seed: 1 });
+    const s2 = w2.addShip(shooter, cat, { position: vec2(-500, 0) });
+    const m2 = spawnMissile(w2, s2, def, vec2(0, 0), vec2(1, 0), vec2(175, 0), s2.id);
+    m2.fuel = 0;
+    m2.age = def.fuel + MISSILE.maxCoastTime - 0.5;
+    for (let i = 0; i < 20; i++) stepMissiles(w2, SIM_DT);
+    expect(w2.combat.missiles).toHaveLength(1);
+    for (let i = 0; i < 20; i++) stepMissiles(w2, SIM_DT);
+    expect(w2.combat.missiles).toHaveLength(0);
+  });
+
   it("5.5 proximity fuse fires at the configured distance", () => {
     const { w, b } = missileRun(3, block);
     const ev = w.combat.events.find((e) => e.kind === "explosion")!;

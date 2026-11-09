@@ -62,8 +62,12 @@ export const MISSILE = {
   armTime: 0.4,
   /** Hit radius for rounds and beams (m). */
   radius: 0.8,
-  /** Seconds a missile keeps coasting after its fuel runs out before it self-destructs. */
-  coastTime: 20,
+  /**
+   * A burnt-out missile no longer steers: it flies straight on (gravity still bends it) with its fuse live,
+   * until it leaves the arena by this margin (m) or has coasted for maxCoastTime (s).
+   */
+  arenaMargin: 500,
+  maxCoastTime: 60,
   /** Launch speed relative to the launcher (m/s). */
   launchSpeed: 25,
   /** Enemy decoys closer than this get one chance to pull each missile off its target (m). */

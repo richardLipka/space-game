@@ -264,6 +264,14 @@
 .overlay-target.defeated {
   --stroke: #9aa0a6;
 }
+.overlay-course {
+  --stroke: #2563a8;
+  --stroke-width: 1;
+  --stroke-alpha: 0.7;
+}
+.overlay-course.target {
+  --stroke: #c0103a;
+}
 .overlay-turret {
   --stroke: #1d2733;
   --stroke-width: 2.5;
@@ -389,4 +397,15 @@
 .overlay-ai-velocity {
   --stroke: #5a3d8a;
   --stroke-width: 1.5;
+}
+
+/* ---- Projected course (pilot's ship and target, 10 s ahead) ---- */
+.overlay-course {
+  --stroke: #2a6fb0;
+  --stroke-width: 1;
+  --stroke-alpha: 0.7;
+  --min-size: 1.5;
+}
+.overlay-course.target {
+  --stroke: #c0392b;
 }

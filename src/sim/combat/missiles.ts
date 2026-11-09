@@ -83,7 +83,7 @@ const wrap = (a: number): number => {
 /**
  * Direction the missile wants to accelerate in. Proportional navigation (spec §9.5): lateral acceleration
  * N·Vc·(line-of-sight rate) across the line of sight, the rest of the thrust along it to keep closing.
- * Pursuit points straight at the target. Without fuel the heading no longer matters.
+ * Pursuit points straight at the target. Only used while the motor burns: without fuel a missile flies straight.
  */
 export function guidanceDirection(m: Missile, targetPos: Vec2, targetVel: Vec2): Vec2 {
   const r = sub(targetPos, m.pos);
@@ -144,19 +144,30 @@ function detonate(world: World, m: Missile, at: Vec2): void {
   m.hp = 0;
 }
 
+/** Past the arena edge by more than MISSILE.arenaMargin (a coasting missile never comes back). */
+function outsideArena(world: World, p: Vec2): boolean {
+  const a = world.arena;
+  if (!a) return false;
+  return (
+    Math.abs(p.x) > a.width / 2 + MISSILE.arenaMargin || Math.abs(p.y) > a.height / 2 + MISSILE.arenaMargin
+  );
+}
+
 /**
  * Step 10b: guide, move and fuse missiles. Runs after the physics step and projectiles, so missiles shot
- * down this tick are already gone. Missiles past their fuel plus MISSILE.coastTime self-destruct.
+ * down this tick are already gone. Guidance needs thrust: once the fuel is spent the missile stops steering
+ * (and can no longer be pulled by decoys) and flies straight on, still able to hit whatever is in its path,
+ * until it leaves the arena or has coasted for MISSILE.maxCoastTime.
  */
 export function stepMissiles(world: World, dt: number): void {
   const keep: Missile[] = [];
   for (const m of world.combat.missiles) {
     if (m.hp <= 0) continue;
-    considerDecoys(world, m);
-    if (m.target && !world.hasShip(m.target)) m.target = null;
     const burning = m.fuel > 0;
+    if (burning) considerDecoys(world, m);
+    if (m.target && !world.hasShip(m.target)) m.target = null;
     let accel = gravityAccel(world.gravityWells, m.pos);
-    if (m.target) {
+    if (burning && m.target) {
       const tp = world.physics.getWorldCenter(m.target);
       const tv = world.physics.getBodyState(m.target).linearVelocity;
       const want = angleOf(guidanceDirection(m, tp, tv));
@@ -188,9 +199,10 @@ export function stepMissiles(world: World, dt: number): void {
       }
     }
     m.pos = to;
-    if (m.age > m.def.fuel + MISSILE.coastTime) {
-      pushEvent(world, "missile-down", m.pos, 0.5);
-      continue;
+    if (!burning) {
+      // Coasting: point along the flight path (the motor is dead, nothing turns it).
+      if (length(m.vel) > 1e-6) m.heading = angleOf(m.vel);
+      if (m.age > m.def.fuel + MISSILE.maxCoastTime || outsideArena(world, m.pos)) continue;
     }
     keep.push(m);
   }

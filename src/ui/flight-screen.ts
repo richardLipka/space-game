@@ -777,6 +777,7 @@ export class FlightScreen {
     const radius = Math.max(...ship.parts.map((p) => Math.hypot(p.position.x, p.position.y))) + 2;
     this.camera.update(me, radius, target, dtReal);
     scene.targetId = this.targetId;
+    scene.courseIds = this.targetId && this.targetId !== ship.id ? [ship.id, this.targetId] : [ship.id];
     const hoverUid = this.input.ejectMode ? this.partUnder(this.input.mouse) : null;
     scene.eject = this.input.ejectMode ? { shipId: ship.id, hoverUid } : null;
     scene.render(world, this.camera, alpha);
