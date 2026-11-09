@@ -102,6 +102,7 @@ async function main(): Promise<void> {
 
   const theme = new ThemeResolver(domStyleSource(document));
   let themeIndex = 0;
+  await applyTheme(document, THEMES[themeIndex]!, theme); // before the first frame is drawn
   const cycleTheme = () => {
     themeIndex = (themeIndex + 1) % THEMES.length;
     void applyTheme(document, THEMES[themeIndex]!, theme);

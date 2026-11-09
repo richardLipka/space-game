@@ -89,10 +89,19 @@ export function domStyleSource(doc: Document): StyleSource {
 export const THEMES = ["neon", "flat"] as const;
 export type ThemeName = (typeof THEMES)[number];
 
-/** Swaps the theme stylesheet; resolves once the new sheet has loaded. */
+/**
+ * Swaps the theme stylesheet; resolves once the new sheet has loaded. The `<link id="theme">` is created
+ * here rather than in index.html: a static link would be folded into the main CSS bundle by the
+ * production build, and the theme could then never be switched.
+ */
 export function applyTheme(doc: Document, name: ThemeName, resolver: ThemeResolver): Promise<void> {
-  const link = doc.getElementById("theme") as HTMLLinkElement | null;
-  if (!link) return Promise.resolve();
+  let link = doc.getElementById("theme") as HTMLLinkElement | null;
+  if (!link) {
+    link = doc.createElement("link");
+    link.rel = "stylesheet";
+    link.id = "theme";
+    doc.head.prepend(link);
+  }
   return new Promise((resolve) => {
     const done = () => {
       resolver.invalidate();
