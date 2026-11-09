@@ -110,6 +110,7 @@ export function avoidObstacles(world: World, ship: Ship, desired: Vec2): Vec2 {
   const pos = world.physics.getWorldCenter(ship.id);
   const me = ship.layout.boundingRadius;
   let out = desired;
+  const horizon = STEER.lookAhead;
   const v = desired;
   const vv = lengthSq(v);
   if (vv > 1) {
@@ -117,14 +118,15 @@ export function avoidObstacles(world: World, ship: Ship, desired: Vec2): Vec2 {
       const rp = world.physics.getBodyState(a.id).position;
       const rel = sub(rp, pos);
       const safe = radiusOf(a.outline) + me + STEER.clearance;
-      if (length(rel) - safe > Math.sqrt(vv) * STEER.lookAhead) continue;
-      const t = Math.max(0, Math.min(STEER.lookAhead, dot(rel, v) / vv));
+      if (length(rel) - safe > Math.sqrt(vv) * horizon) continue;
+      const t = Math.max(0, Math.min(horizon, dot(rel, v) / vv));
       const closest = sub(rel, scale(v, t));
       const miss = length(closest);
       if (miss >= safe) continue;
       const away = miss > 1e-6 ? normalize(scale(closest, -1)) : normalize(vec2(-v.y, v.x));
       const k = (safe - miss) / safe;
-      out = add(out, scale(away, k * (Math.sqrt(vv) + 20)));
+      // Steer around it and ease off along the path, so there is time to swing clear.
+      out = add(add(out, scale(away, k * (Math.sqrt(vv) + 20))), scale(v, -0.5 * k));
     }
   }
   const arena = world.arena;

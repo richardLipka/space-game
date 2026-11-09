@@ -33,7 +33,9 @@ export type Behaviour =
 export type Order =
   | { readonly kind: "follow"; readonly leader: string }
   | { readonly kind: "attack"; readonly target: string }
-  | { readonly kind: "hold"; readonly point: Vec2 };
+  | { readonly kind: "hold"; readonly point: Vec2 }
+  /** Defensive AI: stay with `target` and engage enemies within `radius` of it. */
+  | { readonly kind: "guard"; readonly target: string; readonly radius: number };
 
 export const AI_TUNING = {
   /** Seconds between behaviour and target evaluations. */
@@ -47,6 +49,14 @@ export const AI_TUNING = {
   /** Cool down above this heat level, until it drops below `coolExit`. */
   coolEnter: 0.7,
   coolExit: 0.5,
+  /** Hit probability used when planning the preferred range (see preferredRange). */
+  rangePlanningProbability: 0.2,
+  /** Retreat speed as a share of the profile's top speed (a pursuer at full speed catches up). */
+  retreatSpeed: 0.6,
+  /** Retreating AI type: falls back while an enemy is within this multiple of its engage range. */
+  withdrawReach: 1.6,
+  /** While cooling, guns (not PD) also hold fire above this heat level. */
+  holdGunsAbove: 0.9,
   /** Position gain for steering toward a goal point (1/s). */
   gain: 0.5,
   /** Followers and holders engage armed enemies this close to their leader or point (m). */
@@ -119,10 +129,11 @@ export function preferredRange(
   let sum = 0;
   let dps = 0;
   for (const g of pick.length ? pick : caps.weapons.guns) {
-    const pReach =
-      g.spread > 0 && profile.minHitProbability > 0
-        ? targetRadius / (2 * Math.tan(g.spread) * profile.minHitProbability)
-        : g.reach;
+    // Range is planned at one fixed hit probability, so the profile's range factor alone sets the
+    // distance and its fire threshold only decides when to shoot (a picky shooter waits for good shots
+    // instead of closing in; an eager one does not stand further off).
+    const plan = AI_TUNING.rangePlanningProbability;
+    const pReach = g.spread > 0 && plan > 0 ? targetRadius / (2 * Math.tan(g.spread) * plan) : g.reach;
     sum += g.dps * Math.min(g.reach, pReach);
     dps += g.dps;
   }
@@ -183,12 +194,16 @@ function chooseTarget(world: World, ship: Ship, st: AiState, me: Pose): string |
     const t = world.getShip(order.target);
     if (!t.defeated && !t.inert && t.team !== ship.team) return t.id;
   }
+  const guarded = order?.kind === "guard" && world.hasShip(order.target) ? order : null;
   const anchor =
     order?.kind === "follow" && world.hasShip(order.leader)
       ? world.physics.getWorldCenter(order.leader)
       : order?.kind === "hold"
         ? order.point
-        : null;
+        : guarded
+          ? world.physics.getWorldCenter(guarded.target)
+          : null;
+  const radius = guarded ? guarded.radius : AI_TUNING.engageRadius;
   let best: string | null = null;
   let bestScore = 0;
   for (const s of world.allShips()) {
@@ -197,8 +212,9 @@ function chooseTarget(world: World, ship: Ship, st: AiState, me: Pose): string |
     const caps = capabilityProfile(s);
     const armed = caps.threat > 0;
     // Followers and holders only engage armed enemies near their leader or point.
-    if (anchor && (!armed || length(sub(pos, anchor)) > AI_TUNING.engageRadius)) continue;
-    const dist = Math.max(100, length(sub(pos, me.pos)));
+    if (anchor && (!armed || length(sub(pos, anchor)) > radius)) continue;
+    // Guards rank threats by how close they are to the guarded ship, not to themselves.
+    const dist = Math.max(100, length(sub(pos, guarded && anchor ? anchor : me.pos)));
     let score = ((caps.threat + 1) / dist) * (1 + st.profile.preferWeakened * (1 - caps.hp));
     if (s.drone) score *= 0.3;
     if (s.id === st.targetId) score *= AI_TUNING.targetStickiness;
@@ -264,7 +280,11 @@ function scoreBehaviours(
       (p) => p.def.def.hangar || (p.def.def.weapon && p.def.def.weapon.kind !== "pd"),
     );
     if (!armed && builtArmed) s.retreat = w.retreat * 2;
-  } else if (st.order?.kind === "follow") s.follow = 0.5;
+    // Retreating stance: always falling back while an enemy is in sight (it keeps firing).
+    // Once out of reach it stops and waits (and turns to fight whoever follows).
+    if (st.profile.stance === "retreating" && dist < R * AI_TUNING.withdrawReach)
+      s.retreat = Math.max(s.retreat ?? 0, w.retreat * 3);
+  } else if (st.order?.kind === "follow" || st.order?.kind === "guard") s.follow = 0.5;
   else if (st.order?.kind === "hold") s.station = 0.5;
   else s.idle = 0.1;
   if (incoming > 0) s.evade = w.evade * (0.9 + 0.2 * Math.min(incoming, 4));
@@ -321,6 +341,14 @@ function behaviourSteering(
     const cap = Math.min(p.maxSpeed, arrivalSpeed(caps, length(off)));
     return add(goalVel, clampLen(scale(off, AI_TUNING.gain), cap));
   };
+  /** Guards never chase beyond their radius around the guarded ship. */
+  const leash = (goal: Vec2): Vec2 => {
+    const o = st.order;
+    if (o?.kind !== "guard" || !world.hasShip(o.target)) return goal;
+    const c = world.physics.getWorldCenter(o.target);
+    const off = sub(goal, c);
+    return length(off) > o.radius ? add(c, scale(normalize(off), o.radius)) : goal;
+  };
   const leadAngle = (tp: Pose) => {
     const speed = caps.weapons.fixedSpeed;
     const sol = speed > 0 ? intercept(me.pos, me.vel, tp.pos, tp.vel, speed) : null;
@@ -332,7 +360,7 @@ function behaviourSteering(
     case "face": {
       if (!t) break;
       const dir = length(sub(t.pos, me.pos)) > 1e-6 ? normalize(sub(t.pos, me.pos)) : vec2(1, 0);
-      const goal = sub(t.pos, scale(dir, R));
+      const goal = leash(sub(t.pos, scale(dir, R)));
       const face =
         caps.weapons.fixedShare >= 0.5 || st.behaviour === "face"
           ? leadAngle(t)
@@ -347,7 +375,9 @@ function behaviourSteering(
       const tangent = scale(vec2(-radial.y, radial.x), side * p.orbitSpeed);
       const Rt = preferredRange(caps, p, st.targetRadius, "turret");
       const err = Rt - length(sub(me.pos, t.pos));
-      const radialFix = scale(radial, err * AI_TUNING.gain);
+      // Radial correction capped by stopping distance, like approach (heavy ships overshoot otherwise).
+      const radialSpeed = Math.min(Math.abs(err) * AI_TUNING.gain, arrivalSpeed(caps, Math.abs(err)));
+      const radialFix = scale(radial, Math.sign(err) * radialSpeed);
       const desired = add(t.vel, clampLen(add(tangent, radialFix), p.maxSpeed));
       return { desiredVel: desired, faceAngle: st.broadsideAngle, mayBurn: Math.abs(err) > Rt * 0.3 };
     }
@@ -360,10 +390,26 @@ function behaviourSteering(
       return { desiredVel: add(me.vel, scale(perp, p.maxSpeed)), faceAngle: null, mayBurn: true };
     }
     case "retreat": {
+      // A fighting withdrawal: a damaged ship falls back slower than a healthy pursuer can close, with its
+      // guns toward the threat, so retreats end the fight one way or the other instead of in a chase.
       const from = t?.pos ?? me.pos;
       const away =
         length(sub(me.pos, from)) > 1e-6 ? normalize(sub(me.pos, from)) : rotate(vec2(-1, 0), me.angle);
-      return { desiredVel: scale(away, p.maxSpeed), faceAngle: null, mayBurn: true };
+      const face = t
+        ? caps.weapons.fixedShare >= 0.5
+          ? leadAngle(t)
+          : (st.broadsideAngle ?? angleOf(sub(t.pos, me.pos)))
+        : null;
+      return {
+        desiredVel: scale(
+          away,
+          p.stance === "retreating" && p.withdrawSpeed !== undefined
+            ? p.withdrawSpeed
+            : p.maxSpeed * AI_TUNING.retreatSpeed,
+        ),
+        faceAngle: face,
+        mayBurn: true,
+      };
     }
     case "cool":
       return {
@@ -374,8 +420,9 @@ function behaviourSteering(
       };
     case "follow": {
       const o = st.order;
-      if (o?.kind !== "follow" || !world.hasShip(o.leader)) break;
-      const l = poseOf(world, o.leader);
+      const leader = o?.kind === "follow" ? o.leader : o?.kind === "guard" ? o.target : null;
+      if (!leader || !world.hasShip(leader)) break;
+      const l = poseOf(world, leader);
       const row = Math.floor(st.slot / 2) + 1;
       const side = st.slot % 2 === 0 ? 1 : -1;
       const slot = add(
@@ -442,6 +489,8 @@ function fireControl(world: World, ship: Ship, st: AiState, me: Pose, caps: Capa
     targetId: st.targetId,
     launch,
     holdBeams: st.cooling,
+    // Past the throttle point the ship would cook its own heat producers (command module included).
+    holdGuns: st.cooling && caps.heat > AI_TUNING.holdGunsAbove,
     missileVolleys: true,
   };
 }
@@ -459,7 +508,10 @@ export function runAi(world: World, dt: number): void {
     }
     const caps = st.caps!;
     const steering = behaviourSteering(world, ship, st, me, caps);
-    const avoided = { ...steering, desiredVel: avoidObstacles(world, ship, steering.desiredVel) };
+    const avoided = {
+      ...steering,
+      desiredVel: avoidObstacles(world, ship, steering.desiredVel),
+    };
     st.debug = { desiredVel: avoided.desiredVel, faceAngle: avoided.faceAngle };
     ship.intent = steerToIntent(world, ship, caps, avoided);
     fireControl(world, ship, st, me, caps);

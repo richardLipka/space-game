@@ -1,0 +1,209 @@
+{
+  "id": "s12-mirror-escort",
+  "name": "Mirror: escorted cruiser",
+  "description": "An Anvil cruiser with two Wasp fighters guarding it, on both sides.",
+  "order": 12,
+  "budget": 1850,
+  "maxPlayerShips": 3,
+  "arena": {
+    "width": 10000,
+    "height": 7000,
+    "asteroids": [
+      {
+        "position": [1830, -2035],
+        "angle": 0,
+        "outline": [
+          [60.5, 0],
+          [44.1, 44.1],
+          [0, 59.7],
+          [-44.9, 44.9],
+          [-63.9, 0],
+          [-42.9, -42.9],
+          [0, -52.7],
+          [36.3, -36.3]
+        ],
+        "static": true
+      },
+      {
+        "position": [-1830, -2035],
+        "angle": 0,
+        "outline": [
+          [-36.3, -36.3],
+          [0, -52.7],
+          [42.9, -42.9],
+          [63.9, 0],
+          [44.9, 44.9],
+          [0, 59.7],
+          [-44.1, 44.1],
+          [-60.5, 0]
+        ],
+        "static": true
+      },
+      {
+        "position": [1467, -2100],
+        "angle": 0,
+        "outline": [
+          [56.1, 0],
+          [27.6, 47.8],
+          [-27.7, 47.9],
+          [-58.8, 0],
+          [-26.2, -45.4],
+          [22.5, -38.9]
+        ],
+        "static": true
+      },
+      {
+        "position": [-1467, -2100],
+        "angle": 0,
+        "outline": [
+          [-22.5, -38.9],
+          [26.2, -45.4],
+          [58.8, 0],
+          [27.7, 47.9],
+          [-27.6, 47.8],
+          [-56.1, 0]
+        ],
+        "static": true
+      },
+      {
+        "position": [640, 1449],
+        "angle": 0,
+        "outline": [
+          [44.3, 0],
+          [22.2, 38.4],
+          [-23, 39.8],
+          [-39.4, 0],
+          [-21, -36.3],
+          [22.6, -39.1]
+        ],
+        "static": true
+      },
+      {
+        "position": [-640, 1449],
+        "angle": 0,
+        "outline": [
+          [-22.6, -39.1],
+          [21, -36.3],
+          [39.4, 0],
+          [23, 39.8],
+          [-22.2, 38.4],
+          [-44.3, 0]
+        ],
+        "static": true
+      },
+      {
+        "position": [549, -1897],
+        "angle": 0,
+        "outline": [
+          [42.1, 0],
+          [23.3, 29.3],
+          [-7.9, 34.7],
+          [-33.2, 16],
+          [-39.6, -19.1],
+          [-9.4, -41.2],
+          [27.6, -34.6]
+        ],
+        "static": true
+      },
+      {
+        "position": [-549, -1897],
+        "angle": 0,
+        "outline": [
+          [-27.6, -34.6],
+          [9.4, -41.2],
+          [39.6, -19.1],
+          [33.2, 16],
+          [7.9, 34.7],
+          [-23.3, 29.3],
+          [-42.1, 0]
+        ],
+        "static": true
+      },
+      {
+        "position": [1014, 137],
+        "angle": 0,
+        "outline": [
+          [25.2, 0],
+          [21.1, 21.1],
+          [0, 32.3],
+          [-17.7, 17.7],
+          [-28, 0],
+          [-18, -18],
+          [0, -28.4],
+          [20.3, -20.3]
+        ],
+        "static": true
+      },
+      {
+        "position": [-1014, 137],
+        "angle": 0,
+        "outline": [
+          [-20.3, -20.3],
+          [0, -28.4],
+          [18, -18],
+          [28, 0],
+          [17.7, 17.7],
+          [0, 32.3],
+          [-21.1, 21.1],
+          [-25.2, 0]
+        ],
+        "static": true
+      }
+    ],
+    "gravityWells": []
+  },
+  "playerSpawns": [
+    {
+      "position": [-2500, -400],
+      "angle": 0
+    },
+    {
+      "position": [-2500, 0],
+      "angle": 0
+    },
+    {
+      "position": [-2500, 400],
+      "angle": 0
+    }
+  ],
+  "enemies": [
+    {
+      "designId": "fleet-anvil",
+      "aiProfile": "aggressive",
+      "spawn": {
+        "position": [2500, -400],
+        "angle": 180
+      },
+      "team": 1
+    },
+    {
+      "designId": "fleet-wasp",
+      "aiProfile": "defensive",
+      "spawn": {
+        "position": [2500, 0],
+        "angle": 180
+      },
+      "team": 1,
+      "guard": 0
+    },
+    {
+      "designId": "fleet-wasp",
+      "aiProfile": "defensive",
+      "spawn": {
+        "position": [2500, 400],
+        "angle": 180
+      },
+      "team": 1,
+      "guard": 0
+    }
+  ],
+  "objective": {
+    "type": "destroyAll"
+  },
+  "seed": 112,
+  "hints": [
+    "The enemy fighters stay with their cruiser and only engage what comes near it.",
+    "Draw the escorts out, or bring your own fighters in close behind your cruiser."
+  ],
+  "referenceDesigns": ["fleet-anvil", "fleet-wasp", "fleet-wasp"]
+}

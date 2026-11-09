@@ -1,0 +1,166 @@
+{
+  "id": "s11-mirror-destroyers",
+  "name": "Mirror: destroyers",
+  "description": "Two destroyers each: kinetic Rapier and missile-laser Viper. Same ships on both sides.",
+  "order": 11,
+  "budget": 1900,
+  "maxPlayerShips": 2,
+  "arena": {
+    "width": 10000,
+    "height": 7000,
+    "asteroids": [
+      {
+        "position": [532, -379],
+        "angle": 0,
+        "outline": [
+          [39.2, 0],
+          [28.8, 28.8],
+          [0, 36.5],
+          [-25, 25],
+          [-31.5, 0],
+          [-22, -22],
+          [0, -36.2],
+          [25.9, -25.9]
+        ],
+        "static": true
+      },
+      {
+        "position": [-532, -379],
+        "angle": 0,
+        "outline": [
+          [-25.9, -25.9],
+          [0, -36.2],
+          [22, -22],
+          [31.5, 0],
+          [25, 25],
+          [0, 36.5],
+          [-28.8, 28.8],
+          [-39.2, 0]
+        ],
+        "static": true
+      },
+      {
+        "position": [1587, 2608],
+        "angle": 0,
+        "outline": [
+          [40.8, 0],
+          [28.3, 28.3],
+          [0, 40.6],
+          [-23.5, 23.5],
+          [-38.4, 0],
+          [-26, -26],
+          [0, -32.3],
+          [30.3, -30.3]
+        ],
+        "static": true
+      },
+      {
+        "position": [-1587, 2608],
+        "angle": 0,
+        "outline": [
+          [-30.3, -30.3],
+          [0, -32.3],
+          [26, -26],
+          [38.4, 0],
+          [23.5, 23.5],
+          [0, 40.6],
+          [-28.3, 28.3],
+          [-40.8, 0]
+        ],
+        "static": true
+      },
+      {
+        "position": [670, -2145],
+        "angle": 0,
+        "outline": [
+          [19.5, 0],
+          [11.3, 19.7],
+          [-11.5, 19.8],
+          [-24.6, 0],
+          [-9.7, -16.8],
+          [9.9, -17.1]
+        ],
+        "static": true
+      },
+      {
+        "position": [-670, -2145],
+        "angle": 0,
+        "outline": [
+          [-9.9, -17.1],
+          [9.7, -16.8],
+          [24.6, 0],
+          [11.5, 19.8],
+          [-11.3, 19.7],
+          [-19.5, 0]
+        ],
+        "static": true
+      },
+      {
+        "position": [408, -2541],
+        "angle": 0,
+        "outline": [
+          [22, 0],
+          [12.6, 21.8],
+          [-11.1, 19.3],
+          [-21.3, 0],
+          [-12.7, -22],
+          [13, -22.6]
+        ],
+        "static": true
+      },
+      {
+        "position": [-408, -2541],
+        "angle": 0,
+        "outline": [
+          [-13, -22.6],
+          [12.7, -22],
+          [21.3, 0],
+          [11.1, 19.3],
+          [-12.6, 21.8],
+          [-22, 0]
+        ],
+        "static": true
+      }
+    ],
+    "gravityWells": []
+  },
+  "playerSpawns": [
+    {
+      "position": [-2500, -200],
+      "angle": 0
+    },
+    {
+      "position": [-2500, 200],
+      "angle": 0
+    }
+  ],
+  "enemies": [
+    {
+      "designId": "fleet-rapier",
+      "aiProfile": "aggressive",
+      "spawn": {
+        "position": [2500, -200],
+        "angle": 180
+      },
+      "team": 1
+    },
+    {
+      "designId": "fleet-viper",
+      "aiProfile": "cautious",
+      "spawn": {
+        "position": [2500, 200],
+        "angle": 180
+      },
+      "team": 1
+    }
+  ],
+  "objective": {
+    "type": "destroyAll"
+  },
+  "seed": 111,
+  "hints": [
+    "Mirror match: the enemy flies exactly your ships.",
+    "Their Rapier charges in; their Viper stays back and fires missiles from range."
+  ],
+  "referenceDesigns": ["fleet-rapier", "fleet-viper"]
+}

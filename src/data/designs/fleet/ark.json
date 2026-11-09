@@ -295,70 +295,70 @@
     {
       "uid": "hg-a1-t",
       "partId": "core:hangar.attack.m",
-      "x": -4.5,
+      "x": -3.5,
       "y": 6.0,
       "angle": 90
     },
     {
       "uid": "hg-a1-b",
       "partId": "core:hangar.attack.m",
-      "x": -4.5,
+      "x": -3.5,
       "y": -6.0,
       "angle": -90
     },
     {
       "uid": "hg-pd-t",
       "partId": "core:hangar.pd.m",
-      "x": -2.0,
+      "x": -1.0,
       "y": 6.0,
       "angle": 90
     },
     {
       "uid": "hg-pd-b",
       "partId": "core:hangar.pd.m",
-      "x": -2.0,
+      "x": -1.0,
       "y": -6.0,
       "angle": -90
     },
     {
       "uid": "hg-d-t",
       "partId": "core:hangar.decoy.s",
-      "x": 0.25,
+      "x": 1.25,
       "y": 5.5,
       "angle": 90
     },
     {
       "uid": "hg-d-b",
       "partId": "core:hangar.decoy.s",
-      "x": 0.25,
+      "x": 1.25,
       "y": -5.5,
       "angle": -90
     },
     {
       "uid": "hg-a2-t",
       "partId": "core:hangar.attack.m",
-      "x": 2.5,
+      "x": 3.5,
       "y": 6.0,
       "angle": 90
     },
     {
       "uid": "hg-a2-b",
       "partId": "core:hangar.attack.m",
-      "x": 2.5,
+      "x": 3.5,
       "y": -6.0,
       "angle": -90
     },
     {
       "uid": "mag-f-t",
       "partId": "core:magazine.flak.s",
-      "x": 4.75,
+      "x": 5.25,
       "y": 5.5,
       "angle": 0
     },
     {
       "uid": "mag-f-b",
       "partId": "core:magazine.flak.s",
-      "x": 4.75,
+      "x": 5.25,
       "y": -5.5,
       "angle": 0
     },

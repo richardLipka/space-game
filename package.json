@@ -21,7 +21,8 @@
     "check": "npm run lint && npm run format:check && npm run typecheck && npm run test",
     "balance": "tsx src/headless/balance-cli.ts",
     "balance:scenarios": "tsx src/headless/scenarios-cli.ts",
-    "tune": "tsx src/headless/tune-cli.ts"
+    "tune": "tsx src/headless/tune-cli.ts",
+    "ai:study": "tsx src/headless/ai-study-cli.ts"
   },
   "type": "module",
   "dependencies": {

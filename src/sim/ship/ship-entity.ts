@@ -23,7 +23,7 @@ import {
   type HeatSources,
 } from "../systems/heat";
 import { refillWeapons, type MagazineStore, type WeaponFeed } from "../systems/ammo";
-import { LayoutIndex, turretBlockedRanges, type Connection } from "./layout";
+import { LayoutIndex, radiatorEdgeBlockers, turretBlockedRanges, type Connection } from "./layout";
 import {
   createWeaponState,
   IDLE_WEAPONS,
@@ -216,6 +216,8 @@ export class Ship {
       for (const e of layout.edges.get(p.uid)!) {
         if (e.type !== "function") continue;
         len += e.length;
+        // A face with anything in its keep-clear zone radiates nothing.
+        if (radiatorEdgeBlockers(layout, p, e.index).length > 0) continue;
         exposed += e.length * layout.exposedFraction(p.uid, e.index);
       }
       exposure.set(p.uid, len > 0 ? exposed / len : 0);
@@ -823,6 +825,17 @@ export class Ship {
       );
     }
     return best;
+  }
+
+  /** One hangar's state for the HUD: drones aboard, seconds until it can launch (0 = ready). */
+  hangarState(uid: string): { stored: number; wait: number; pending: boolean } {
+    const p = this.part(uid);
+    const pending = (this.hangarPending.get(uid) ?? 0) > 0;
+    return {
+      stored: p.hp > 0 ? Math.floor(p.ammo) : 0,
+      wait: pending ? (p.def.def.hangar?.launchInterval ?? 0) : (this.hangarCooldown.get(uid) ?? 0),
+      pending,
+    };
   }
 
   /** Drones left in hangars. */

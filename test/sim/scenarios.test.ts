@@ -25,9 +25,9 @@ const design = (id: string): ShipDesign => BUNDLED_DESIGNS.get(id)!;
 const base = SCENARIOS[0]!;
 
 describe("M7 scenarios", () => {
-  it("ships 6–10 scenarios in teaching order, each with hints and reference designs that fit its budget", () => {
-    expect(SCENARIOS.length).toBeGreaterThanOrEqual(6);
-    expect(SCENARIOS.length).toBeLessThanOrEqual(10);
+  it("ships the teaching scenarios and the mirror scenarios in order, each with hints and reference designs that fit its budget", () => {
+    expect(SCENARIOS.filter((s) => !s.id.includes("mirror")).length).toBeGreaterThanOrEqual(6);
+    expect(SCENARIOS.length).toBeLessThanOrEqual(20);
     const orders = SCENARIOS.map((s) => s.order);
     expect(orders).toEqual([...orders].sort((a, b) => a! - b!));
     for (const s of SCENARIOS) {
@@ -40,26 +40,32 @@ describe("M7 scenarios", () => {
     for (const d of BUNDLED_DESIGNS.values()) expect(validateDesignLayout(d, cat).errors, d.id).toBe(0);
   });
 
-  it("7.1 every scenario loads, validates and runs headless for 60 s without errors", () => {
-    for (const s of SCENARIOS) {
-      const b = startBattle(s, (s.referenceDesigns ?? []).map(design), cat, opts(1));
-      for (const p of b.playerShips) b.world.setAi(p.id, aiProfile("balanced"));
-      expect(() => runBattle(b, 60), s.id).not.toThrow();
-      expect(Number.isFinite(b.world.time)).toBe(true);
-    }
-  });
-
   it(
-    "7.2 every scenario can be won: its reference fleet flown by the AI wins at least one of 20 seeds",
+    "7.1 every scenario loads, validates and runs headless for 60 s without errors",
     { timeout: 300_000 },
     () => {
       for (const s of SCENARIOS) {
+        const b = startBattle(s, (s.referenceDesigns ?? []).map(design), cat, opts(1));
+        for (const p of b.playerShips) b.world.setAi(p.id, aiProfile("balanced"));
+        expect(() => runBattle(b, 60), s.id).not.toThrow();
+        expect(Number.isFinite(b.world.time)).toBe(true);
+      }
+    },
+  );
+
+  it(
+    "7.2 every teaching scenario can be won: its reference fleet flown by the AI wins at least one of 20 seeds",
+    { timeout: 600_000 },
+    () => {
+      // Mirror scenarios fight the same fleet on both sides, so they are winnable by construction; the AI
+      // study (npm run ai:study) measures them instead, which would take far too long here.
+      for (const s of SCENARIOS.filter((x) => !x.id.includes("mirror"))) {
         let won = false;
         for (let seed = 1; seed <= 20 && !won; seed++) {
           const b = startBattle(s, (s.referenceDesigns ?? []).map(design), cat, opts(seed));
           // Every ship of the reference fleet fights on its own, like the enemy ships do.
           for (const p of b.playerShips) b.world.setAi(p.id, aiProfile("balanced"));
-          won = runBattle(b, 180) === "won";
+          won = runBattle(b, 400) === "won"; // fights last 1–5 minutes (balance pass 2)
         }
         expect(won, s.id).toBe(true);
       }

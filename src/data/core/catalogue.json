@@ -1,5 +1,5 @@
 {
-  "catalogueVersion": "v0-6",
+  "catalogueVersion": "v0-7",
   "parts": [
     {
       "id": "core:hull.square.s",
@@ -14,7 +14,7 @@
         [-0.5, 0.5]
       ],
       "edges": ["snap", "snap", "snap", "snap"],
-      "mass": 40,
+      "mass": 60,
       "hp": 324,
       "cost": 4
     },
@@ -31,7 +31,7 @@
         [-1, 1]
       ],
       "edges": ["snap", "snap", "snap", "snap"],
-      "mass": 160,
+      "mass": 240,
       "hp": 1298,
       "cost": 14
     },
@@ -48,7 +48,7 @@
         [-1, 0.5]
       ],
       "edges": ["snap", "snap", "snap", "snap"],
-      "mass": 80,
+      "mass": 120,
       "hp": 649,
       "cost": 7
     },
@@ -64,7 +64,7 @@
         [-0.5, 0.5]
       ],
       "edges": ["snap", "hull", "snap"],
-      "mass": 20,
+      "mass": 30,
       "hp": 162,
       "cost": 2
     },
@@ -81,7 +81,7 @@
         [-1, 0.75]
       ],
       "edges": ["hull", "hull", "hull", "snap"],
-      "mass": 70,
+      "mass": 105,
       "hp": 649,
       "cost": 6
     },
@@ -148,11 +148,11 @@
         [-1, 1.5]
       ],
       "edges": ["snap", "snap", "snap", "function"],
-      "mass": 1400,
+      "mass": 2000,
       "hp": 4866,
       "cost": 120,
       "engine": {
-        "thrust": 400000,
+        "thrust": 250000,
         "isp": 791,
         "gimbalMax": 10,
         "nozzleEdge": 3,
@@ -582,7 +582,7 @@
         [-1.5, 0.5]
       ],
       "edges": ["snap", "function", "snap", "snap"],
-      "mass": 700,
+      "mass": 900,
       "hp": 1622,
       "cost": 60,
       "weapon": {
@@ -700,7 +700,7 @@
         [0.421, -1.0163]
       ],
       "edges": ["hull", "hull", "hull", "hull", "snap", "hull", "hull", "hull"],
-      "mass": 1100,
+      "mass": 1500,
       "hp": 2433,
       "cost": 85,
       "weapon": {
@@ -752,11 +752,11 @@
         "internalMagazine": 0,
         "fireInterval": 0.1,
         "powerDraw": 200000,
-        "heatWhileFiring": 100000,
+        "heatWhileFiring": 150000,
         "range": 1200,
         "spread": 0.05,
         "beam": {
-          "dps": 119,
+          "dps": 89,
           "falloffStart": 600
         }
       }
@@ -784,11 +784,11 @@
         "internalMagazine": 0,
         "fireInterval": 0.1,
         "powerDraw": 900000,
-        "heatWhileFiring": 700000,
+        "heatWhileFiring": 910000,
         "range": 2200,
         "spread": 0.02,
         "beam": {
-          "dps": 414,
+          "dps": 373,
           "falloffStart": 1400
         }
       }

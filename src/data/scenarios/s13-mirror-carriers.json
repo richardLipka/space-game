@@ -1,0 +1,238 @@
+{
+  "id": "s13-mirror-carriers",
+  "name": "Mirror: carrier groups",
+  "description": "Ark carrier with a Maul and a Needle gunboat on each side.",
+  "order": 13,
+  "budget": 2800,
+  "maxPlayerShips": 3,
+  "arena": {
+    "width": 10000,
+    "height": 7000,
+    "asteroids": [
+      {
+        "position": [1292, 2583],
+        "angle": 0,
+        "outline": [
+          [48.1, 0],
+          [38.6, 38.6],
+          [0, 47.3],
+          [-36, 36],
+          [-47.1, 0],
+          [-34.9, -34.9],
+          [0, -51.5],
+          [35.7, -35.7]
+        ],
+        "static": true
+      },
+      {
+        "position": [-1292, 2583],
+        "angle": 0,
+        "outline": [
+          [-35.7, -35.7],
+          [0, -51.5],
+          [34.9, -34.9],
+          [47.1, 0],
+          [36, 36],
+          [0, 47.3],
+          [-38.6, 38.6],
+          [-48.1, 0]
+        ],
+        "static": true
+      },
+      {
+        "position": [256, 439],
+        "angle": 0,
+        "outline": [
+          [41.5, 0],
+          [28, 35.1],
+          [-10, 43.9],
+          [-32.5, 15.7],
+          [-33.4, -16.1],
+          [-9.5, -41.6],
+          [25.6, -32.2]
+        ],
+        "static": true
+      },
+      {
+        "position": [-256, 439],
+        "angle": 0,
+        "outline": [
+          [-25.6, -32.2],
+          [9.5, -41.6],
+          [33.4, -16.1],
+          [32.5, 15.7],
+          [10, 43.9],
+          [-28, 35.1],
+          [-41.5, 0]
+        ],
+        "static": true
+      },
+      {
+        "position": [1869, -447],
+        "angle": 0,
+        "outline": [
+          [36.6, 0],
+          [16.8, 29.1],
+          [-17.5, 30.2],
+          [-38.8, 0],
+          [-16.1, -27.8],
+          [18.5, -32]
+        ],
+        "static": true
+      },
+      {
+        "position": [-1869, -447],
+        "angle": 0,
+        "outline": [
+          [-18.5, -32],
+          [16.1, -27.8],
+          [38.8, 0],
+          [17.5, 30.2],
+          [-16.8, 29.1],
+          [-36.6, 0]
+        ],
+        "static": true
+      },
+      {
+        "position": [1202, 553],
+        "angle": 0,
+        "outline": [
+          [25.8, 0],
+          [19.8, 24.8],
+          [-6.7, 29.5],
+          [-24.2, 11.6],
+          [-28.3, -13.6],
+          [-6.5, -28.3],
+          [19.8, -24.9]
+        ],
+        "static": true
+      },
+      {
+        "position": [-1202, 553],
+        "angle": 0,
+        "outline": [
+          [-19.8, -24.9],
+          [6.5, -28.3],
+          [28.3, -13.6],
+          [24.2, 11.6],
+          [6.7, 29.5],
+          [-19.8, 24.8],
+          [-25.8, 0]
+        ],
+        "static": true
+      },
+      {
+        "position": [1379, 1652],
+        "angle": 0,
+        "outline": [
+          [47.1, 0],
+          [25.7, 25.7],
+          [0, 42.8],
+          [-29.8, 29.8],
+          [-40.4, 0],
+          [-29, -29],
+          [0, -43.1],
+          [33.2, -33.2]
+        ],
+        "static": true
+      },
+      {
+        "position": [-1379, 1652],
+        "angle": 0,
+        "outline": [
+          [-33.2, -33.2],
+          [0, -43.1],
+          [29, -29],
+          [40.4, 0],
+          [29.8, 29.8],
+          [0, 42.8],
+          [-25.7, 25.7],
+          [-47.1, 0]
+        ],
+        "static": true
+      },
+      {
+        "position": [1316, 102],
+        "angle": 0,
+        "outline": [
+          [32.8, 0],
+          [17.1, 21.4],
+          [-7.1, 30.9],
+          [-24.8, 12],
+          [-24, -11.5],
+          [-7.2, -31.5],
+          [16.4, -20.6]
+        ],
+        "static": true
+      },
+      {
+        "position": [-1316, 102],
+        "angle": 0,
+        "outline": [
+          [-16.4, -20.6],
+          [7.2, -31.5],
+          [24, -11.5],
+          [24.8, 12],
+          [7.1, 30.9],
+          [-17.1, 21.4],
+          [-32.8, 0]
+        ],
+        "static": true
+      }
+    ],
+    "gravityWells": []
+  },
+  "playerSpawns": [
+    {
+      "position": [-2500, -400],
+      "angle": 0
+    },
+    {
+      "position": [-2500, 0],
+      "angle": 0
+    },
+    {
+      "position": [-2500, 400],
+      "angle": 0
+    }
+  ],
+  "enemies": [
+    {
+      "designId": "fleet-ark",
+      "aiProfile": "cautious",
+      "spawn": {
+        "position": [2500, -400],
+        "angle": 180
+      },
+      "team": 1
+    },
+    {
+      "designId": "fleet-maul",
+      "aiProfile": "defensive",
+      "spawn": {
+        "position": [2500, 0],
+        "angle": 180
+      },
+      "team": 1,
+      "guard": 0
+    },
+    {
+      "designId": "fleet-needle",
+      "aiProfile": "aggressive",
+      "spawn": {
+        "position": [2500, 400],
+        "angle": 180
+      },
+      "team": 1
+    }
+  ],
+  "objective": {
+    "type": "destroyAll"
+  },
+  "seed": 113,
+  "hints": [
+    "Their carrier hangs back and launches drones; the Maul guards it, the Needle hunts.",
+    "PD and flak thin out drone swarms; the carrier itself is slow to turn."
+  ],
+  "referenceDesigns": ["fleet-ark", "fleet-maul", "fleet-needle"]
+}

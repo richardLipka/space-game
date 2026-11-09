@@ -332,11 +332,13 @@ describe("M3 heat", () => {
     expect(s.heatFlow.radiators).toBeCloseTo(250, 6);
   });
 
-  it("3.18 radiator half covered and at half HP → 25 % dissipation", () => {
+  it("3.18 a part in one face's keep-clear zone silences that face; at half HP → 25 % dissipation", () => {
+    // Radiator on the command's side by its short edge; a plate 0.25 m above its upper face (not touching).
     const { w, s } = ship([
-      ["core:test.command", 0.5, -0.75],
-      ["core:test.radiator", 0, 0],
-      ["core:test.square", 0.5, 0.75],
+      ["core:test.command", 0, 0],
+      ["core:test.radiator", 1.5, 0],
+      ["core:test.square", 0, 1],
+      ["core:test.square", 1, 1],
     ]);
     expect(s.radiatorExposure.get("p2")).toBeCloseTo(0.5, 6);
     s.part("p2").hp = 50;

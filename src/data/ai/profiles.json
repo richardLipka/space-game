@@ -25,7 +25,7 @@
     {
       "id": "aggressive",
       "name": "Aggressive",
-      "rangeFactor": 0.45,
+      "rangeFactor": 0.55,
       "weights": {
         "approach": 1.3,
         "hold": 0.9,
@@ -41,7 +41,8 @@
       "minHitProbability": 0.1,
       "volleyInterval": 3,
       "droneLaunchRange": 3000,
-      "preferWeakened": 0.8
+      "preferWeakened": 0.8,
+      "stance": "aggressive"
     },
     {
       "id": "kiter",
@@ -126,6 +127,73 @@
       "volleyInterval": 5,
       "droneLaunchRange": 4000,
       "preferWeakened": 0.5
+    },
+    {
+      "id": "defensive",
+      "name": "Defensive",
+      "rangeFactor": 0.6,
+      "weights": {
+        "approach": 0.9,
+        "hold": 1.3,
+        "broadside": 1,
+        "face": 1,
+        "evade": 1,
+        "retreat": 1,
+        "cool": 1
+      },
+      "retreatHp": 0.15,
+      "maxSpeed": 120,
+      "orbitSpeed": 40,
+      "minHitProbability": 0.15,
+      "volleyInterval": 6,
+      "droneLaunchRange": 2500,
+      "preferWeakened": 0.5,
+      "stance": "defensive"
+    },
+    {
+      "id": "retreating",
+      "name": "Retreating",
+      "rangeFactor": 0.9,
+      "weights": {
+        "approach": 1,
+        "hold": 1,
+        "broadside": 1,
+        "face": 1,
+        "evade": 1,
+        "retreat": 1,
+        "cool": 1
+      },
+      "retreatHp": 0.25,
+      "maxSpeed": 120,
+      "orbitSpeed": 40,
+      "minHitProbability": 0.15,
+      "volleyInterval": 6,
+      "droneLaunchRange": 2500,
+      "preferWeakened": 0.5,
+      "stance": "retreating",
+      "withdrawSpeed": 20
+    },
+    {
+      "id": "cautious",
+      "name": "Cautious",
+      "rangeFactor": 0.95,
+      "weights": {
+        "approach": 0.9,
+        "hold": 1.4,
+        "broadside": 1,
+        "face": 1,
+        "evade": 1.2,
+        "retreat": 1,
+        "cool": 1
+      },
+      "retreatHp": 0.3,
+      "maxSpeed": 140,
+      "orbitSpeed": 60,
+      "minHitProbability": 0.15,
+      "volleyInterval": 6,
+      "droneLaunchRange": 2500,
+      "preferWeakened": 0.3,
+      "stance": "cautious"
     }
   ]
 }

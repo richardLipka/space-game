@@ -93,3 +93,19 @@ and asteroid avoidance (6.9) allows one more borderline seed.
   autocannons, and slowly burns out its command module. Holding kinetic fire above about 95 % heat
   would fix it.
 - **s10 (missile storm)** isn't won by the AI fleet in 4 seeds and runs long (389 s).
+
+## Follow-up (catalogue v0-7)
+
+- **Agility.** With one large engine (400 kN, 1.4 t) and light hull plates (40 kg/m²), destroyers
+  accelerated at 29–36 m/s², faster than most fighters, and the battleship at 19 m/s².
+  - Changes: large engine 250 kN and 2 t; hull plates 60 kg/m²; heavy cannon turret 1.1 → 1.5 t; fixed
+    cannon 0.7 → 0.9 t; Leviathan has one large engine.
+  - Now: fighters 14–33 m/s², gunboats about 10, destroyers 16–20, cruisers 9–13, battleship about 5.
+- **Lasers** were too strong: turret damage −25 % and heat +50 %; lance damage −10 % and heat +30 %.
+- **Radiators** need 1 m clear in front of each radiating face. The fleet's radiators are now spaced fins.
+- **Tests that assumed the old pace now use the 1–5 minute pace:**
+  - a stationary-target kill gets 150 s;
+  - a scenario must be won within 400 s;
+  - the gunboat mirror must end within 10 minutes in at least 80 % of battles. The rest are ships that
+    lost their engines and can't follow a retreating enemy.
+- **s08's suggested fleet** is now Hornet, Ram and Mortar (autocannon, fixed cannon, heavy turret).

@@ -410,9 +410,23 @@
       "weaponGroup": 1
     },
     {
+      "uid": "pd-t",
+      "partId": "core:weapon.pd.gatling.s",
+      "x": -5.5,
+      "y": 5.4619,
+      "angle": 90
+    },
+    {
+      "uid": "pd-b",
+      "partId": "core:weapon.pd.gatling.s",
+      "x": -5.5,
+      "y": -5.4619,
+      "angle": -90
+    },
+    {
       "uid": "ac-t",
       "partId": "core:weapon.autocannon.turret.s",
-      "x": -3.0,
+      "x": -1.75,
       "y": 5.6929,
       "angle": 90,
       "weaponGroup": 2
@@ -420,7 +434,7 @@
     {
       "uid": "ac-b",
       "partId": "core:weapon.autocannon.turret.s",
-      "x": -3.0,
+      "x": -1.75,
       "y": -5.6929,
       "angle": -90,
       "weaponGroup": 2
@@ -428,7 +442,7 @@
     {
       "uid": "ac2-t",
       "partId": "core:weapon.autocannon.turret.s",
-      "x": 1.0,
+      "x": 2.25,
       "y": 5.6929,
       "angle": 90,
       "weaponGroup": 2
@@ -436,120 +450,78 @@
     {
       "uid": "ac2-b",
       "partId": "core:weapon.autocannon.turret.s",
-      "x": 1.0,
+      "x": 2.25,
       "y": -5.6929,
       "angle": -90,
       "weaponGroup": 2
     },
     {
-      "uid": "pd-t",
-      "partId": "core:weapon.pd.gatling.s",
-      "x": -5.25,
-      "y": 5.4619,
-      "angle": 90
-    },
-    {
-      "uid": "pd-b",
-      "partId": "core:weapon.pd.gatling.s",
-      "x": -5.25,
-      "y": -5.4619,
-      "angle": -90
-    },
-    {
       "uid": "pd2-t",
       "partId": "core:weapon.pd.gatling.s",
-      "x": 4.25,
+      "x": 6.25,
       "y": 5.4619,
       "angle": 90
     },
     {
       "uid": "pd2-b",
       "partId": "core:weapon.pd.gatling.s",
-      "x": 4.25,
+      "x": 6.25,
       "y": -5.4619,
       "angle": -90
     },
     {
       "uid": "rad-t",
       "partId": "core:radiator.s",
-      "x": -7.5,
+      "x": -7.75,
       "y": 4.0,
       "angle": 90
     },
     {
       "uid": "rad-b",
       "partId": "core:radiator.s",
-      "x": -7.5,
+      "x": -7.75,
       "y": -4.0,
       "angle": -90
     },
     {
       "uid": "rad2-t",
       "partId": "core:radiator.s",
-      "x": -6.5,
-      "y": 4.0,
+      "x": -3.75,
+      "y": 6.0,
       "angle": 90
     },
     {
       "uid": "rad2-b",
       "partId": "core:radiator.s",
-      "x": -6.5,
-      "y": -4.0,
+      "x": -3.75,
+      "y": -6.0,
       "angle": -90
     },
     {
       "uid": "rad3-t",
       "partId": "core:radiator.s",
-      "x": -1.5,
+      "x": 0.25,
       "y": 6.0,
       "angle": 90
     },
     {
       "uid": "rad3-b",
       "partId": "core:radiator.s",
-      "x": -1.5,
+      "x": 0.25,
       "y": -6.0,
       "angle": -90
     },
     {
       "uid": "rad4-t",
       "partId": "core:radiator.s",
-      "x": -0.5,
+      "x": 4.25,
       "y": 6.0,
       "angle": 90
     },
     {
       "uid": "rad4-b",
       "partId": "core:radiator.s",
-      "x": -0.5,
-      "y": -6.0,
-      "angle": -90
-    },
-    {
-      "uid": "rad5-t",
-      "partId": "core:radiator.s",
-      "x": 2.5,
-      "y": 6.0,
-      "angle": 90
-    },
-    {
-      "uid": "rad5-b",
-      "partId": "core:radiator.s",
-      "x": 2.5,
-      "y": -6.0,
-      "angle": -90
-    },
-    {
-      "uid": "rad6-t",
-      "partId": "core:radiator.s",
-      "x": 3.25,
-      "y": 6.0,
-      "angle": 90
-    },
-    {
-      "uid": "rad6-b",
-      "partId": "core:radiator.s",
-      "x": 3.25,
+      "x": 4.25,
       "y": -6.0,
       "angle": -90
     },
@@ -570,14 +542,14 @@
     {
       "uid": "rcs-f-t",
       "partId": "core:rcs.s",
-      "x": 6.25,
+      "x": 7.5,
       "y": 5.25,
       "angle": 180
     },
     {
       "uid": "rcs-f-b",
       "partId": "core:rcs.s",
-      "x": 6.25,
+      "x": 7.5,
       "y": -5.25,
       "angle": 0
     }

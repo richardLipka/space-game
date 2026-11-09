@@ -32,6 +32,15 @@ test("M5: Harrier launches missiles at its target (M), drones (H), and toggles P
   await page.keyboard.press("m");
   await expect.poll(() => game(page, (g) => g.world!.combat.stats.missilesLaunched)).toBe(1);
   await expect(page.getByTestId("wb-missiles")).toContainText("1/2 ready");
+  // The launch panel lists each launcher with its own reload state.
+  await expect(page.getByTestId("launch-panel")).toBeVisible();
+  const states = [
+    await page.getByTestId("wb-launcher-1").textContent(),
+    await page.getByTestId("wb-launcher-2").textContent(),
+  ];
+  expect(states.filter((t) => t?.includes("ready")).length).toBe(1);
+  expect(states.some((t) => / s$/.test(t ?? ""))).toBe(true);
+  await expect(page.getByTestId("wb-hangar-1")).toBeVisible();
   await page.keyboard.press("Shift+M");
   await expect.poll(() => game(page, (g) => g.world!.combat.stats.missilesLaunched)).toBe(2);
   await expect(page.getByTestId("missiles-out")).not.toHaveText("0");

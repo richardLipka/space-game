@@ -27,6 +27,39 @@ export type UiCommand =
   | "order-attack"
   | "order-hold";
 
+/**
+ * Layout-independent key name: letters, digits and the time-scale keys by their physical position
+ * (`KeyboardEvent.code`), so a Czech, German or French layout works like US QWERTY. On a Czech layout the
+ * key above Q types "+", which must still select group 1, not speed the game up.
+ */
+export function keyName(e: Pick<KeyboardEvent, "code" | "key" | "shiftKey">): string {
+  const code = e.code ?? "";
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3).toLowerCase();
+  if (/^(Digit|Numpad)[0-9]$/.test(code)) return `digit${code.slice(-1)}`;
+  switch (code) {
+    case "Space":
+      return " ";
+    case "Tab":
+      return "tab";
+    case "Escape":
+      return "escape";
+    case "F1":
+      return "f1";
+    case "Equal":
+    case "NumpadAdd":
+    case "BracketRight":
+      return "+";
+    case "Minus":
+    case "NumpadSubtract":
+    case "BracketLeft":
+      return "-";
+  }
+  // Synthetic events without a code, and keys not covered above.
+  const k = e.key.toLowerCase();
+  if (/^[0-9]$/.test(k)) return `digit${k}`;
+  return k;
+}
+
 export interface Click {
   readonly x: number;
   readonly y: number;
@@ -72,8 +105,8 @@ export class InputController {
     target.addEventListener("keydown", (e) => {
       if (!this.enabled) return;
       if ((e.target as HTMLElement | null)?.closest?.("input, textarea, select")) return;
-      const k = e.key.toLowerCase();
-      if (["tab", " ", "w", "a", "s", "d", "q", "e"].includes(k) || e.key === "Tab") e.preventDefault();
+      const k = keyName(e);
+      if (["tab", " ", "w", "a", "s", "d", "q", "e", "f1"].includes(k)) e.preventDefault();
       if (e.repeat) {
         this.held.add(k);
         return;
@@ -93,11 +126,9 @@ export class InputController {
           this.commands.push("pause");
           break;
         case "+":
-        case "=":
           this.commands.push("time-faster");
           break;
         case "-":
-        case "_":
           this.commands.push("time-slower");
           break;
         case "t":
@@ -112,7 +143,6 @@ export class InputController {
           break;
         case "?":
         case "f1":
-          e.preventDefault();
           this.commands.push("help");
           break;
         case "m":
@@ -157,12 +187,11 @@ export class InputController {
           this.commands.push("cycle-group-mode");
           break;
         default:
-          if (/^Digit[1-9]$/.test(e.code))
-            this.groupKeys.push({ group: Number(e.code.slice(5)), add: e.shiftKey });
-          else if (/^[1-9]$/.test(e.key)) this.groupKeys.push({ group: Number(e.key), add: e.shiftKey });
+          // Group keys 1–9: the row above the letters (any layout) or the numpad.
+          if (/^digit[1-9]$/.test(k)) this.groupKeys.push({ group: Number(k.slice(5)), add: e.shiftKey });
       }
     });
-    target.addEventListener("keyup", (e) => this.held.delete(e.key.toLowerCase()));
+    target.addEventListener("keyup", (e) => this.held.delete(keyName(e)));
     target.addEventListener("blur", () => {
       this.held.clear();
       this.leftHeld = false;

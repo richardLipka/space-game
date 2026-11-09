@@ -221,7 +221,7 @@
     {
       "uid": "ac-t",
       "partId": "core:weapon.autocannon.turret.s",
-      "x": -2.75,
+      "x": -1.75,
       "y": 3.6929,
       "angle": 90,
       "weaponGroup": 2
@@ -229,7 +229,7 @@
     {
       "uid": "ac-b",
       "partId": "core:weapon.autocannon.turret.s",
-      "x": -2.75,
+      "x": -1.75,
       "y": -3.6929,
       "angle": -90,
       "weaponGroup": 2
@@ -253,14 +253,14 @@
     {
       "uid": "pd-t",
       "partId": "core:weapon.pd.gatling.s",
-      "x": -0.75,
+      "x": -0.5,
       "y": 3.4619,
       "angle": 90
     },
     {
       "uid": "pd-b",
       "partId": "core:weapon.pd.gatling.s",
-      "x": -0.75,
+      "x": -0.5,
       "y": -3.4619,
       "angle": -90
     },
@@ -281,14 +281,14 @@
     {
       "uid": "rad2-t",
       "partId": "core:radiator.s",
-      "x": 4.5,
+      "x": 5.75,
       "y": 4.0,
       "angle": 90
     },
     {
       "uid": "rad2-b",
       "partId": "core:radiator.s",
-      "x": 4.5,
+      "x": 5.75,
       "y": -4.0,
       "angle": -90
     },
@@ -309,15 +309,15 @@
     {
       "uid": "rcs-f-t",
       "partId": "core:rcs.s",
-      "x": 5.5,
-      "y": 3.25,
+      "x": 8.5,
+      "y": 2.75,
       "angle": 180
     },
     {
       "uid": "rcs-f-b",
       "partId": "core:rcs.s",
-      "x": 5.5,
-      "y": -3.25,
+      "x": 8.5,
+      "y": -2.75,
       "angle": 0
     }
   ],

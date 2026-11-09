@@ -62,7 +62,15 @@ export const Scenario = Type.Object(
     playerSpawns: Type.Array(Transform),
     enemies: Type.Array(
       Type.Object(
-        { designId: Uuidish, aiProfile: Type.String(), spawn: Transform, team: Type.Integer({ minimum: 0 }) },
+        {
+          designId: Uuidish,
+          aiProfile: Type.String(),
+          spawn: Transform,
+          team: Type.Integer({ minimum: 0 }),
+          /** Defensive AI: index (in `enemies`) of the ship this one guards, and the guard radius (m). */
+          guard: Type.Optional(Type.Integer({ minimum: 0 })),
+          guardRadius: Type.Optional(Type.Number({ exclusiveMinimum: 0 })),
+        },
         strict,
       ),
     ),

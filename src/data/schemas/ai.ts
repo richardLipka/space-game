@@ -39,6 +39,20 @@ export const AiProfile = Type.Object(
     droneLaunchRange: NonNegativeNumber,
     /** How strongly damaged targets are preferred (0 = not at all). */
     preferWeakened: NonNegativeNumber,
+    /**
+     * Behaviour type (skirmish AI types): aggressive closes in, defensive guards a ship (with a guard
+     * order), retreating falls back steadily while firing, cautious keeps its distance. Default: none.
+     */
+    stance: Type.Optional(
+      Type.Union([
+        Type.Literal("aggressive"),
+        Type.Literal("defensive"),
+        Type.Literal("retreating"),
+        Type.Literal("cautious"),
+      ]),
+    ),
+    /** Retreating stance: speed of the steady withdrawal (m/s). */
+    withdrawSpeed: Type.Optional(PositiveNumber),
   },
   strict,
 );

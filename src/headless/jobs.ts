@@ -7,6 +7,9 @@ import { SCENARIOS } from "../data/scenarios/index";
 import { PartCatalogue } from "../sim/ship/catalogue";
 import { runMatch, type MatchResult } from "./balance";
 import { runScenario, type ScenarioRun } from "./scenario-runs";
+import { BattleObserver, type BattleMetrics } from "./observe";
+import { applySkirmishOrders, skirmishBattle, type SkirmishSetup } from "../sim/scenario/skirmish";
+import { startBattle, updateBattle } from "../sim/scenario/battle";
 
 /**
  * One battle for the balance tools, described by plain data so it can run in a worker thread:
@@ -23,6 +26,17 @@ export type Job =
       readonly overlay: BalanceOverlay;
     }
   | {
+      readonly kind: "skirmish";
+      /** Label for reports (e.g. "s11 aggressive vs cautious"). */
+      readonly label: string;
+      readonly setup: SkirmishSetup;
+      /** Arena (asteroids) from a scenario, or open space. */
+      readonly arenaFrom?: string;
+      readonly seed: number;
+      readonly timeLimit: number;
+      readonly overlay: BalanceOverlay;
+    }
+  | {
       readonly kind: "scenario";
       readonly scenario: string;
       readonly seed: number;
@@ -32,7 +46,16 @@ export type Job =
     };
 
 export type JobResult =
-  { kind: "match"; job: Job; result: MatchResult } | { kind: "scenario"; job: Job; result: ScenarioRun };
+  | { kind: "match"; job: Job; result: MatchResult }
+  | { kind: "scenario"; job: Job; result: ScenarioRun }
+  | { kind: "skirmish"; job: Job; result: SkirmishRun };
+
+export interface SkirmishRun {
+  readonly label: string;
+  readonly seed: number;
+  /** Side 1 won ("a"), side 2 won ("b") or neither in time. */
+  readonly metrics: BattleMetrics;
+}
 
 const base = (() => {
   const r = validateCatalogue(catalogueJson);
@@ -54,6 +77,26 @@ export function catalogueFor(overlay: BalanceOverlay): PartCatalogue {
 
 export function runJob(job: Job): JobResult {
   const cat = catalogueFor(job.overlay);
+  if (job.kind === "skirmish") {
+    const sc = job.arenaFrom ? SCENARIOS.find((x) => x.id === job.arenaFrom) : undefined;
+    const arena = sc?.arena ?? { width: 14000, height: 10000, asteroids: [], gravityWells: [] };
+    const sk = skirmishBattle(job.setup, BUNDLED_DESIGNS, arena);
+    const battle = startBattle({ ...sk.scenario, seed: job.seed }, sk.fleet, cat, {
+      seed: job.seed,
+      designs: BUNDLED_DESIGNS,
+      profiles: sk.profiles,
+      droneDesigns: CORE_DRONES,
+    });
+    applySkirmishOrders(battle, sk, job.setup);
+    const obs = new BattleObserver(battle.world, battle.allyShips, battle.enemyShips);
+    const ticks = Math.round(job.timeLimit * 60);
+    for (let i = 0; i < ticks && battle.status === "running"; i++) {
+      battle.world.step();
+      updateBattle(battle);
+      obs.tick(1 / 60);
+    }
+    return { kind: "skirmish", job, result: { label: job.label, seed: job.seed, metrics: obs.finish() } };
+  }
   const profile = aiProfile(job.profile);
   if (job.kind === "match") {
     const a = BUNDLED_DESIGNS.get(job.a);

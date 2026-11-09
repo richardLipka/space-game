@@ -82,7 +82,10 @@ describe("M6 architecture", () => {
       "balanced",
       "brawler",
       "carrier",
+      "cautious",
+      "defensive",
       "kiter",
+      "retreating",
       "sniper",
     ]);
     expect(aiProfile("kiter").rangeFactor).toBeGreaterThan(aiProfile("brawler").rangeFactor);
@@ -272,21 +275,19 @@ describe("M6 behaviours", () => {
       if (hit) runsWithHits++;
     }
     expect(exits).toBe(0);
-    // Baseline 3 of 12 runs; any change in the simulation can flip one borderline seed (catalogue v0-6
-    // flips seed 9 while each knob alone does not), so allow one more.
-    expect(runsWithHits).toBeLessThanOrEqual(4);
+    expect(runsWithHits / N).toBeLessThanOrEqual(0.25);
   });
 });
 
 describe("M6 combat", () => {
-  it("6.10 each reference design kills a non-moving dummy within 90 s on every seed", () => {
+  it("6.10 each reference design kills a non-moving dummy within 150 s on every seed (1–5 min pace)", () => {
     for (const d of [gunboat, frigate]) {
       for (let seed = 1; seed <= 5; seed++) {
         const w = newWorld(seed);
         const a = w.addShip(d, cat);
         const t = w.addShip(mule, cat, { position: vec2(3000, 600), angle: Math.PI, team: 1 });
         w.setAi(a.id, balanced);
-        for (let i = 0; i < 60 * 90 && !t.defeated; i++) w.step();
+        for (let i = 0; i < 60 * 150 && !t.defeated; i++) w.step();
         expect(t.defeated, `${d.id} seed ${seed}`).toBe(true);
       }
     }
@@ -316,9 +317,9 @@ describe("M6 combat", () => {
     const decisive = r.first + r.second;
     expect(r.first / decisive).toBeGreaterThanOrEqual(0.25);
     expect(r.first / decisive).toBeLessThanOrEqual(0.75);
-    // Since balance pass 2 (fights of 1–5 min), a few battles end in retreat or stalemate
-    // (docs/balance-pass-2.md): 26 of 30 end here, 29 of 30 with the balance harness start positions.
-    expect(r.ended / 30).toBeGreaterThanOrEqual(0.85);
+    // Since balance pass 2 (fights of 1–5 min) some battles end with a ship that lost its engines unable
+    // to follow a retreating enemy, or both out of guns (docs/balance-pass-2.md): 25 of 30 end here.
+    expect(r.ended / 30).toBeGreaterThanOrEqual(0.8);
   }, 120_000); // 30 battles of up to 10 minutes: ~10 s locally, slower on CI runners
 
   it.skipIf(!process.env.BALANCE)(

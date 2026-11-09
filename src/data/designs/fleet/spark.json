@@ -57,7 +57,7 @@
     {
       "uid": "las-t",
       "partId": "core:weapon.laser.turret.s",
-      "x": 0.75,
+      "x": 1.0,
       "y": 2.4429,
       "angle": 90,
       "weaponGroup": 1
@@ -65,24 +65,38 @@
     {
       "uid": "las-b",
       "partId": "core:weapon.laser.turret.s",
-      "x": 0.75,
+      "x": 1.0,
       "y": -2.4429,
       "angle": -90,
       "weaponGroup": 1
     },
     {
-      "uid": "rad-t",
-      "partId": "core:radiator.s",
-      "x": -1.25,
+      "uid": "rig-t",
+      "partId": "core:hull.square.s",
+      "x": -0.75,
       "y": 1.25,
       "angle": 0
     },
     {
-      "uid": "rad-b",
-      "partId": "core:radiator.s",
-      "x": -1.25,
+      "uid": "rig-b",
+      "partId": "core:hull.square.s",
+      "x": -0.75,
       "y": -1.25,
       "angle": 0
+    },
+    {
+      "uid": "rad-t",
+      "partId": "core:radiator.s",
+      "x": -1.0,
+      "y": 2.75,
+      "angle": 90
+    },
+    {
+      "uid": "rad-b",
+      "partId": "core:radiator.s",
+      "x": -1.0,
+      "y": -2.75,
+      "angle": -90
     },
     {
       "uid": "rcs-f-t",

@@ -92,14 +92,14 @@
     {
       "uid": "rad2-t",
       "partId": "core:radiator.s",
-      "x": 0.0,
+      "x": -0.25,
       "y": 3.0,
       "angle": 90
     },
     {
       "uid": "rad2-b",
       "partId": "core:radiator.s",
-      "x": 0.0,
+      "x": -0.25,
       "y": -3.0,
       "angle": -90
     },

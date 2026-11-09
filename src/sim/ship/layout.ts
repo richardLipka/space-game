@@ -7,7 +7,7 @@ import {
   type Aabb,
   pointInPolygon,
 } from "../core/geometry";
-import { type Vec2, add, dot, rotate, sub, degToRad, fromAngle, normalize } from "../core/vec2";
+import { type Vec2, add, dot, rotate, sub, degToRad, fromAngle, normalize, scale } from "../core/vec2";
 import type { RuntimePartDef } from "./catalogue";
 
 /**
@@ -296,6 +296,46 @@ export class LayoutIndex {
 }
 
 export const EXHAUST_CLEARANCE = 30;
+
+/**
+ * Keep-clear depth in front of a radiator's radiating faces (m). Nothing of the same ship may sit in this
+ * zone, so radiators cannot be hidden inside hollow armor and still shed heat (decision log: Radiators).
+ */
+export const RADIATOR_CLEARANCE = 1;
+
+/** Parts inside the keep-clear zone of one radiating edge of radiator `p` (empty when clear). */
+export function radiatorEdgeBlockers(layout: LayoutIndex, p: PlacedPart, index: number): string[] {
+  const e = layout.edges.get(p.uid)![index]!;
+  if (e.type !== "function" || e.length <= 0) return [];
+  // The zone starts just off the face and is inset at the ends, so parts merely touching it or its
+  // corners (the radiator's own mount) do not count.
+  const u = scale(sub(e.b, e.a), 1 / e.length);
+  const inset = Math.min(0.05, e.length / 4);
+  const a = add(add(e.a, scale(u, inset)), scale(e.normal, 1e-3));
+  const b = add(sub(e.b, scale(u, inset)), scale(e.normal, 1e-3));
+  const zone = [
+    a,
+    b,
+    add(b, scale(e.normal, RADIATOR_CLEARANCE)),
+    add(a, scale(e.normal, RADIATOR_CLEARANCE)),
+  ];
+  const box = aabbOf(zone);
+  const out: string[] = [];
+  for (const q of layout.parts) {
+    if (q.uid === p.uid || !aabbOverlap(layout.aabbs.get(q.uid)!, box, 0)) continue;
+    if (layout.pieces.get(q.uid)!.some((piece) => convexPenetration(zone, piece) > 1e-3)) out.push(q.uid);
+  }
+  return out;
+}
+
+/** Parts in the keep-clear zone of any radiating face of `p` (radiators only). */
+export function radiatorBlockers(layout: LayoutIndex, p: PlacedPart): string[] {
+  if (!p.def.def.radiator) return [];
+  const out = new Set<string>();
+  for (const e of layout.edges.get(p.uid)!)
+    for (const u of radiatorEdgeBlockers(layout, p, e.index)) out.add(u);
+  return [...out];
+}
 
 /** Exhaust path check: three rays (both ends inset + middle) out of the nozzle edge (spec §3.4). */
 export function exhaustBlockedBy(layout: LayoutIndex, p: PlacedPart): string | null {

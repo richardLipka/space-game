@@ -1,3 +1,5 @@
+import { SkirmishDialog } from "./skirmish-dialog";
+import type { SkirmishSetup } from "../../sim/scenario/skirmish";
 import type { Application } from "pixi.js";
 import type { PowerGroup, ShipDesign } from "../../data/schemas/design";
 import type { Library } from "../../data/share/library";
@@ -45,7 +47,9 @@ export interface EditorServices {
   testFlight(design: ShipDesign): void;
   openSandbox(): void;
   /** Player squadron against an AI squadron (M6). */
-  openSkirmish(): void;
+  /** All designs a skirmish can use (bundled and library). */
+  skirmishDesigns(): Promise<ShipDesign[]>;
+  startSkirmish(setup: SkirmishSetup): void;
   /** Starts a scenario battle with this fleet (spec §12). */
   startScenario(scenario: Scenario, fleet: ShipDesign[]): void;
   /** Watches the scenario fought AI against AI (balance tooling). */
@@ -313,7 +317,7 @@ export class EditorScreen {
       this.button(
         "Skirmish",
         "btn-skirmish",
-        () => this.services.openSkirmish(),
+        () => void this.openSkirmish(),
         "Your two ships against an AI squadron",
       ),
       this.button("Theme", "btn-theme", () => this.services.cycleTheme()),
@@ -560,6 +564,19 @@ export class EditorScreen {
   }
 
   /** Enters scenario preparation: the side panel shows budget, objective, hints and the fleet. */
+  private skirmishDialog: SkirmishDialog | null = null;
+  private skirmishDesignList: ShipDesign[] = [];
+
+  /** Skirmish setup dialog (sides, ships and AI types). */
+  async openSkirmish(): Promise<void> {
+    this.skirmishDesignList = await this.services.skirmishDesigns();
+    this.skirmishDialog ??= new SkirmishDialog(
+      () => this.skirmishDesignList,
+      (setup) => this.services.startSkirmish(setup),
+    );
+    this.skirmishDialog.open();
+  }
+
   setScenario(s: Scenario | null): void {
     this.scenario = s;
     this.fleet.length = 0;

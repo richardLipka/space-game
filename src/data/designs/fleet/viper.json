@@ -180,49 +180,35 @@
     {
       "uid": "rad-t",
       "partId": "core:radiator.s",
-      "x": -3.5,
+      "x": -3.75,
       "y": 4.0,
       "angle": 90
     },
     {
       "uid": "rad-b",
       "partId": "core:radiator.s",
-      "x": -3.5,
-      "y": -4.0,
-      "angle": -90
-    },
-    {
-      "uid": "rad2-t",
-      "partId": "core:radiator.s",
-      "x": -2.5,
-      "y": 4.0,
-      "angle": 90
-    },
-    {
-      "uid": "rad2-b",
-      "partId": "core:radiator.s",
-      "x": -2.5,
+      "x": -3.75,
       "y": -4.0,
       "angle": -90
     },
     {
       "uid": "mag-m-t",
       "partId": "core:magazine.missile.s",
-      "x": -1.0,
+      "x": -0.75,
       "y": 3.5,
       "angle": 0
     },
     {
       "uid": "mag-m-b",
       "partId": "core:magazine.missile.s",
-      "x": -1.0,
+      "x": -0.75,
       "y": -3.5,
       "angle": 0
     },
     {
       "uid": "las-t",
       "partId": "core:weapon.laser.turret.s",
-      "x": 0.75,
+      "x": 0.9,
       "y": 3.6929,
       "angle": 90,
       "weaponGroup": 2
@@ -230,7 +216,7 @@
     {
       "uid": "las-b",
       "partId": "core:weapon.laser.turret.s",
-      "x": 0.75,
+      "x": 0.9,
       "y": -3.6929,
       "angle": -90,
       "weaponGroup": 2
@@ -252,7 +238,7 @@
     {
       "uid": "las2-t",
       "partId": "core:weapon.laser.turret.s",
-      "x": 3.75,
+      "x": 3.6,
       "y": 3.6929,
       "angle": 90,
       "weaponGroup": 2
@@ -260,37 +246,51 @@
     {
       "uid": "las2-b",
       "partId": "core:weapon.laser.turret.s",
-      "x": 3.75,
+      "x": 3.6,
       "y": -3.6929,
       "angle": -90,
       "weaponGroup": 2
     },
     {
+      "uid": "rad2-t",
+      "partId": "core:radiator.s",
+      "x": 5.75,
+      "y": 4.0,
+      "angle": 90
+    },
+    {
+      "uid": "rad2-b",
+      "partId": "core:radiator.s",
+      "x": 5.75,
+      "y": -4.0,
+      "angle": -90
+    },
+    {
+      "uid": "rad3-t",
+      "partId": "core:radiator.s",
+      "x": -5.8,
+      "y": 2.5,
+      "angle": 90
+    },
+    {
+      "uid": "rad3-b",
+      "partId": "core:radiator.s",
+      "x": -5.8,
+      "y": -2.5,
+      "angle": -90
+    },
+    {
       "uid": "rcs-t",
       "partId": "core:rcs.s",
-      "x": -5.0,
+      "x": -4.25,
       "y": 1.75,
       "angle": 180
     },
     {
       "uid": "rcs-b",
       "partId": "core:rcs.s",
-      "x": -5.0,
+      "x": -4.25,
       "y": -1.75,
-      "angle": 0
-    },
-    {
-      "uid": "rcs-f-t",
-      "partId": "core:rcs.s",
-      "x": 5.5,
-      "y": 3.25,
-      "angle": 180
-    },
-    {
-      "uid": "rcs-f-b",
-      "partId": "core:rcs.s",
-      "x": 5.5,
-      "y": -3.25,
       "angle": 0
     }
   ],

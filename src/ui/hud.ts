@@ -42,7 +42,7 @@ function bar(frac: number, width = 16): string {
 const HELP = `W/S thrust   A/D strafe   Q/E rotate   F face cursor
 X speed kill   Shift+X flip & burn   Tab switch ship
 C camera   wheel zoom   middle-drag pan (free cam)
-+/- time scale   Space pause   T theme   V overlays   ? help   Esc editor
++/- or [ ] time scale (×1 at start)   Space pause   T theme   V overlays   ? help   Esc editor
 P power priority   R radiators   N networks   hold Y + click: destroy part (debug)
 LMB fire   1–9 weapon group (Shift adds)   G group mode   RMB target
 M launch a missile (Shift+M salvo)   H launch a drone (Shift+H all)   O PD also fires at ships

@@ -102,20 +102,25 @@ export class FlightScreen {
     document.body.append(this.resultsPanel);
     this.weaponBar = el("div", { class: "weapon-bar", "data-testid": "weapon-bar", hidden: "" });
     document.body.append(this.weaponBar);
+    this.launchPanel = el("div", { class: "launch-panel", "data-testid": "launch-panel", hidden: "" });
+    document.body.append(this.launchPanel);
   }
 
   private readonly weaponBar: HTMLElement;
   private weaponBarKey = "";
 
   /**
-   * Weapon groups along the bottom of the screen (spec §9.2): number, mode, weapons and loaded rounds for
-   * every group, the selected ones highlighted. Click selects a group, Shift+click adds it.
+   * Weapon groups along the bottom of the screen (spec §9.2): one card per group with its key, mode and
+   * the weapons in it as a column (one row per weapon type: count, loaded rounds, reload), the selected
+   * groups highlighted. Click selects, Shift+click adds. Missile launchers and hangars are listed one by
+   * one in the launch panel on the right (renderLaunchPanel).
    */
   private renderWeaponBar(): void {
     const ship = this.controlledShip;
     const bar = this.weaponBar;
     const ws = ship ? ship.weapons.filter((w) => w.def.kind !== "pd") : [];
-    if (!ship || (ws.length === 0 && !ship.parts.some((p) => p.def.def.hangar))) {
+    this.renderLaunchPanel();
+    if (!ship || ws.length === 0) {
       bar.hidden = true;
       this.weaponBarKey = "";
       return;
@@ -123,59 +128,59 @@ export class FlightScreen {
     const groups = [...new Set(ws.map((w) => w.group))].sort((a, b) => a - b);
     const info = groups.map((g) => {
       const list = ws.filter((w) => w.group === g);
-      const alive = list.filter((w) => w.part.hp > 0);
       const mode = ship.groupModes.get(g) ?? "manual";
-      const names = [...new Set(list.map((w) => w.part.def.def.name.replace(/ \(.*\)$/, "")))].join(", ");
-      const usesAmmo = list.some((w) => w.def.ammoType && w.def.internalMagazine > 0);
-      const loaded = alive.reduce((n, w) => n + Math.floor(w.part.ammo), 0);
-      const cap = alive.reduce((n, w) => n + w.def.internalMagazine, 0);
-      const ready = alive.some((w) => w.cooldown <= 1e-9);
-      return {
-        g,
-        mode,
-        names,
-        alive: alive.length,
-        total: list.length,
-        ammo: usesAmmo ? `${loaded}/${cap}` : "power",
-        ready,
-      };
+      const types = [...new Set(list.map((w) => w.part.def.def.id))].map((id) => {
+        const same = list.filter((w) => w.part.def.def.id === id);
+        const alive = same.filter((w) => w.part.hp > 0);
+        const def = same[0]!.def;
+        const usesAmmo = !!def.ammoType && def.internalMagazine > 0;
+        const loaded = alive.reduce((n, w) => n + Math.floor(w.part.ammo), 0);
+        const cap = alive.reduce((n, w) => n + w.def.internalMagazine, 0);
+        const ready = alive.filter((w) => w.cooldown <= 1e-9 && (!usesAmmo || w.part.ammo >= 1)).length;
+        const wait = alive.length ? Math.min(...alive.map((w) => w.cooldown)) : 0;
+        return {
+          name: same[0]!.part.def.def.name.replace(/ \(.*\)$/, ""),
+          count: same.length,
+          alive: alive.length,
+          ammo: usesAmmo ? `${loaded}/${cap}` : def.kind === "beam" ? "power" : "",
+          state: alive.length === 0 ? "lost" : ready > 0 ? "ready" : `${wait.toFixed(1)} s`,
+        };
+      });
+      const name = ship.groupSettings.get(g)?.name ?? "";
+      return { g, mode, name, types, alive: types.some((t) => t.alive > 0) };
     });
-    // Launch status (M / H): ready, or seconds until the next launcher or hangar can launch.
-    const launchers = ship.weapons.filter((w) => w.def.kind === "missile" && w.part.hp > 0);
-    const loadedL = launchers.filter((w) => w.part.ammo >= 1);
-    const readyL = loadedL.filter((w) => w.cooldown <= 1e-9).length;
-    const missileWait = loadedL.length ? Math.min(...loadedL.map((w) => w.cooldown)) : Infinity;
-    const missiles = launchers.length
-      ? {
-          ready: readyL,
-          total: launchers.length,
-          left: launchers.reduce((n, w) => n + Math.floor(w.part.ammo), 0),
-          wait: readyL ? 0 : Math.ceil(missileWait * 10) / 10,
-        }
-      : null;
-    const hangars = ship.parts.some((p) => p.def.def.hangar);
-    const drones = hangars
-      ? { stored: ship.dronesStored, wait: Math.ceil(ship.droneCooldown * 10) / 10 }
-      : null;
-    const key = `${ship.id}|${[...this.selectedGroups].join()}|${JSON.stringify(info)}|${JSON.stringify(missiles)}|${JSON.stringify(drones)}`;
+    const key = `${ship.id}|${[...this.selectedGroups].join()}|${JSON.stringify(info)}`;
     bar.hidden = false;
     if (key === this.weaponBarKey) return;
     this.weaponBarKey = key;
     bar.replaceChildren();
     for (const x of info) {
       const sel = this.selectedGroups.has(x.g);
+      const rows = x.types.map((t) =>
+        el(
+          "div",
+          { class: `wb-weapon${t.alive === 0 ? " lost" : ""}` },
+          el("span", { class: "wb-wname" }, `${t.count > 1 ? `${t.alive}/${t.count}× ` : ""}${t.name}`),
+          el("span", { class: "wb-ammo" }, t.ammo),
+          el("span", { class: `wb-state${t.state === "ready" ? " ready" : ""}` }, t.state),
+        ),
+      );
       const chip = el(
         "button",
         {
-          class: `wb-group mode-${x.mode}${sel ? " sel" : ""}${x.alive === 0 ? " dead" : ""}`,
+          class: `wb-group mode-${x.mode}${sel ? " sel" : ""}${x.alive ? "" : " dead"}`,
           "data-testid": `wb-group-${x.g}`,
           "aria-pressed": String(sel),
           title: "Click selects, Shift+click adds · G cycles the mode of the selected groups",
         },
-        el("span", { class: "wb-key" }, String(x.g)),
-        el("span", { class: "wb-mode", "data-testid": `wb-mode-${x.g}` }, x.mode.toUpperCase()),
-        el("span", { class: "wb-names" }, `${x.alive}/${x.total} ${x.names}`),
-        el("span", { class: `wb-ammo${x.ready ? "" : " reloading"}` }, x.ammo),
+        el(
+          "div",
+          { class: "wb-head" },
+          el("span", { class: "wb-key" }, String(x.g)),
+          el("span", { class: "wb-mode", "data-testid": `wb-mode-${x.g}` }, x.mode.toUpperCase()),
+          el("span", { class: "wb-gname" }, x.name),
+        ),
+        ...rows,
       );
       chip.addEventListener("mousedown", (e) => e.stopPropagation());
       chip.addEventListener("click", (e) => {
@@ -190,39 +195,141 @@ export class FlightScreen {
       });
       bar.append(chip);
     }
-    const status = (wait: number, empty: boolean) =>
-      empty ? "empty" : wait <= 0 ? "ready" : Number.isFinite(wait) ? `${wait.toFixed(1)} s` : "empty";
-    if (missiles) {
-      const empty = missiles.left === 0;
-      bar.append(
+  }
+
+  private readonly launchPanel: HTMLElement;
+  private launchPanelKey = "";
+
+  /**
+   * Launch panel on the right: every missile launcher and every hangar on its own row with what it holds,
+   * whether it can launch now and a bar filling up while it reloads. M / Shift+M and H / Shift+H launch.
+   */
+  private renderLaunchPanel(): void {
+    const ship = this.controlledShip;
+    const panel = this.launchPanel;
+    const launchers = ship
+      ? ship.weapons
+          .filter((w) => w.def.kind === "missile")
+          .sort((a, b) => (a.part.uid < b.part.uid ? -1 : 1))
+      : [];
+    const hangars = ship
+      ? ship.parts.filter((p) => p.def.def.hangar).sort((a, b) => (a.uid < b.uid ? -1 : 1))
+      : [];
+    if (!ship || (launchers.length === 0 && hangars.length === 0)) {
+      panel.hidden = true;
+      this.launchPanelKey = "";
+      return;
+    }
+    const lRows = launchers.map((w) => {
+      const lost = w.part.hp <= 0;
+      const loaded = lost ? 0 : Math.floor(w.part.ammo);
+      const interval = Math.max(1e-6, w.def.fireInterval);
+      const state = lost
+        ? "lost"
+        : loaded < 1
+          ? "empty"
+          : w.cooldown <= 1e-9
+            ? "ready"
+            : `${w.cooldown.toFixed(1)} s`;
+      return {
+        loaded,
+        cap: w.def.internalMagazine,
+        state,
+        fill: lost || loaded < 1 ? 0 : 1 - w.cooldown / interval,
+      };
+    });
+    const hRows = hangars.map((p) => {
+      const h = p.def.def.hangar!;
+      const st = ship.hangarState(p.uid);
+      const lost = p.hp <= 0;
+      const state = lost
+        ? "lost"
+        : st.stored < 1
+          ? "empty"
+          : st.wait <= 1e-9 && !st.pending
+            ? "ready"
+            : `${st.wait.toFixed(1)} s`;
+      return {
+        kind: h.droneType.replace(/^drone-/, ""),
+        stored: st.stored,
+        cap: h.capacity,
+        state,
+        fill: lost || st.stored < 1 ? 0 : 1 - st.wait / Math.max(1e-6, h.launchInterval),
+      };
+    });
+    const left = lRows.reduce((n, r) => n + r.loaded, 0);
+    const ammoType = launchers[0]?.def.ammoType;
+    const magazine = ship.parts.reduce(
+      (n, p) =>
+        n + (p.hp > 0 && ammoType && p.def.def.magazine?.ammoType === ammoType ? Math.floor(p.ammo) : 0),
+      0,
+    );
+    const readyL = lRows.filter((r) => r.state === "ready").length;
+    const key = JSON.stringify([
+      ship.id,
+      lRows.map((r) => [r.state, r.loaded, Math.round(r.fill * 20)]),
+      hRows.map((r) => [r.state, r.stored, Math.round(r.fill * 20)]),
+      magazine,
+    ]);
+    panel.hidden = false;
+    if (key === this.launchPanelKey) return;
+    this.launchPanelKey = key;
+    const waitOf = (rows: { state: string }[]) => rows.find((r) => r.state.endsWith(" s"))?.state ?? "empty";
+    const row = (testid: string, label: string, count: string, state: string, fill: number) =>
+      el(
+        "div",
+        {
+          class: `lp-row ${state === "ready" ? "ready" : state === "lost" || state === "empty" ? "off" : "reloading"}`,
+          "data-testid": testid,
+        },
+        el("span", { class: "lp-name" }, label),
+        el("span", { class: "lp-count" }, count),
+        el(
+          "span",
+          { class: "lp-bar" },
+          el("span", {
+            class: "lp-fill",
+            style: `width:${Math.round(Math.max(0, Math.min(1, fill)) * 100)}%`,
+          }),
+        ),
+        el("span", { class: "lp-state" }, state),
+      );
+    panel.replaceChildren();
+    if (launchers.length) {
+      panel.append(
         el(
           "div",
-          {
-            class: `wb-group wb-launch${missiles.wait > 0 || empty ? "" : " ready"}`,
-            "data-testid": "wb-missiles",
-          },
-          el("span", { class: "wb-key" }, "M"),
+          { class: "lp-head", "data-testid": "wb-missiles" },
+          el("b", {}, "M"),
+          ` Missiles · ${readyL}/${launchers.length} ready · ${left + magazine} left `,
           el(
             "span",
-            { class: "wb-names" },
-            `missiles ${missiles.left} · ${missiles.ready}/${missiles.total} ready`,
+            { class: "lp-status", "data-testid": "wb-missiles-status" },
+            readyL ? "ready" : waitOf(lRows),
           ),
-          el("span", { class: "wb-ammo", "data-testid": "wb-missiles-status" }, status(missiles.wait, empty)),
+        ),
+        ...lRows.map((r, i) =>
+          row(`wb-launcher-${i + 1}`, `Launcher ${i + 1}`, `${r.loaded}/${r.cap}`, r.state, r.fill),
         ),
       );
     }
-    if (drones) {
-      const empty = drones.stored === 0;
-      bar.append(
+    if (hangars.length) {
+      const stored = hRows.reduce((n, r) => n + r.stored, 0);
+      const readyH = hRows.filter((r) => r.state === "ready").length;
+      panel.append(
         el(
           "div",
-          {
-            class: `wb-group wb-launch${drones.wait > 0 || empty ? "" : " ready"}`,
-            "data-testid": "wb-drones",
-          },
-          el("span", { class: "wb-key" }, "H"),
-          el("span", { class: "wb-names" }, `drones ${drones.stored}`),
-          el("span", { class: "wb-ammo", "data-testid": "wb-drones-status" }, status(drones.wait, empty)),
+          { class: "lp-head", "data-testid": "wb-drones" },
+          el("b", {}, "H"),
+          ` Drones · ${stored} aboard `,
+          el(
+            "span",
+            { class: "lp-status", "data-testid": "wb-drones-status" },
+            readyH ? "ready" : waitOf(hRows),
+          ),
+        ),
+        ...hRows.map((r, i) =>
+          row(`wb-hangar-${i + 1}`, `Hangar ${r.kind}`, `${r.stored}/${r.cap}`, r.state, r.fill),
         ),
       );
     }
@@ -459,10 +566,17 @@ export class FlightScreen {
     if (ship) this.camera.center = setup.world.physics.getWorldCenter(ship.id);
     this.input.speedKillActive = () => this.controlledShip?.flight.speedKill !== "off";
     this.battleShown = false;
+    // Every flight starts at real time (a left-over ×8 made the game look uncontrollably fast).
+    this.timeScaleIndex = TIME_SCALES.indexOf(1);
+    this.paused = false;
     this.resultsPanel.hidden = true;
     this.weaponBar.hidden = true;
-    if (setup.spectate) for (const s of setup.playerShips) setup.world.setAi(s.id, this.allyProfile);
-    else this.assignAllies();
+    this.launchPanel.hidden = true;
+    if (setup.spectate) {
+      // Keep AI that the battle already set up (skirmish types and guard orders).
+      for (const s of setup.playerShips)
+        if (!setup.world.ai.has(s.id)) setup.world.setAi(s.id, this.allyProfile);
+    } else this.assignAllies();
     this.input.enabled = true;
     this.input.takeCommands();
     this.hudEl.hidden = false;
@@ -506,6 +620,8 @@ export class FlightScreen {
     this.hudEl.hidden = true;
     this.powerPanel.hidden = true;
     this.resultsPanel.hidden = true;
+    this.weaponBar.hidden = true;
+    this.launchPanel.hidden = true;
   }
 
   frame(dtReal: number): void {

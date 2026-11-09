@@ -1,0 +1,171 @@
+{
+  "id": "s15-mirror-rearguard",
+  "name": "Mirror: rearguard",
+  "description": "A Squall missile cruiser covered by a Rapier destroyer on each side. Theirs is pulling out.",
+  "order": 15,
+  "budget": 2300,
+  "maxPlayerShips": 2,
+  "arena": {
+    "width": 10000,
+    "height": 7000,
+    "asteroids": [
+      {
+        "position": [692, 2200],
+        "angle": 0,
+        "outline": [
+          [60.2, 0],
+          [35.1, 35.1],
+          [0, 55],
+          [-45.5, 45.5],
+          [-64.2, 0],
+          [-41.7, -41.7],
+          [0, -62.5],
+          [44.6, -44.6]
+        ],
+        "static": true
+      },
+      {
+        "position": [-692, 2200],
+        "angle": 0,
+        "outline": [
+          [-44.6, -44.6],
+          [0, -62.5],
+          [41.7, -41.7],
+          [64.2, 0],
+          [45.5, 45.5],
+          [0, 55],
+          [-35.1, 35.1],
+          [-60.2, 0]
+        ],
+        "static": true
+      },
+      {
+        "position": [1753, 1561],
+        "angle": 0,
+        "outline": [
+          [24.3, 0],
+          [15.7, 19.7],
+          [-5.4, 23.7],
+          [-17.9, 8.6],
+          [-22.2, -10.7],
+          [-5.3, -23.2],
+          [14.4, -18]
+        ],
+        "static": true
+      },
+      {
+        "position": [-1753, 1561],
+        "angle": 0,
+        "outline": [
+          [-14.4, -18],
+          [5.3, -23.2],
+          [22.2, -10.7],
+          [17.9, 8.6],
+          [5.4, 23.7],
+          [-15.7, 19.7],
+          [-24.3, 0]
+        ],
+        "static": true
+      },
+      {
+        "position": [1546, 1915],
+        "angle": 0,
+        "outline": [
+          [61.3, 0],
+          [40.9, 40.9],
+          [0, 59],
+          [-42.7, 42.7],
+          [-59.4, 0],
+          [-40.8, -40.8],
+          [0, -53.9],
+          [44, -44]
+        ],
+        "static": true
+      },
+      {
+        "position": [-1546, 1915],
+        "angle": 0,
+        "outline": [
+          [-44, -44],
+          [0, -53.9],
+          [40.8, -40.8],
+          [59.4, 0],
+          [42.7, 42.7],
+          [0, 59],
+          [-40.9, 40.9],
+          [-61.3, 0]
+        ],
+        "static": true
+      },
+      {
+        "position": [1817, -602],
+        "angle": 0,
+        "outline": [
+          [33.9, 0],
+          [24.4, 30.6],
+          [-8.7, 38],
+          [-33.9, 16.3],
+          [-28.6, -13.8],
+          [-8.8, -38.7],
+          [22.5, -28.2]
+        ],
+        "static": true
+      },
+      {
+        "position": [-1817, -602],
+        "angle": 0,
+        "outline": [
+          [-22.5, -28.2],
+          [8.8, -38.7],
+          [28.6, -13.8],
+          [33.9, 16.3],
+          [8.7, 38],
+          [-24.4, 30.6],
+          [-33.9, 0]
+        ],
+        "static": true
+      }
+    ],
+    "gravityWells": []
+  },
+  "playerSpawns": [
+    {
+      "position": [-2500, -200],
+      "angle": 0
+    },
+    {
+      "position": [-2500, 200],
+      "angle": 0
+    }
+  ],
+  "enemies": [
+    {
+      "designId": "fleet-squall",
+      "aiProfile": "retreating",
+      "spawn": {
+        "position": [2500, -200],
+        "angle": 180
+      },
+      "team": 1
+    },
+    {
+      "designId": "fleet-rapier",
+      "aiProfile": "defensive",
+      "spawn": {
+        "position": [2500, 200],
+        "angle": 180
+      },
+      "team": 1,
+      "guard": 0
+    }
+  ],
+  "objective": {
+    "type": "destroyAll"
+  },
+  "seed": 115,
+  "hints": [
+    "The enemy cruiser withdraws slowly and keeps firing; its destroyer covers it.",
+    "Catch the cruiser before its missiles wear you down."
+  ],
+  "referenceDesigns": ["fleet-squall", "fleet-rapier"]
+}

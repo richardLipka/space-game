@@ -19,6 +19,13 @@ import { MemoryLibrary, type Library } from "./data/share/library";
 import { degToRad, vec2 } from "./sim/core/vec2";
 import { aiProfile, AI_PROFILES } from "./data/ai/index";
 import { BUNDLED_DESIGNS, FLEET } from "./data/designs/index";
+import { safeStorage } from "./ui/storage";
+import {
+  applySkirmishOrders,
+  DEFAULT_SKIRMISH,
+  skirmishBattle,
+  type SkirmishSetup,
+} from "./sim/scenario/skirmish";
 import { startBattle } from "./sim/scenario/battle";
 import type { Scenario } from "./data/schemas/scenario";
 import { ResultStore } from "./ui/results";
@@ -37,22 +44,6 @@ function must<T>(r: ValidationResult<T>, what: string): T {
 
 const LAST_DESIGN_KEY = "space-game.lastDesignId";
 const SEEDED_KEY = "space-game.seeded.v5";
-const safeStorage = {
-  get(k: string): string | null {
-    try {
-      return localStorage.getItem(k);
-    } catch {
-      return null;
-    }
-  },
-  set(k: string, v: string): void {
-    try {
-      localStorage.setItem(k, v);
-    } catch {
-      /* unavailable (private mode) */
-    }
-  },
-};
 
 function randomId(): string {
   const b = new Uint8Array(8);
@@ -205,6 +196,38 @@ async function main(): Promise<void> {
     });
   };
 
+  /** Skirmish (sides, ships, AI types) as a destroy-all battle; without a player ship it is watched. */
+  const startSkirmish = (setup: SkirmishSetup) => {
+    void library.listDesigns().then((saved) => {
+      const designs = new Map(BUNDLED_DESIGNS);
+      for (const d of saved) designs.set(d.id, d);
+      const span = Math.max(12000, setup.distance + 6000);
+      const sk = skirmishBattle(setup, designs, {
+        width: span,
+        height: span * 0.75,
+        asteroids: [],
+        gravityWells: [],
+      });
+      const battle = startBattle(sk.scenario, sk.fleet, catalogue, {
+        designs,
+        profiles: sk.profiles,
+        droneDesigns: [...droneDesigns.values()],
+      });
+      applySkirmishOrders(battle, sk, setup);
+      const watch = battle.playerShips.length === 0;
+      editor.hide();
+      mode = "flight";
+      flight.start({
+        world: battle.world,
+        playerShips: watch ? [...battle.allyShips, ...battle.enemyShips] : battle.playerShips,
+        title: watch ? "Watching: skirmish" : "Skirmish",
+        battle,
+        spectate: watch,
+        retry: () => startSkirmish(setup),
+      });
+    });
+  };
+
   const services: EditorServices = {
     library,
     core: () => core,
@@ -222,17 +245,12 @@ async function main(): Promise<void> {
         hauler,
         picket,
       ]),
-    openSkirmish: () =>
-      startFlight(
-        [gunboat, frigate],
-        "Skirmish",
-        [],
-        [
-          { design: gunboat, profile: "aggressive", x: 3500, y: 400 },
-          { design: frigate, profile: "kiter", x: 4200, y: -300 },
-          { design: picket, profile: "balanced", x: 3800, y: 900 },
-        ],
-      ),
+    skirmishDesigns: async () => {
+      const designs = new Map(BUNDLED_DESIGNS);
+      for (const d of await library.listDesigns()) designs.set(d.id, d);
+      return [...designs.values()];
+    },
+    startSkirmish: (setup) => startSkirmish(setup),
     startScenario: (s, f) => startScenario(s, f),
     watchScenario: (s, f) => startScenario(s, f, true),
     results,
@@ -266,7 +284,7 @@ async function main(): Promise<void> {
     },
     resolveStyle: (classes: string) => theme.resolve(classes),
     openSandbox: () => services.openSandbox(),
-    openSkirmish: () => services.openSkirmish(),
+    openSkirmish: (setup?: SkirmishSetup) => startSkirmish(setup ?? DEFAULT_SKIRMISH),
     /** Scenario battle state (tests): status, enemies left, results shown. */
     battle: () => {
       const b = flight.battle;

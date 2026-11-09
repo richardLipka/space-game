@@ -45,6 +45,8 @@ export interface WeaponCommand {
   launch?: boolean | "one" | "salvo";
   /** Beams hold fire (AI cool-down, spec §11.2). */
   holdBeams?: boolean;
+  /** AI near overheating: also hold guns (point defense keeps firing). */
+  holdGuns?: boolean;
   /** AI-mode launchers wait for `launch` instead of firing on their own, so missiles go out in volleys. */
   missileVolleys?: boolean;
 }
@@ -240,7 +242,12 @@ export function updateWeapons(
       }
     }
     w.isBlocked = def.mount === "turret" && w.blocked.some(([a, b]) => w.turret >= a && w.turret <= b);
-    const canAct = wantsFire && aimed && !w.isBlocked && !(def.kind === "beam" && cmd.holdBeams);
+    const canAct =
+      wantsFire &&
+      aimed &&
+      !w.isBlocked &&
+      !(def.kind === "beam" && cmd.holdBeams) &&
+      !(def.kind === "projectile" && cmd.holdGuns);
 
     if (def.kind === "beam") {
       // Demand power exactly while the beam wants to fire; it fires once power is served (next tick).

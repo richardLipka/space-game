@@ -1,6 +1,6 @@
 import type { ShipDesign } from "../data/schemas/design";
 import type { PartCatalogue } from "../sim/ship/catalogue";
-import { exhaustBlockedBy, type LayoutIndex } from "../sim/ship/layout";
+import { exhaustBlockedBy, radiatorBlockers, RADIATOR_CLEARANCE, type LayoutIndex } from "../sim/ship/layout";
 import { buildPropulsion } from "../sim/flight/propulsion";
 import { computeMassProps, instantiateParts } from "../sim/ship/ship";
 import { layoutOf } from "./placement";
@@ -16,6 +16,7 @@ export interface Issue {
     | "covered-edge"
     | "over-budget"
     | "exhaust-blocked"
+    | "radiator-blocked"
     | "out-of-gimbal"
     | "no-fuel-source"
     | "no-power-source"
@@ -151,6 +152,15 @@ export function validateDesignLayout(
         code: "exhaust-blocked",
         message: `${placed.def.def.name}: exhaust path is blocked by ${blocker}.`,
         parts: [placed.uid, blocker],
+      });
+    }
+    const near = radiatorBlockers(layout, placed);
+    if (near.length > 0) {
+      issues.push({
+        severity: "error",
+        code: "radiator-blocked",
+        message: `${placed.def.def.name}: keep ${RADIATOR_CLEARANCE} m clear in front of its radiating faces (blocked by ${near.join(", ")}).`,
+        parts: [placed.uid, ...near],
       });
     }
   }

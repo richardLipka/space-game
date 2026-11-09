@@ -136,7 +136,7 @@ export function measure(
     reasons[m.reason] = (reasons[m.reason] ?? 0) + 1;
     if (m.winner === "draw")
       draws.push(
-        `${r.kind === "match" ? `${r.result.a} vs ${r.result.b}` : r.result.scenario} #${r.job.seed}: ${m.reason}`,
+        `${r.kind === "match" ? `${r.result.a} vs ${r.result.b}` : r.kind === "scenario" ? r.result.scenario : r.result.label} #${r.job.seed}: ${m.reason}`,
       );
     if (r.kind === "match") {
       duel.push(engagementOf(m));
@@ -162,7 +162,7 @@ export function measure(
         e.total += m.time;
         thr.set(p, e);
       }
-    } else {
+    } else if (r.kind === "scenario") {
       scen.push(engagementOf(m));
       const e = (scenarios[r.result.scenario] ??= { runs: 0, wins: 0, times: [] });
       e.runs++;

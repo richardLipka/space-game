@@ -6,17 +6,10 @@
   "modifiedAt": "2026-11-09T00:00:00Z",
   "parts": [
     {
-      "uid": "eng-t",
+      "uid": "eng",
       "partId": "core:engine.main.l",
       "x": -13.0,
-      "y": 1.5,
-      "angle": 0
-    },
-    {
-      "uid": "eng-b",
-      "partId": "core:engine.main.l",
-      "x": -13.0,
-      "y": -1.5,
+      "y": 0.0,
       "angle": 0
     },
     {
@@ -90,58 +83,58 @@
       "angle": 0
     },
     {
-      "uid": "mag-k2",
-      "partId": "core:magazine.kinetic.s",
-      "x": 2.5,
+      "uid": "mag-m",
+      "partId": "core:magazine.missile.s",
+      "x": 2.75,
       "y": 0.0,
       "angle": 0
     },
     {
       "uid": "mag-a",
       "partId": "core:magazine.autocannon.s",
-      "x": 3.5,
+      "x": 4.0,
       "y": 0.0,
       "angle": 0
     },
     {
       "uid": "mag-pd",
       "partId": "core:magazine.pd.s",
-      "x": 4.5,
+      "x": 5.0,
       "y": 0.0,
       "angle": 0
     },
     {
       "uid": "hull1",
       "partId": "core:hull.square.m",
-      "x": 6.0,
+      "x": 6.5,
       "y": 0.0,
       "angle": 0
     },
     {
       "uid": "hull2",
       "partId": "core:hull.square.m",
-      "x": 8.0,
+      "x": 8.5,
       "y": 0.0,
       "angle": 0
     },
     {
       "uid": "hull3",
       "partId": "core:hull.square.m",
-      "x": 10.0,
+      "x": 10.5,
       "y": 0.0,
       "angle": 0
     },
     {
       "uid": "hull4",
       "partId": "core:hull.square.m",
-      "x": 12.0,
+      "x": 12.5,
       "y": 0.0,
       "angle": 0
     },
     {
       "uid": "nose",
       "partId": "core:hull.wedge.m",
-      "x": 14.0,
+      "x": 14.5,
       "y": 0.0,
       "angle": 0
     },
@@ -736,7 +729,7 @@
     {
       "uid": "hv1-t",
       "partId": "core:weapon.cannon.turret.m",
-      "x": -7.5,
+      "x": -9.3,
       "y": 8.0163,
       "angle": 90,
       "weaponGroup": 1
@@ -744,7 +737,7 @@
     {
       "uid": "hv1-b",
       "partId": "core:weapon.cannon.turret.m",
-      "x": -7.5,
+      "x": -9.3,
       "y": -8.0163,
       "angle": -90,
       "weaponGroup": 1
@@ -752,7 +745,7 @@
     {
       "uid": "hv2-t",
       "partId": "core:weapon.cannon.turret.m",
-      "x": -2.5,
+      "x": -3.47,
       "y": 8.0163,
       "angle": 90,
       "weaponGroup": 1
@@ -760,7 +753,7 @@
     {
       "uid": "hv2-b",
       "partId": "core:weapon.cannon.turret.m",
-      "x": -2.5,
+      "x": -3.47,
       "y": -8.0163,
       "angle": -90,
       "weaponGroup": 1
@@ -768,7 +761,7 @@
     {
       "uid": "hv3-t",
       "partId": "core:weapon.cannon.turret.m",
-      "x": 2.5,
+      "x": 3.47,
       "y": 8.0163,
       "angle": 90,
       "weaponGroup": 1
@@ -776,7 +769,7 @@
     {
       "uid": "hv3-b",
       "partId": "core:weapon.cannon.turret.m",
-      "x": 2.5,
+      "x": 3.47,
       "y": -8.0163,
       "angle": -90,
       "weaponGroup": 1
@@ -784,7 +777,7 @@
     {
       "uid": "hv4-t",
       "partId": "core:weapon.cannon.turret.m",
-      "x": 7.5,
+      "x": 9.3,
       "y": 8.0163,
       "angle": 90,
       "weaponGroup": 1
@@ -792,7 +785,7 @@
     {
       "uid": "hv4-b",
       "partId": "core:weapon.cannon.turret.m",
-      "x": 7.5,
+      "x": 9.3,
       "y": -8.0163,
       "angle": -90,
       "weaponGroup": 1
@@ -800,7 +793,7 @@
     {
       "uid": "ml1-t",
       "partId": "core:weapon.missile.launcher.s",
-      "x": -10.0,
+      "x": -10.95,
       "y": 7.75,
       "angle": 90,
       "weaponGroup": 2
@@ -808,7 +801,7 @@
     {
       "uid": "ml1-b",
       "partId": "core:weapon.missile.launcher.s",
-      "x": -10.0,
+      "x": -10.95,
       "y": -7.75,
       "angle": -90,
       "weaponGroup": 2
@@ -816,7 +809,7 @@
     {
       "uid": "ml2-t",
       "partId": "core:weapon.missile.launcher.s",
-      "x": -5.0,
+      "x": -5.1,
       "y": 7.75,
       "angle": 90,
       "weaponGroup": 2
@@ -824,7 +817,7 @@
     {
       "uid": "ml2-b",
       "partId": "core:weapon.missile.launcher.s",
-      "x": -5.0,
+      "x": -5.1,
       "y": -7.75,
       "angle": -90,
       "weaponGroup": 2
@@ -832,7 +825,7 @@
     {
       "uid": "ml3-t",
       "partId": "core:weapon.missile.launcher.s",
-      "x": 0.0,
+      "x": -1.85,
       "y": 7.75,
       "angle": 90,
       "weaponGroup": 2
@@ -840,7 +833,7 @@
     {
       "uid": "ml3-b",
       "partId": "core:weapon.missile.launcher.s",
-      "x": 0.0,
+      "x": -1.85,
       "y": -7.75,
       "angle": -90,
       "weaponGroup": 2
@@ -848,7 +841,7 @@
     {
       "uid": "ml4-t",
       "partId": "core:weapon.missile.launcher.s",
-      "x": 5.0,
+      "x": 1.85,
       "y": 7.75,
       "angle": 90,
       "weaponGroup": 2
@@ -856,7 +849,7 @@
     {
       "uid": "ml4-b",
       "partId": "core:weapon.missile.launcher.s",
-      "x": 5.0,
+      "x": 1.85,
       "y": -7.75,
       "angle": -90,
       "weaponGroup": 2
@@ -864,7 +857,7 @@
     {
       "uid": "ml5-t",
       "partId": "core:weapon.missile.launcher.s",
-      "x": 10.0,
+      "x": 5.1,
       "y": 7.75,
       "angle": 90,
       "weaponGroup": 2
@@ -872,7 +865,23 @@
     {
       "uid": "ml5-b",
       "partId": "core:weapon.missile.launcher.s",
-      "x": 10.0,
+      "x": 5.1,
+      "y": -7.75,
+      "angle": -90,
+      "weaponGroup": 2
+    },
+    {
+      "uid": "ml6-t",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": 10.95,
+      "y": 7.75,
+      "angle": 90,
+      "weaponGroup": 2
+    },
+    {
+      "uid": "ml6-b",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": 10.95,
       "y": -7.75,
       "angle": -90,
       "weaponGroup": 2
@@ -880,128 +889,58 @@
     {
       "uid": "rad1-t",
       "partId": "core:radiator.s",
-      "x": -9.0,
+      "x": -6.9,
       "y": 8.0,
       "angle": 90
     },
     {
       "uid": "rad1-b",
       "partId": "core:radiator.s",
-      "x": -9.0,
+      "x": -6.9,
       "y": -8.0,
       "angle": -90
     },
     {
       "uid": "rad2-t",
       "partId": "core:radiator.s",
-      "x": -6.0,
+      "x": 0.0,
       "y": 8.0,
       "angle": 90
     },
     {
       "uid": "rad2-b",
       "partId": "core:radiator.s",
-      "x": -6.0,
+      "x": 0.0,
       "y": -8.0,
       "angle": -90
     },
     {
       "uid": "rad3-t",
       "partId": "core:radiator.s",
-      "x": -4.0,
+      "x": 6.9,
       "y": 8.0,
       "angle": 90
     },
     {
       "uid": "rad3-b",
       "partId": "core:radiator.s",
-      "x": -4.0,
+      "x": 6.9,
       "y": -8.0,
       "angle": -90
     },
     {
-      "uid": "rad4-t",
+      "uid": "rad-s-t",
       "partId": "core:radiator.s",
-      "x": -1.0,
-      "y": 8.0,
+      "x": -13.75,
+      "y": 2.5,
       "angle": 90
     },
     {
-      "uid": "rad4-b",
+      "uid": "rad-s-b",
       "partId": "core:radiator.s",
-      "x": -1.0,
-      "y": -8.0,
+      "x": -13.75,
+      "y": -2.5,
       "angle": -90
-    },
-    {
-      "uid": "rad5-t",
-      "partId": "core:radiator.s",
-      "x": 1.0,
-      "y": 8.0,
-      "angle": 90
-    },
-    {
-      "uid": "rad5-b",
-      "partId": "core:radiator.s",
-      "x": 1.0,
-      "y": -8.0,
-      "angle": -90
-    },
-    {
-      "uid": "rad6-t",
-      "partId": "core:radiator.s",
-      "x": 4.0,
-      "y": 8.0,
-      "angle": 90
-    },
-    {
-      "uid": "rad6-b",
-      "partId": "core:radiator.s",
-      "x": 4.0,
-      "y": -8.0,
-      "angle": -90
-    },
-    {
-      "uid": "rad7-t",
-      "partId": "core:radiator.s",
-      "x": 6.0,
-      "y": 8.0,
-      "angle": 90
-    },
-    {
-      "uid": "rad7-b",
-      "partId": "core:radiator.s",
-      "x": 6.0,
-      "y": -8.0,
-      "angle": -90
-    },
-    {
-      "uid": "rad8-t",
-      "partId": "core:radiator.s",
-      "x": 9.0,
-      "y": 8.0,
-      "angle": 90
-    },
-    {
-      "uid": "rad8-b",
-      "partId": "core:radiator.s",
-      "x": 9.0,
-      "y": -8.0,
-      "angle": -90
-    },
-    {
-      "uid": "mag-m-t",
-      "partId": "core:magazine.missile.s",
-      "x": -11.25,
-      "y": 7.5,
-      "angle": 0
-    },
-    {
-      "uid": "mag-m-b",
-      "partId": "core:magazine.missile.s",
-      "x": -11.25,
-      "y": -7.5,
-      "angle": 0
     },
     {
       "uid": "ac-t",
@@ -1080,28 +1019,28 @@
     {
       "uid": "rcs-t",
       "partId": "core:rcs.s",
-      "x": -13.0,
-      "y": 3.25,
+      "x": -12.25,
+      "y": 1.75,
       "angle": 180
     },
     {
       "uid": "rcs-b",
       "partId": "core:rcs.s",
-      "x": -13.0,
-      "y": -3.25,
+      "x": -12.25,
+      "y": -1.75,
       "angle": 0
     },
     {
       "uid": "rcs-f-t",
       "partId": "core:rcs.s",
-      "x": 11.5,
+      "x": 11.75,
       "y": 7.25,
       "angle": 180
     },
     {
       "uid": "rcs-f-b",
       "partId": "core:rcs.s",
-      "x": 11.5,
+      "x": 11.75,
       "y": -7.25,
       "angle": 0
     }

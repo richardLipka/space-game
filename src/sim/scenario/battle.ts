@@ -12,6 +12,9 @@ import { createWorldFromScenario } from "./setup";
  * tracking and the numbers for the results screen. Pure simulation code: no DOM, no storage.
  */
 
+/** Default guard radius for defensive AI in scenarios (m); matches the Defensive type default. */
+export const GUARD_RADIUS = 2500;
+
 export interface FleetCheck {
   readonly ok: boolean;
   readonly cost: number;
@@ -96,6 +99,7 @@ export function startBattle(
   const enemyShips: Ship[] = [];
   const allyShips: Ship[] = [];
   let protectId: string | null = null;
+  const spawned: Ship[] = [];
   for (const e of scenario.enemies) {
     const d = opts.designs.get(e.designId);
     if (!d) throw new Error(`Scenario ${scenario.id}: unknown design "${e.designId}"`);
@@ -106,6 +110,7 @@ export function startBattle(
       angle: degToRad(e.spawn.angle),
       team: e.team,
     });
+    spawned.push(s);
     if (e.team === 0) {
       allyShips.push(s);
       world.setAi(s.id, profile, { kind: "hold", point: world.physics.getWorldCenter(s.id) });
@@ -116,6 +121,13 @@ export function startBattle(
       world.setAi(s.id, profile);
     }
   }
+  // Guard orders once every ship exists (a guard may protect a ship listed after it).
+  scenario.enemies.forEach((e, i) => {
+    const charge = e.guard !== undefined ? spawned[e.guard] : undefined;
+    if (!charge || e.guard === i) return;
+    const st = world.ai.get(spawned[i]!.id);
+    if (st) st.order = { kind: "guard", target: charge.id, radius: e.guardRadius ?? GUARD_RADIUS };
+  });
   if (scenario.objective.type === "protect" && !protectId)
     throw new Error(
       `Scenario ${scenario.id}: no team-0 ship with design "${scenario.objective.designId}" to protect`,
@@ -162,7 +174,9 @@ export function updateBattle(b: Battle): BattleStatus {
     b.reason = reason;
     b.endTime = w.time;
   };
-  if (b.playerShips.every((s) => s.defeated)) {
+  // A watched battle (no player ships) is decided by the player side's AI ships.
+  const ours = b.playerShips.length ? b.playerShips : b.allyShips;
+  if (ours.length > 0 && ours.every((s) => s.defeated)) {
     end("lost", "All your ships were defeated.");
     return b.status;
   }
