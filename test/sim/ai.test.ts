@@ -319,7 +319,7 @@ describe("M6 combat", () => {
     // Since balance pass 2 (fights of 1–5 min), a few battles end in retreat or stalemate
     // (docs/balance-pass-2.md): 26 of 30 end here, 29 of 30 with the balance harness start positions.
     expect(r.ended / 30).toBeGreaterThanOrEqual(0.85);
-  });
+  }, 120_000); // 30 battles of up to 10 minutes: ~10 s locally, slower on CI runners
 
   it.skipIf(!process.env.BALANCE)(
     "6.11 mirror match (200 seeds, BALANCE=1): win rate 40–60 %, ≥ 95 % end",
