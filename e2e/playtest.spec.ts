@@ -117,6 +117,8 @@ test("B enters eject mode; clicking a part jettisons it as debris", async ({ pag
   await game(page, (g) => g.pause(false));
   await expect.poll(() => game(page, (g) => g.debrisCount())).toBe(1);
   expect(await game(page, (g) => g.partUids())).not.toContain("mag-k");
+  // Pause again so the ship and its escorts hold still while hovering (slow CI runners lag behind).
+  await game(page, (g) => g.pause(true));
   // The command module cannot be ejected.
   await hover("cmd", "cannot eject the command module");
   // The fuel tank carries the main engine behind it: the HUD warns that it leaves too.
