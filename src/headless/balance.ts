@@ -3,6 +3,7 @@ import type { AiProfile } from "../data/schemas/ai";
 import { vec2 } from "../sim/core/vec2";
 import type { PartCatalogue } from "../sim/ship/catalogue";
 import { World } from "../sim/world";
+import { BattleObserver, type BattleMetrics } from "./observe";
 
 /**
  * Balance harness (plan M7 task 6): fights designs against each other headless, AI against AI, and
@@ -34,6 +35,8 @@ export interface MatchResult {
   /** Hull left at the end (fraction). */
   readonly hpA: number;
   readonly hpB: number;
+  /** Engagement time, end reason, throttling and ammunition left (balance tuning). */
+  readonly metrics: BattleMetrics;
 }
 
 const hull = (parts: readonly { hp: number; def: { def: { hp: number } } }[]) => {
@@ -72,8 +75,12 @@ export function runMatch(
   w.setAi(sa.id, opts.profileA);
   w.setAi(sb.id, opts.profileB);
   const ticks = Math.round(limit * 60);
+  const obs = new BattleObserver(w, [sa], [sb]);
   let t = 0;
-  for (; t < ticks && !sa.defeated && !sb.defeated; t++) w.step();
+  for (; t < ticks && !sa.defeated && !sb.defeated; t++) {
+    w.step();
+    obs.tick(1 / 60);
+  }
   const winner = sa.defeated === sb.defeated ? "draw" : sb.defeated ? "a" : "b";
   return {
     a: a.id,
@@ -85,6 +92,7 @@ export function runMatch(
     damageB: { ...(w.combat.damage[sb.id] ?? {}) },
     hpA: hull(sa.parts),
     hpB: hull(sb.parts),
+    metrics: obs.finish(),
   };
 }
 

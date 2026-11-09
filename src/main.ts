@@ -18,7 +18,7 @@ import { IdbLibrary } from "./data/share/idb-library";
 import { MemoryLibrary, type Library } from "./data/share/library";
 import { degToRad, vec2 } from "./sim/core/vec2";
 import { aiProfile, AI_PROFILES } from "./data/ai/index";
-import { BUNDLED_DESIGNS } from "./data/designs/index";
+import { BUNDLED_DESIGNS, FLEET } from "./data/designs/index";
 import { startBattle } from "./sim/scenario/battle";
 import type { Scenario } from "./data/schemas/scenario";
 import { ResultStore } from "./ui/results";
@@ -36,7 +36,7 @@ function must<T>(r: ValidationResult<T>, what: string): T {
 }
 
 const LAST_DESIGN_KEY = "space-game.lastDesignId";
-const SEEDED_KEY = "space-game.seeded.v4";
+const SEEDED_KEY = "space-game.seeded.v5";
 const safeStorage = {
   get(k: string): string | null {
     try {
@@ -87,8 +87,9 @@ async function main(): Promise<void> {
   } catch {
     library = new MemoryLibrary();
   }
+  // Seeding only adds designs that are missing, so a new key brings new ships without touching edits.
   if (!safeStorage.get(SEEDED_KEY)) {
-    for (const d of [fighter, hauler, gunboat, frigate, picket, ...coreDrones, ...newClasses])
+    for (const d of [fighter, hauler, gunboat, frigate, picket, ...coreDrones, ...newClasses, ...FLEET])
       if (!(await library.getDesign(d.id))) await library.putDesign(d);
     safeStorage.set(SEEDED_KEY, "1");
   }
@@ -165,7 +166,7 @@ async function main(): Promise<void> {
 
   const results = new ResultStore();
   /** Scenario battle (spec §12): enemies from bundled and library designs, results saved locally. */
-  const startScenario = (scenario: Scenario, fleet: ShipDesign[]) => {
+  const startScenario = (scenario: Scenario, fleet: ShipDesign[], spectate = false) => {
     void library.listDesigns().then((saved) => {
       const designs = new Map(BUNDLED_DESIGNS);
       for (const d of saved) if (!designs.has(d.id)) designs.set(d.id, d);
@@ -179,9 +180,11 @@ async function main(): Promise<void> {
       flight.start({
         world: battle.world,
         playerShips: battle.playerShips,
-        title: `Scenario ${scenario.order ?? ""}: ${scenario.name}`,
+        title: `${spectate ? "Watching" : "Scenario"} ${scenario.order ?? ""}: ${scenario.name}`,
         battle,
-        onBattleEnd: (b) =>
+        spectate,
+        onBattleEnd: (b) => {
+          if (spectate) return;
           results.add({
             scenarioId: scenario.id,
             won: b.status === "won",
@@ -195,8 +198,9 @@ async function main(): Promise<void> {
             ),
             fleet: fleet.map((d) => d.name),
             at: new Date().toISOString(),
-          }),
-        retry: () => startScenario(scenario, fleet),
+          });
+        },
+        retry: () => startScenario(scenario, fleet, spectate),
       });
     });
   };
@@ -229,7 +233,8 @@ async function main(): Promise<void> {
           { design: picket, profile: "balanced", x: 3800, y: 900 },
         ],
       ),
-    startScenario,
+    startScenario: (s, f) => startScenario(s, f),
+    watchScenario: (s, f) => startScenario(s, f, true),
     results,
     bundledDesign: (id) => BUNDLED_DESIGNS.get(id),
     cycleTheme,

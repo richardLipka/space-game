@@ -1,0 +1,112 @@
+{
+  "formatVersion": 1,
+  "id": "fleet-wasp",
+  "name": "Wasp (autocannon fighter)",
+  "createdAt": "2026-11-09T00:00:00Z",
+  "modifiedAt": "2026-11-09T00:00:00Z",
+  "parts": [
+    {
+      "uid": "eng",
+      "partId": "core:engine.main.s",
+      "x": -3.25,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "tank",
+      "partId": "core:tank.fuel.s",
+      "x": -2.25,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "mag-a",
+      "partId": "core:magazine.autocannon.s",
+      "x": -1.25,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "cmd",
+      "partId": "core:command.s",
+      "x": 0.0,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "nose",
+      "partId": "core:hull.wedge.m",
+      "x": 1.75,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "wing-t",
+      "partId": "core:hull.rect.m",
+      "x": 0.0,
+      "y": 1.25,
+      "angle": 0
+    },
+    {
+      "uid": "wing-b",
+      "partId": "core:hull.rect.m",
+      "x": 0.0,
+      "y": -1.25,
+      "angle": 0
+    },
+    {
+      "uid": "ac-t",
+      "partId": "core:weapon.autocannon.turret.light",
+      "x": 0.35,
+      "y": 2.2581,
+      "angle": 90,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "ac-b",
+      "partId": "core:weapon.autocannon.turret.light",
+      "x": 0.35,
+      "y": -2.2581,
+      "angle": -90,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "rcs-t",
+      "partId": "core:rcs.s",
+      "x": -0.75,
+      "y": 2.0,
+      "angle": 180
+    },
+    {
+      "uid": "rcs-b",
+      "partId": "core:rcs.s",
+      "x": -0.75,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "rcs-a-t",
+      "partId": "core:rcs.s",
+      "x": -1.25,
+      "y": 1.25,
+      "angle": -90
+    },
+    {
+      "uid": "rcs-a-b",
+      "partId": "core:rcs.s",
+      "x": -1.25,
+      "y": -1.25,
+      "angle": -90
+    }
+  ],
+  "weaponGroupModes": {
+    "1": "ai"
+  },
+  "weaponGroups": {
+    "1": {
+      "name": "Autocannons",
+      "priority": "target"
+    }
+  },
+  "powerPriority": ["gyro", "propulsion", "pointDefense", "weapons", "hangar"]
+}

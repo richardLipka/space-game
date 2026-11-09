@@ -1,4 +1,20 @@
 import { expect, test, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
+
+interface CatPart {
+  id: string;
+  magazine?: { capacity: number };
+  weapon?: { internalMagazine: number };
+}
+const catalogue = JSON.parse(
+  readFileSync(new URL("../src/data/core/catalogue.json", import.meta.url), "utf8"),
+) as { parts: CatPart[] };
+
+/** Catalogue numbers the HUD shows (they change with balance passes). */
+const part = (id: string) => catalogue.parts.find((p) => p.id === `core:${id}`)!;
+const KINETIC_MAG = part("magazine.kinetic.s").magazine!.capacity;
+const AUTOCANNON_MAG = part("magazine.autocannon.s").magazine!.capacity;
+const AC_LOADED = part("weapon.autocannon.turret.s").weapon!.internalMagazine;
 
 /** Playtest round 1 feedback: palette search/accordion, part info, HUD ammo/heat, ejection. */
 
@@ -57,9 +73,9 @@ test("palette: categories open and close, search filters, part info shows turret
 test("flight HUD lists ammunition and where heat comes from and goes", async ({ page }) => {
   const errors = await open(page);
   await game(page, (g) => g.openSandbox());
-  await expect(page.getByTestId("ammo-autocannon-30")).toHaveText("600");
-  await expect(page.getByTestId("ammo-kinetic-120")).toHaveText("40");
-  await expect(page.getByTestId("group-2")).toContainText("loaded 60/60");
+  await expect(page.getByTestId("ammo-autocannon-30")).toHaveText(String(AUTOCANNON_MAG));
+  await expect(page.getByTestId("ammo-kinetic-120")).toHaveText(String(KINETIC_MAG));
+  await expect(page.getByTestId("group-2")).toContainText(`loaded ${2 * AC_LOADED}/${2 * AC_LOADED}`);
   await page.keyboard.down("w");
   await expect(page.locator("#hud")).toContainText("engines");
   await page.keyboard.up("w");

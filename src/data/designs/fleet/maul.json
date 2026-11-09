@@ -1,0 +1,201 @@
+{
+  "formatVersion": 1,
+  "id": "fleet-maul",
+  "name": "Maul (cannon gunboat)",
+  "createdAt": "2026-11-09T00:00:00Z",
+  "modifiedAt": "2026-11-09T00:00:00Z",
+  "parts": [
+    {
+      "uid": "eng-t",
+      "partId": "core:engine.main.s",
+      "x": -1.5,
+      "y": 0.75,
+      "angle": 0
+    },
+    {
+      "uid": "eng-b",
+      "partId": "core:engine.main.s",
+      "x": -1.5,
+      "y": -0.75,
+      "angle": 0
+    },
+    {
+      "uid": "tank",
+      "partId": "core:tank.fuel.m",
+      "x": 0.0,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "cmd",
+      "partId": "core:command.s",
+      "x": 1.75,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "rea",
+      "partId": "core:reactor.s",
+      "x": 3.25,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "mag-k",
+      "partId": "core:magazine.kinetic.s",
+      "x": 4.5,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "gun",
+      "partId": "core:weapon.cannon.fixed.m",
+      "x": 6.5,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "beam-t",
+      "partId": "core:hull.rect.m",
+      "x": 2.0,
+      "y": 1.25,
+      "angle": 0
+    },
+    {
+      "uid": "beam-b",
+      "partId": "core:hull.rect.m",
+      "x": 2.0,
+      "y": -1.25,
+      "angle": 0
+    },
+    {
+      "uid": "ml-t",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": 6.25,
+      "y": 1.0,
+      "angle": 0,
+      "weaponGroup": 2
+    },
+    {
+      "uid": "ml-b",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": 6.25,
+      "y": -1.0,
+      "angle": 0,
+      "weaponGroup": 2
+    },
+    {
+      "uid": "mag-m-t",
+      "partId": "core:magazine.missile.s",
+      "x": 4.75,
+      "y": 1.0,
+      "angle": 0
+    },
+    {
+      "uid": "mag-m-b",
+      "partId": "core:magazine.missile.s",
+      "x": 4.75,
+      "y": -1.0,
+      "angle": 0
+    },
+    {
+      "uid": "gyro-t",
+      "partId": "core:gyro.s",
+      "x": 0.0,
+      "y": 1.5,
+      "angle": 0
+    },
+    {
+      "uid": "gyro-b",
+      "partId": "core:gyro.s",
+      "x": 0.0,
+      "y": -1.5,
+      "angle": 0
+    },
+    {
+      "uid": "mag-pd-t",
+      "partId": "core:magazine.pd.s",
+      "x": 3.5,
+      "y": 1.25,
+      "angle": 0
+    },
+    {
+      "uid": "mag-pd-b",
+      "partId": "core:magazine.pd.s",
+      "x": 3.5,
+      "y": -1.25,
+      "angle": 0
+    },
+    {
+      "uid": "pd-t",
+      "partId": "core:weapon.pd.gatling.s",
+      "x": 4.75,
+      "y": 1.9619,
+      "angle": 90
+    },
+    {
+      "uid": "pd-b",
+      "partId": "core:weapon.pd.gatling.s",
+      "x": 4.75,
+      "y": -1.9619,
+      "angle": -90
+    },
+    {
+      "uid": "rad-t",
+      "partId": "core:radiator.s",
+      "x": 0.0,
+      "y": 3.0,
+      "angle": 90
+    },
+    {
+      "uid": "rad-b",
+      "partId": "core:radiator.s",
+      "x": 0.0,
+      "y": -3.0,
+      "angle": -90
+    },
+    {
+      "uid": "rcs-t",
+      "partId": "core:rcs.s",
+      "x": -1.5,
+      "y": 1.75,
+      "angle": 180
+    },
+    {
+      "uid": "rcs-b",
+      "partId": "core:rcs.s",
+      "x": -1.5,
+      "y": -1.75,
+      "angle": 0
+    },
+    {
+      "uid": "rcs-f-t",
+      "partId": "core:rcs.s",
+      "x": 6.5,
+      "y": 1.75,
+      "angle": 180
+    },
+    {
+      "uid": "rcs-f-b",
+      "partId": "core:rcs.s",
+      "x": 6.5,
+      "y": -1.75,
+      "angle": 0
+    }
+  ],
+  "weaponGroupModes": {
+    "1": "manual",
+    "2": "manual"
+  },
+  "weaponGroups": {
+    "1": {
+      "name": "Cannon",
+      "priority": "target"
+    },
+    "2": {
+      "name": "Missiles",
+      "priority": "threat"
+    }
+  },
+  "powerPriority": ["gyro", "propulsion", "pointDefense", "weapons", "hangar"]
+}

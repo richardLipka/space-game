@@ -14,6 +14,8 @@ const catR = validateCatalogue(
 );
 if (!catR.ok) throw new Error(catR.errors.join("\n"));
 const cat = PartCatalogue.fromJson(catR.value);
+/** HP of a hull plate S (the wrecks below). */
+const PLATE = cat.get("core:hull.square.s").def.hp;
 const NOW = "2026-11-09T00:00:00Z";
 const D = (parts: [string, string, number, number][]): ShipDesign => ({
   formatVersion: 1,
@@ -49,18 +51,18 @@ describe("wreck shadow life", () => {
     const w = new World({ seed: 1 });
     const s = w.addShip(row, cat);
     s.destroyPart("b");
-    expect(s.part("b").wreckHp).toBe(60);
+    expect(s.part("b").wreckHp).toBe(PLATE);
     w.combat.projectiles = [round(20, 40)];
     for (let i = 0; i < 10; i++) stepProjectiles(w, SIM_DT);
-    expect(s.part("b").wreckHp).toBeCloseTo(60 - 40 * COMBAT.wreckAbsorb, 6); // b absorbed half
-    expect(60 - s.part("a").hp).toBeCloseTo(40 * (1 - COMBAT.wreckAbsorb), 6); // a took the rest
+    expect(s.part("b").wreckHp).toBeCloseTo(PLATE - 40 * COMBAT.wreckAbsorb, 6); // b absorbed half
+    expect(PLATE - s.part("a").hp).toBeCloseTo(40 * (1 - COMBAT.wreckAbsorb), 6); // a took the rest
   });
 
   it("when the shadow life runs out the wreck breaks off and is gone; what hung on it drifts off as debris", () => {
     const w = new World({ seed: 1 });
     const s = w.addShip(row, cat);
     s.destroyPart("a");
-    s.damageWreck("a", 59);
+    s.damageWreck("a", PLATE - 1);
     w.step();
     expect(s.parts.map((p) => p.uid)).toEqual(["cmd", "a", "b"]);
     s.damageWreck("a", 1);
@@ -88,9 +90,9 @@ describe("wreck shadow life", () => {
     const s = w.addShip(row, cat);
     s.destroyPart("b");
     s.applyBlast(vec2(2.25, 0), 5, 30);
-    expect(s.part("b").wreckHp).toBeCloseTo(30, 6);
+    expect(s.part("b").wreckHp).toBeCloseTo(PLATE - 30, 6);
     s.applyDamage("b", 10);
-    expect(s.part("b").wreckHp).toBeCloseTo(20, 6);
+    expect(s.part("b").wreckHp).toBeCloseTo(PLATE - 40, 6);
   });
 });
 
@@ -118,10 +120,11 @@ describe("store explosions", () => {
       s.part("mag").ammo = rounds;
       s.destroyPart("mag");
       w.step();
-      return 400 - s.part("n").hp;
+      return cat.get("core:armor.square.s").def.hp - s.part("n").hp;
     };
-    const full = blastWith(40);
-    const few = blastWith(4);
+    const cap = cat.get("core:magazine.kinetic.s").def.magazine!.capacity;
+    const full = blastWith(cap);
+    const few = blastWith(cap / 10);
     expect(full).toBeGreaterThan(0);
     expect(few).toBeGreaterThan(0);
     expect(full / few).toBeGreaterThan(5);

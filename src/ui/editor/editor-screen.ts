@@ -48,6 +48,8 @@ export interface EditorServices {
   openSkirmish(): void;
   /** Starts a scenario battle with this fleet (spec §12). */
   startScenario(scenario: Scenario, fleet: ShipDesign[]): void;
+  /** Watches the scenario fought AI against AI (balance tooling). */
+  watchScenario(scenario: Scenario, fleet: ShipDesign[]): void;
   /** Saved scenario results. */
   readonly results: ResultStore;
   /** Designs shipped with the game (scenario reference fleets). */
@@ -648,8 +650,24 @@ export class EditorScreen {
         );
     });
     if (!check.ok) start.setAttribute("disabled", "");
+    // Watch: the AI flies this fleet (or the suggested one when it is empty or invalid).
+    const watch = this.button("Watch AI battle", "btn-watch-battle", () => {
+      const own = checkFleet(s, this.fleet, cat).ok ? this.fleet : [];
+      const fleet = own.length
+        ? own
+        : (s.referenceDesigns ?? []).flatMap((id) => {
+            const d = this.services.bundledDesign(id);
+            return d ? [d] : [];
+          });
+      if (fleet.length)
+        this.services.watchScenario(
+          s,
+          fleet.map((d) => structuredClone(d)),
+        );
+    });
+    watch.title = "The AI flies your fleet (or the suggested one) against the scenario's enemies";
     const leave = this.button("Leave scenario", "btn-leave-scenario", () => this.setScenario(null));
-    box.append(el("div", { class: "ed-scenario-actions" }, start, leave));
+    box.append(el("div", { class: "ed-scenario-actions" }, start, watch, leave));
     if (s.hints?.length) {
       const hints = el("ul", { class: "ed-hints" });
       for (const h of s.hints) hints.append(el("li", {}, h));

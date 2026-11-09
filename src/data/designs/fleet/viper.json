@@ -1,0 +1,313 @@
+{
+  "formatVersion": 1,
+  "id": "fleet-viper",
+  "name": "Viper (missile-laser destroyer)",
+  "createdAt": "2026-11-09T00:00:00Z",
+  "modifiedAt": "2026-11-09T00:00:00Z",
+  "parts": [
+    {
+      "uid": "eng",
+      "partId": "core:engine.main.l",
+      "x": -5.0,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "tank",
+      "partId": "core:tank.fuel.m",
+      "x": -3.0,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "gyro",
+      "partId": "core:gyro.s",
+      "x": -1.5,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "bat",
+      "partId": "core:battery.s",
+      "x": -0.5,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "rea",
+      "partId": "core:reactor.s",
+      "x": 0.75,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "cmd",
+      "partId": "core:command.s",
+      "x": 2.25,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "rea2",
+      "partId": "core:reactor.s",
+      "x": 3.75,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "hull",
+      "partId": "core:hull.square.m",
+      "x": 5.5,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "ml-t",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": 7.25,
+      "y": 0.5,
+      "angle": 0,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "ml-b",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": 7.25,
+      "y": -0.5,
+      "angle": 0,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "r2mm3-t",
+      "partId": "core:hull.square.m",
+      "x": -3.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2mm3-b",
+      "partId": "core:hull.square.m",
+      "x": -3.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2mm1-t",
+      "partId": "core:hull.square.m",
+      "x": -1.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2mm1-b",
+      "partId": "core:hull.square.m",
+      "x": -1.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m1-t",
+      "partId": "core:hull.square.m",
+      "x": 1.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m1-b",
+      "partId": "core:hull.square.m",
+      "x": 1.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m3-t",
+      "partId": "core:hull.square.m",
+      "x": 3.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m3-b",
+      "partId": "core:hull.square.m",
+      "x": 3.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m5-t",
+      "partId": "core:hull.square.m",
+      "x": 5.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m5-b",
+      "partId": "core:hull.square.m",
+      "x": 5.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "ml2-t",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": 6.75,
+      "y": 1.5,
+      "angle": 0,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "ml2-b",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": 6.75,
+      "y": -1.5,
+      "angle": 0,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "pd-t",
+      "partId": "core:weapon.pd.gatling.s",
+      "x": 6.75,
+      "y": 2.4619,
+      "angle": 90
+    },
+    {
+      "uid": "pd-b",
+      "partId": "core:weapon.pd.gatling.s",
+      "x": 6.75,
+      "y": -2.4619,
+      "angle": -90
+    },
+    {
+      "uid": "rad-t",
+      "partId": "core:radiator.s",
+      "x": -3.5,
+      "y": 4.0,
+      "angle": 90
+    },
+    {
+      "uid": "rad-b",
+      "partId": "core:radiator.s",
+      "x": -3.5,
+      "y": -4.0,
+      "angle": -90
+    },
+    {
+      "uid": "rad2-t",
+      "partId": "core:radiator.s",
+      "x": -2.5,
+      "y": 4.0,
+      "angle": 90
+    },
+    {
+      "uid": "rad2-b",
+      "partId": "core:radiator.s",
+      "x": -2.5,
+      "y": -4.0,
+      "angle": -90
+    },
+    {
+      "uid": "mag-m-t",
+      "partId": "core:magazine.missile.s",
+      "x": -1.0,
+      "y": 3.5,
+      "angle": 0
+    },
+    {
+      "uid": "mag-m-b",
+      "partId": "core:magazine.missile.s",
+      "x": -1.0,
+      "y": -3.5,
+      "angle": 0
+    },
+    {
+      "uid": "las-t",
+      "partId": "core:weapon.laser.turret.s",
+      "x": 0.75,
+      "y": 3.6929,
+      "angle": 90,
+      "weaponGroup": 2
+    },
+    {
+      "uid": "las-b",
+      "partId": "core:weapon.laser.turret.s",
+      "x": 0.75,
+      "y": -3.6929,
+      "angle": -90,
+      "weaponGroup": 2
+    },
+    {
+      "uid": "mag-pd-t",
+      "partId": "core:magazine.pd.s",
+      "x": 2.25,
+      "y": 3.5,
+      "angle": 0
+    },
+    {
+      "uid": "mag-pd-b",
+      "partId": "core:magazine.pd.s",
+      "x": 2.25,
+      "y": -3.5,
+      "angle": 0
+    },
+    {
+      "uid": "las2-t",
+      "partId": "core:weapon.laser.turret.s",
+      "x": 3.75,
+      "y": 3.6929,
+      "angle": 90,
+      "weaponGroup": 2
+    },
+    {
+      "uid": "las2-b",
+      "partId": "core:weapon.laser.turret.s",
+      "x": 3.75,
+      "y": -3.6929,
+      "angle": -90,
+      "weaponGroup": 2
+    },
+    {
+      "uid": "rcs-t",
+      "partId": "core:rcs.s",
+      "x": -5.0,
+      "y": 1.75,
+      "angle": 180
+    },
+    {
+      "uid": "rcs-b",
+      "partId": "core:rcs.s",
+      "x": -5.0,
+      "y": -1.75,
+      "angle": 0
+    },
+    {
+      "uid": "rcs-f-t",
+      "partId": "core:rcs.s",
+      "x": 5.5,
+      "y": 3.25,
+      "angle": 180
+    },
+    {
+      "uid": "rcs-f-b",
+      "partId": "core:rcs.s",
+      "x": 5.5,
+      "y": -3.25,
+      "angle": 0
+    }
+  ],
+  "weaponGroupModes": {
+    "1": "manual",
+    "2": "ai"
+  },
+  "weaponGroups": {
+    "1": {
+      "name": "Missiles",
+      "priority": "threat"
+    },
+    "2": {
+      "name": "Lasers",
+      "range": 1100,
+      "priority": "target"
+    }
+  },
+  "powerPriority": ["gyro", "propulsion", "pointDefense", "weapons", "hangar"]
+}

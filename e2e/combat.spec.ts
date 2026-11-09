@@ -1,4 +1,20 @@
 import { expect, test, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
+
+interface CatPart {
+  id: string;
+  magazine?: { capacity: number };
+  weapon?: { internalMagazine: number };
+}
+const catalogue = JSON.parse(
+  readFileSync(new URL("../src/data/core/catalogue.json", import.meta.url), "utf8"),
+) as { parts: CatPart[] };
+
+/** Catalogue numbers the HUD shows (they change with balance passes). */
+const part = (id: string) => catalogue.parts.find((p) => p.id === `core:${id}`)!;
+const KINETIC_MAG = part("magazine.kinetic.s").magazine!.capacity;
+const AUTOCANNON_MAG = part("magazine.autocannon.s").magazine!.capacity;
+const CANNON_LOADED = part("weapon.cannon.fixed.m").weapon!.internalMagazine;
 
 interface Game {
   openSandbox(): void;
@@ -51,9 +67,9 @@ test("4.24 select group 2, aim at the dummy, fire: its hull drops in the HUD", a
     })
     .toBeLessThan(100);
   // Group 2 ammo was used; group 1 (fixed cannon, unselected) still full.
-  await expect(page.getByTestId("group-1")).toContainText("loaded 4/4");
-  await expect(page.getByTestId("ammo-kinetic-120")).toHaveText("40");
-  expect(Number(await page.getByTestId("ammo-autocannon-30").textContent())).toBeLessThan(600);
+  await expect(page.getByTestId("group-1")).toContainText(`loaded ${CANNON_LOADED}/${CANNON_LOADED}`);
+  await expect(page.getByTestId("ammo-kinetic-120")).toHaveText(String(KINETIC_MAG));
+  expect(Number(await page.getByTestId("ammo-autocannon-30").textContent())).toBeLessThan(AUTOCANNON_MAG);
   expect(errors).toEqual([]);
 });
 

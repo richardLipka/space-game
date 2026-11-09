@@ -1,0 +1,601 @@
+{
+  "formatVersion": 1,
+  "id": "fleet-anvil",
+  "name": "Anvil (kinetic cruiser)",
+  "createdAt": "2026-11-09T00:00:00Z",
+  "modifiedAt": "2026-11-09T00:00:00Z",
+  "parts": [
+    {
+      "uid": "eng",
+      "partId": "core:engine.main.l",
+      "x": -9.0,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "tank",
+      "partId": "core:tank.fuel.m",
+      "x": -7.0,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "tank2",
+      "partId": "core:tank.fuel.m",
+      "x": -5.0,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "gyro1",
+      "partId": "core:gyro.s",
+      "x": -3.5,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "gyro2",
+      "partId": "core:gyro.s",
+      "x": -2.5,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "rea",
+      "partId": "core:reactor.s",
+      "x": -1.25,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "cmd",
+      "partId": "core:command.s",
+      "x": 0.25,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "mag-k",
+      "partId": "core:magazine.kinetic.s",
+      "x": 1.5,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "mag-k2",
+      "partId": "core:magazine.kinetic.s",
+      "x": 2.5,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "hull1",
+      "partId": "core:hull.square.m",
+      "x": 4.0,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "hull2",
+      "partId": "core:hull.square.m",
+      "x": 6.0,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "hull3",
+      "partId": "core:hull.square.m",
+      "x": 8.0,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "hv",
+      "partId": "core:weapon.cannon.turret.m",
+      "x": 10.0163,
+      "y": 0.0,
+      "angle": 0,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "r2mm7-t",
+      "partId": "core:hull.square.m",
+      "x": -7.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2mm7-b",
+      "partId": "core:hull.square.m",
+      "x": -7.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2mm5-t",
+      "partId": "core:hull.square.m",
+      "x": -5.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2mm5-b",
+      "partId": "core:hull.square.m",
+      "x": -5.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2mm3-t",
+      "partId": "core:hull.square.m",
+      "x": -3.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2mm3-b",
+      "partId": "core:hull.square.m",
+      "x": -3.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m3-t",
+      "partId": "core:hull.square.m",
+      "x": 3.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m3-b",
+      "partId": "core:hull.square.m",
+      "x": 3.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m5-t",
+      "partId": "core:hull.square.m",
+      "x": 5.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m5-b",
+      "partId": "core:hull.square.m",
+      "x": 5.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m7-t",
+      "partId": "core:hull.square.m",
+      "x": 7.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m7-b",
+      "partId": "core:hull.square.m",
+      "x": 7.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "gyro3-t",
+      "partId": "core:gyro.s",
+      "x": 0.5,
+      "y": 1.5,
+      "angle": 0
+    },
+    {
+      "uid": "gyro3-b",
+      "partId": "core:gyro.s",
+      "x": 0.5,
+      "y": -1.5,
+      "angle": 0
+    },
+    {
+      "uid": "gyro4-t",
+      "partId": "core:gyro.s",
+      "x": 1.5,
+      "y": 1.5,
+      "angle": 0
+    },
+    {
+      "uid": "gyro4-b",
+      "partId": "core:gyro.s",
+      "x": 1.5,
+      "y": -1.5,
+      "angle": 0
+    },
+    {
+      "uid": "mag-a-t",
+      "partId": "core:magazine.autocannon.s",
+      "x": -1.5,
+      "y": 1.5,
+      "angle": 0
+    },
+    {
+      "uid": "mag-a-b",
+      "partId": "core:magazine.autocannon.s",
+      "x": -1.5,
+      "y": -1.5,
+      "angle": 0
+    },
+    {
+      "uid": "mag-pd-t",
+      "partId": "core:magazine.pd.s",
+      "x": -0.5,
+      "y": 1.5,
+      "angle": 0
+    },
+    {
+      "uid": "mag-pd-b",
+      "partId": "core:magazine.pd.s",
+      "x": -0.5,
+      "y": -1.5,
+      "angle": 0
+    },
+    {
+      "uid": "r4mm5-t",
+      "partId": "core:hull.square.m",
+      "x": -5.0,
+      "y": 4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4mm5-b",
+      "partId": "core:hull.square.m",
+      "x": -5.0,
+      "y": -4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4mm3-t",
+      "partId": "core:hull.square.m",
+      "x": -3.0,
+      "y": 4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4mm3-b",
+      "partId": "core:hull.square.m",
+      "x": -3.0,
+      "y": -4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4m1-t",
+      "partId": "core:hull.square.m",
+      "x": 1.0,
+      "y": 4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4m1-b",
+      "partId": "core:hull.square.m",
+      "x": 1.0,
+      "y": -4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4m3-t",
+      "partId": "core:hull.square.m",
+      "x": 3.0,
+      "y": 4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4m3-b",
+      "partId": "core:hull.square.m",
+      "x": 3.0,
+      "y": -4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4m5-t",
+      "partId": "core:hull.square.m",
+      "x": 5.0,
+      "y": 4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4m5-b",
+      "partId": "core:hull.square.m",
+      "x": 5.0,
+      "y": -4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4m7-t",
+      "partId": "core:hull.square.m",
+      "x": 7.0,
+      "y": 4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4m7-b",
+      "partId": "core:hull.square.m",
+      "x": 7.0,
+      "y": -4.0,
+      "angle": 0
+    },
+    {
+      "uid": "sink1-t",
+      "partId": "core:heatsink.s",
+      "x": -1.5,
+      "y": 3.5,
+      "angle": 0
+    },
+    {
+      "uid": "sink1-b",
+      "partId": "core:heatsink.s",
+      "x": -1.5,
+      "y": -3.5,
+      "angle": 0
+    },
+    {
+      "uid": "sink2-t",
+      "partId": "core:heatsink.s",
+      "x": -0.5,
+      "y": 3.5,
+      "angle": 0
+    },
+    {
+      "uid": "sink2-b",
+      "partId": "core:heatsink.s",
+      "x": -0.5,
+      "y": -3.5,
+      "angle": 0
+    },
+    {
+      "uid": "sink3-t",
+      "partId": "core:heatsink.s",
+      "x": -1.5,
+      "y": 4.5,
+      "angle": 0
+    },
+    {
+      "uid": "sink3-b",
+      "partId": "core:heatsink.s",
+      "x": -1.5,
+      "y": -4.5,
+      "angle": 0
+    },
+    {
+      "uid": "sink4-t",
+      "partId": "core:heatsink.s",
+      "x": -0.5,
+      "y": 4.5,
+      "angle": 0
+    },
+    {
+      "uid": "sink4-b",
+      "partId": "core:heatsink.s",
+      "x": -0.5,
+      "y": -4.5,
+      "angle": 0
+    },
+    {
+      "uid": "gun-t",
+      "partId": "core:weapon.cannon.fixed.m",
+      "x": 9.5,
+      "y": 2.0,
+      "angle": 0,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "gun-b",
+      "partId": "core:weapon.cannon.fixed.m",
+      "x": 9.5,
+      "y": -2.0,
+      "angle": 0,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "hv2-t",
+      "partId": "core:weapon.cannon.turret.m",
+      "x": 9.0163,
+      "y": 4.0,
+      "angle": 0,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "hv2-b",
+      "partId": "core:weapon.cannon.turret.m",
+      "x": 9.0163,
+      "y": -4.0,
+      "angle": 0,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "ac-t",
+      "partId": "core:weapon.autocannon.turret.s",
+      "x": -3.0,
+      "y": 5.6929,
+      "angle": 90,
+      "weaponGroup": 2
+    },
+    {
+      "uid": "ac-b",
+      "partId": "core:weapon.autocannon.turret.s",
+      "x": -3.0,
+      "y": -5.6929,
+      "angle": -90,
+      "weaponGroup": 2
+    },
+    {
+      "uid": "ac2-t",
+      "partId": "core:weapon.autocannon.turret.s",
+      "x": 1.0,
+      "y": 5.6929,
+      "angle": 90,
+      "weaponGroup": 2
+    },
+    {
+      "uid": "ac2-b",
+      "partId": "core:weapon.autocannon.turret.s",
+      "x": 1.0,
+      "y": -5.6929,
+      "angle": -90,
+      "weaponGroup": 2
+    },
+    {
+      "uid": "pd-t",
+      "partId": "core:weapon.pd.gatling.s",
+      "x": -5.25,
+      "y": 5.4619,
+      "angle": 90
+    },
+    {
+      "uid": "pd-b",
+      "partId": "core:weapon.pd.gatling.s",
+      "x": -5.25,
+      "y": -5.4619,
+      "angle": -90
+    },
+    {
+      "uid": "pd2-t",
+      "partId": "core:weapon.pd.gatling.s",
+      "x": 4.25,
+      "y": 5.4619,
+      "angle": 90
+    },
+    {
+      "uid": "pd2-b",
+      "partId": "core:weapon.pd.gatling.s",
+      "x": 4.25,
+      "y": -5.4619,
+      "angle": -90
+    },
+    {
+      "uid": "rad-t",
+      "partId": "core:radiator.s",
+      "x": -7.5,
+      "y": 4.0,
+      "angle": 90
+    },
+    {
+      "uid": "rad-b",
+      "partId": "core:radiator.s",
+      "x": -7.5,
+      "y": -4.0,
+      "angle": -90
+    },
+    {
+      "uid": "rad2-t",
+      "partId": "core:radiator.s",
+      "x": -6.5,
+      "y": 4.0,
+      "angle": 90
+    },
+    {
+      "uid": "rad2-b",
+      "partId": "core:radiator.s",
+      "x": -6.5,
+      "y": -4.0,
+      "angle": -90
+    },
+    {
+      "uid": "rad3-t",
+      "partId": "core:radiator.s",
+      "x": -1.5,
+      "y": 6.0,
+      "angle": 90
+    },
+    {
+      "uid": "rad3-b",
+      "partId": "core:radiator.s",
+      "x": -1.5,
+      "y": -6.0,
+      "angle": -90
+    },
+    {
+      "uid": "rad4-t",
+      "partId": "core:radiator.s",
+      "x": -0.5,
+      "y": 6.0,
+      "angle": 90
+    },
+    {
+      "uid": "rad4-b",
+      "partId": "core:radiator.s",
+      "x": -0.5,
+      "y": -6.0,
+      "angle": -90
+    },
+    {
+      "uid": "rad5-t",
+      "partId": "core:radiator.s",
+      "x": 2.5,
+      "y": 6.0,
+      "angle": 90
+    },
+    {
+      "uid": "rad5-b",
+      "partId": "core:radiator.s",
+      "x": 2.5,
+      "y": -6.0,
+      "angle": -90
+    },
+    {
+      "uid": "rad6-t",
+      "partId": "core:radiator.s",
+      "x": 3.25,
+      "y": 6.0,
+      "angle": 90
+    },
+    {
+      "uid": "rad6-b",
+      "partId": "core:radiator.s",
+      "x": 3.25,
+      "y": -6.0,
+      "angle": -90
+    },
+    {
+      "uid": "rcs-t",
+      "partId": "core:rcs.s",
+      "x": -9.0,
+      "y": 1.75,
+      "angle": 180
+    },
+    {
+      "uid": "rcs-b",
+      "partId": "core:rcs.s",
+      "x": -9.0,
+      "y": -1.75,
+      "angle": 0
+    },
+    {
+      "uid": "rcs-f-t",
+      "partId": "core:rcs.s",
+      "x": 6.25,
+      "y": 5.25,
+      "angle": 180
+    },
+    {
+      "uid": "rcs-f-b",
+      "partId": "core:rcs.s",
+      "x": 6.25,
+      "y": -5.25,
+      "angle": 0
+    }
+  ],
+  "weaponGroupModes": {
+    "1": "manual",
+    "2": "ai"
+  },
+  "weaponGroups": {
+    "1": {
+      "name": "Forward guns",
+      "priority": "target"
+    },
+    "2": {
+      "name": "Autocannons",
+      "range": 1200,
+      "priority": "drones"
+    }
+  },
+  "powerPriority": ["gyro", "propulsion", "pointDefense", "weapons", "hangar"]
+}

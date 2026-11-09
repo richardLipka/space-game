@@ -1,0 +1,510 @@
+{
+  "formatVersion": 1,
+  "id": "fleet-squall",
+  "name": "Squall (missile cruiser)",
+  "createdAt": "2026-11-09T00:00:00Z",
+  "modifiedAt": "2026-11-09T00:00:00Z",
+  "parts": [
+    {
+      "uid": "eng",
+      "partId": "core:engine.main.l",
+      "x": -9.0,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "tank",
+      "partId": "core:tank.fuel.m",
+      "x": -7.0,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "tank2",
+      "partId": "core:tank.fuel.m",
+      "x": -5.0,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "gyro1",
+      "partId": "core:gyro.s",
+      "x": -3.5,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "gyro2",
+      "partId": "core:gyro.s",
+      "x": -2.5,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "rea",
+      "partId": "core:reactor.s",
+      "x": -1.25,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "cmd",
+      "partId": "core:command.s",
+      "x": 0.25,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "mag-pd",
+      "partId": "core:magazine.pd.s",
+      "x": 1.5,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "mag-f",
+      "partId": "core:magazine.flak.s",
+      "x": 2.5,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "hull1",
+      "partId": "core:hull.square.m",
+      "x": 4.0,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "hull2",
+      "partId": "core:hull.square.m",
+      "x": 6.0,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "hull3",
+      "partId": "core:hull.square.m",
+      "x": 8.0,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "nose",
+      "partId": "core:hull.wedge.m",
+      "x": 10.0,
+      "y": 0.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2mm7-t",
+      "partId": "core:hull.square.m",
+      "x": -7.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2mm7-b",
+      "partId": "core:hull.square.m",
+      "x": -7.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2mm5-t",
+      "partId": "core:hull.square.m",
+      "x": -5.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2mm5-b",
+      "partId": "core:hull.square.m",
+      "x": -5.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2mm3-t",
+      "partId": "core:hull.square.m",
+      "x": -3.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2mm3-b",
+      "partId": "core:hull.square.m",
+      "x": -3.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2mm1-t",
+      "partId": "core:hull.square.m",
+      "x": -1.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2mm1-b",
+      "partId": "core:hull.square.m",
+      "x": -1.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m1-t",
+      "partId": "core:hull.square.m",
+      "x": 1.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m1-b",
+      "partId": "core:hull.square.m",
+      "x": 1.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m3-t",
+      "partId": "core:hull.square.m",
+      "x": 3.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m3-b",
+      "partId": "core:hull.square.m",
+      "x": 3.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m5-t",
+      "partId": "core:hull.square.m",
+      "x": 5.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m5-b",
+      "partId": "core:hull.square.m",
+      "x": 5.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m7-t",
+      "partId": "core:hull.square.m",
+      "x": 7.0,
+      "y": 2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r2m7-b",
+      "partId": "core:hull.square.m",
+      "x": 7.0,
+      "y": -2.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4mm5-t",
+      "partId": "core:hull.square.m",
+      "x": -5.0,
+      "y": 4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4mm5-b",
+      "partId": "core:hull.square.m",
+      "x": -5.0,
+      "y": -4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4mm3-t",
+      "partId": "core:hull.square.m",
+      "x": -3.0,
+      "y": 4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4mm3-b",
+      "partId": "core:hull.square.m",
+      "x": -3.0,
+      "y": -4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4mm1-t",
+      "partId": "core:hull.square.m",
+      "x": -1.0,
+      "y": 4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4mm1-b",
+      "partId": "core:hull.square.m",
+      "x": -1.0,
+      "y": -4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4m1-t",
+      "partId": "core:hull.square.m",
+      "x": 1.0,
+      "y": 4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4m1-b",
+      "partId": "core:hull.square.m",
+      "x": 1.0,
+      "y": -4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4m3-t",
+      "partId": "core:hull.square.m",
+      "x": 3.0,
+      "y": 4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4m3-b",
+      "partId": "core:hull.square.m",
+      "x": 3.0,
+      "y": -4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4m5-t",
+      "partId": "core:hull.square.m",
+      "x": 5.0,
+      "y": 4.0,
+      "angle": 0
+    },
+    {
+      "uid": "r4m5-b",
+      "partId": "core:hull.square.m",
+      "x": 5.0,
+      "y": -4.0,
+      "angle": 0
+    },
+    {
+      "uid": "ml1-t",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": -5.0,
+      "y": 5.75,
+      "angle": 90,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "ml1-b",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": -5.0,
+      "y": -5.75,
+      "angle": -90,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "ml2-t",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": -3.0,
+      "y": 5.75,
+      "angle": 90,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "ml2-b",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": -3.0,
+      "y": -5.75,
+      "angle": -90,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "ml3-t",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": 1.0,
+      "y": 5.75,
+      "angle": 90,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "ml3-b",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": 1.0,
+      "y": -5.75,
+      "angle": -90,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "ml4-t",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": 3.0,
+      "y": 5.75,
+      "angle": 90,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "ml4-b",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": 3.0,
+      "y": -5.75,
+      "angle": -90,
+      "weaponGroup": 1
+    },
+    {
+      "uid": "mag-m-t",
+      "partId": "core:magazine.missile.s",
+      "x": -1.0,
+      "y": 5.5,
+      "angle": 0
+    },
+    {
+      "uid": "mag-m-b",
+      "partId": "core:magazine.missile.s",
+      "x": -1.0,
+      "y": -5.5,
+      "angle": 0
+    },
+    {
+      "uid": "mag-m2-t",
+      "partId": "core:magazine.missile.s",
+      "x": 5.0,
+      "y": 5.5,
+      "angle": 0
+    },
+    {
+      "uid": "mag-m2-b",
+      "partId": "core:magazine.missile.s",
+      "x": 5.0,
+      "y": -5.5,
+      "angle": 0
+    },
+    {
+      "uid": "rad1-t",
+      "partId": "core:radiator.s",
+      "x": -2.125,
+      "y": 6.0,
+      "angle": 90
+    },
+    {
+      "uid": "rad1-b",
+      "partId": "core:radiator.s",
+      "x": -2.125,
+      "y": -6.0,
+      "angle": -90
+    },
+    {
+      "uid": "rad2-t",
+      "partId": "core:radiator.s",
+      "x": 0.125,
+      "y": 6.0,
+      "angle": 90
+    },
+    {
+      "uid": "rad2-b",
+      "partId": "core:radiator.s",
+      "x": 0.125,
+      "y": -6.0,
+      "angle": -90
+    },
+    {
+      "uid": "rad3-t",
+      "partId": "core:radiator.s",
+      "x": 2.0,
+      "y": 6.0,
+      "angle": 90
+    },
+    {
+      "uid": "rad3-b",
+      "partId": "core:radiator.s",
+      "x": 2.0,
+      "y": -6.0,
+      "angle": -90
+    },
+    {
+      "uid": "rad4-t",
+      "partId": "core:radiator.s",
+      "x": 3.875,
+      "y": 6.0,
+      "angle": 90
+    },
+    {
+      "uid": "rad4-b",
+      "partId": "core:radiator.s",
+      "x": 3.875,
+      "y": -6.0,
+      "angle": -90
+    },
+    {
+      "uid": "pd-t",
+      "partId": "core:weapon.pd.gatling.s",
+      "x": 7.25,
+      "y": 3.4619,
+      "angle": 90
+    },
+    {
+      "uid": "pd-b",
+      "partId": "core:weapon.pd.gatling.s",
+      "x": 7.25,
+      "y": -3.4619,
+      "angle": -90
+    },
+    {
+      "uid": "flak-t",
+      "partId": "core:weapon.pd.flak.s",
+      "x": -6.9,
+      "y": 3.5543,
+      "angle": 90
+    },
+    {
+      "uid": "flak-b",
+      "partId": "core:weapon.pd.flak.s",
+      "x": -6.9,
+      "y": -3.5543,
+      "angle": -90
+    },
+    {
+      "uid": "rcs-t",
+      "partId": "core:rcs.s",
+      "x": -9.0,
+      "y": 1.75,
+      "angle": 180
+    },
+    {
+      "uid": "rcs-b",
+      "partId": "core:rcs.s",
+      "x": -9.0,
+      "y": -1.75,
+      "angle": 0
+    },
+    {
+      "uid": "rcs-f-t",
+      "partId": "core:rcs.s",
+      "x": 6.25,
+      "y": 3.25,
+      "angle": 180
+    },
+    {
+      "uid": "rcs-f-b",
+      "partId": "core:rcs.s",
+      "x": 6.25,
+      "y": -3.25,
+      "angle": 0
+    }
+  ],
+  "weaponGroupModes": {
+    "1": "manual"
+  },
+  "weaponGroups": {
+    "1": {
+      "name": "Broadside missiles",
+      "priority": "threat"
+    }
+  },
+  "powerPriority": ["gyro", "propulsion", "pointDefense", "weapons", "hangar"]
+}

@@ -710,6 +710,7 @@ The `sim` module never imports `render`, `ui` or `editor`. Rendering reads a sim
 | Scale | Mixed classes from drones to cruisers (Section 2.1) |
 | Allies | Tab switching plus follow / attack / hold orders (Section 11.3) |
 | Sharing | Self-contained JSON bundles that include every non-core dependency, plus clipboard and `SG1:` share codes. Imports never overwrite silently (Section 4.5) |
+| Balance tuning | Fights target 1–5 min (median engagement, first hit to end, ~150 s). An automated tuner fights the archetypes and scenarios in parallel worker threads and adjusts a balance overlay (pace: HP with ammo; weapon damage by win rate; power and heat by throttle time; command HP; ammo). Ammunition and fuel knobs are mass-neutral, so tuning never changes handling. The result is reviewed as a catalogue diff before it is applied (catalogue v0-6, see balance-pass-2.md) |
 | Part editing | Core catalogue is fixed. Edits fork into namespaced user parts identified by content hash. The editor UI comes later |
 | Basic power | Command modules include a 30 kW auxiliary generator (enough for their own gyro), so simple ships fly without a reactor; gyroscopes and weapons need real reactors (implemented in M3) |
 | Power demand timing | Propulsion power demand uses the previous tick's throttle (power is allocated before thrust, plan §13.3); gyros draw their full rating while the ship is alive |

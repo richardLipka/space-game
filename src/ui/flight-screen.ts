@@ -31,9 +31,29 @@ export interface FlightSetup {
   readonly onBattleEnd?: (b: Battle) => void;
   /** Starts the same battle again. */
   readonly retry?: () => void;
+  /**
+   * Watch mode (balance tooling): the AI flies every ship; input only moves the camera (Tab follows the
+   * next ship), pauses and changes the time scale.
+   */
+  readonly spectate?: boolean;
 }
 
-const TIME_SCALES = [0.25, 0.5, 1, 2] as const;
+/** Commands that still work while watching: they change only the view or the clock. */
+const SPECTATOR_COMMANDS = new Set<string>([
+  "camera-mode",
+  "switch-ship",
+  "pause",
+  "time-faster",
+  "time-slower",
+  "overlays",
+  "help",
+  "power-panel",
+  "networks",
+  "theme",
+  "exit",
+]);
+
+const TIME_SCALES = [0.25, 0.5, 1, 2, 4, 8] as const;
 
 /** Flight view: fixed-step sim, interpolated rendering, camera and HUD (spec §10). */
 export class FlightScreen {
@@ -441,29 +461,40 @@ export class FlightScreen {
     this.battleShown = false;
     this.resultsPanel.hidden = true;
     this.weaponBar.hidden = true;
-    this.assignAllies();
+    if (setup.spectate) for (const s of setup.playerShips) setup.world.setAi(s.id, this.allyProfile);
+    else this.assignAllies();
     this.input.enabled = true;
     this.input.takeCommands();
     this.hudEl.hidden = false;
-    this.loop = new FixedStepLoop(() => {
-      const w = setup.world;
-      this.scene!.capture(w);
-      const s = this.controlledShip!;
-      const center = w.physics.getWorldCenter(s.id);
-      const mouseWorld = this.camera.screenToWorld(this.input.mouse);
-      w.setIntent(s.id, this.input.takeIntent(angleOf(sub(mouseWorld, center))));
-      if (this.targetId && !w.hasShip(this.targetId)) this.targetId = null;
-      s.weaponCommand = {
-        trigger: this.input.leftHeld || this.debugTrigger,
-        aimPoint: mouseWorld,
-        selected: new Set(this.selectedGroups),
-        targetId: this.targetId,
-        launch: this.pendingLaunch,
-      };
-      this.pendingLaunch = false;
-      w.step();
-      if (setup.battle) updateBattle(setup.battle);
-    });
+    this.loop = new FixedStepLoop(
+      () => {
+        const w = setup.world;
+        this.scene!.capture(w);
+        if (setup.spectate) {
+          w.step();
+          if (setup.battle) updateBattle(setup.battle);
+          return;
+        }
+        const s = this.controlledShip!;
+        const center = w.physics.getWorldCenter(s.id);
+        const mouseWorld = this.camera.screenToWorld(this.input.mouse);
+        w.setIntent(s.id, this.input.takeIntent(angleOf(sub(mouseWorld, center))));
+        if (this.targetId && !w.hasShip(this.targetId)) this.targetId = null;
+        s.weaponCommand = {
+          trigger: this.input.leftHeld || this.debugTrigger,
+          aimPoint: mouseWorld,
+          selected: new Set(this.selectedGroups),
+          targetId: this.targetId,
+          launch: this.pendingLaunch,
+        };
+        this.pendingLaunch = false;
+        w.step();
+        if (setup.battle) updateBattle(setup.battle);
+      },
+      undefined,
+      // ×8 time needs 8 ticks per 60 Hz frame; allow slower frames to catch up too.
+      16,
+    );
   }
 
   stop(): void {
@@ -484,6 +515,7 @@ export class FlightScreen {
     this.fps = this.fps * 0.95 + (dtReal > 0 ? 1 / dtReal : 60) * 0.05;
     const ships = setup.playerShips;
     for (const cmd of this.input.takeCommands()) {
+      if (setup.spectate && !SPECTATOR_COMMANDS.has(cmd)) continue;
       switch (cmd) {
         case "camera-mode":
           this.camera.mode =
@@ -492,11 +524,15 @@ export class FlightScreen {
         case "switch-ship": {
           this.input.ejectMode = false;
           const prev = ships[this.controlled]!;
+          if (setup.spectate) {
+            this.controlled = (this.controlled + 1) % ships.length;
+            break;
+          }
           setup.world.setIntent(prev.id, IDLE_INTENT);
           prev.weaponCommand = { ...prev.weaponCommand, trigger: false };
           this.controlled = (this.controlled + 1) % ships.length;
           // The previous ship goes to the AI on this same frame; the new one leaves it (spec §11.3).
-          this.assignAllies(prev.id);
+          if (!setup.spectate) this.assignAllies(prev.id);
           break;
         }
         case "order-follow":
@@ -576,6 +612,11 @@ export class FlightScreen {
       }
     }
     if (this.setup !== setup) return; // a command ended the session
+    if (setup.spectate) {
+      this.input.takeClicks();
+      this.input.takeGroupKeys();
+      this.input.takeRightClicks();
+    }
     for (const c of this.input.takeClicks()) {
       if (c.kill) this.killAt(c);
       else if (c.select) this.selectAllyAt(c, c.add);

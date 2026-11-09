@@ -18,6 +18,16 @@ import archHeavy from "./balance/arch-heavy.json";
 import archLance from "./balance/arch-lance.json";
 import archLaser from "./balance/arch-laser.json";
 import archMissile from "./balance/arch-missile.json";
+import fleetWasp from "./fleet/wasp.json";
+import fleetSpark from "./fleet/spark.json";
+import fleetMaul from "./fleet/maul.json";
+import fleetNeedle from "./fleet/needle.json";
+import fleetRapier from "./fleet/rapier.json";
+import fleetViper from "./fleet/viper.json";
+import fleetAnvil from "./fleet/anvil.json";
+import fleetSquall from "./fleet/squall.json";
+import fleetLeviathan from "./fleet/leviathan.json";
+import fleetArk from "./fleet/ark.json";
 
 function load(list: readonly unknown[]): ShipDesign[] {
   return list.map((j) => {
@@ -31,7 +41,24 @@ function load(list: readonly unknown[]): ShipDesign[] {
 export const CORE_DRONES: readonly ShipDesign[] = load([droneAttack, dronePd, droneDecoy]);
 
 /**
- * Every design shipped with the game (demo ships, drones, balance archetypes), by id. Scenarios refer to
+ * The symmetric fleet (two fighters, two gunboats, two destroyers, two cruisers, a battleship and a
+ * carrier), ordered from smallest to largest.
+ */
+export const FLEET: readonly ShipDesign[] = load([
+  fleetWasp,
+  fleetSpark,
+  fleetMaul,
+  fleetNeedle,
+  fleetRapier,
+  fleetViper,
+  fleetAnvil,
+  fleetSquall,
+  fleetLeviathan,
+  fleetArk,
+]);
+
+/**
+ * Every design shipped with the game (demo ships, drones, balance archetypes, the fleet), by id. Scenarios refer to
  * enemy and reference designs by these ids (spec §12).
  */
 export const BUNDLED_DESIGNS: ReadonlyMap<string, ShipDesign> = new Map(
@@ -48,5 +75,6 @@ export const BUNDLED_DESIGNS: ReadonlyMap<string, ShipDesign> = new Map(
       archLaser,
       archMissile,
     ]),
+    ...FLEET,
   ].map((d) => [d.id, d]),
 );

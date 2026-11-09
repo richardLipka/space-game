@@ -30,11 +30,30 @@ npm run test:e2e     # Playwright (first time: npx playwright install chromium)
 npm run sim -- --scenario test/fixtures/scenarios/asteroid-field.json --ticks 6000
 npm run golden:update  # re-baseline golden hashes (explain every change in the PR)
 npm run balance -- --seeds 8   # balance matrix of the weapon archetypes → balance-report/report.html
+npm run balance:scenarios      # every scenario AI vs AI with its suggested fleet → fight lengths, end reasons
+npm run tune                   # automated tuning toward 1–5 min fights → balance-report/tune (add --apply to write it)
 ```
+
+## Ships
+
+Besides the demo ships, the library is seeded with a symmetric fleet (`src/data/designs/fleet/`). Costs use catalogue v0-6.
+
+| Class      | Ship      | Cost | Role                                                                            |
+| ---------- | --------- | ---- | ------------------------------------------------------------------------------- |
+| Fighter    | Wasp      | 150  | Two light autocannon turrets                                                    |
+| Fighter    | Spark     | 246  | Two laser turrets, own reactor and radiators                                    |
+| Gunboat    | Maul      | 498  | Forward heavy cannon, forward missile pair, PD                                  |
+| Gunboat    | Needle    | 584  | Forward laser lance (three reactors, radiators), forward missile pair, PD       |
+| Destroyer  | Rapier    | 901  | Kinetic: bow heavy turret, two forward cannons, autocannons, PD, heat sinks     |
+| Destroyer  | Viper     | 978  | Four forward launchers, four laser turrets, radiators, PD                       |
+| Cruiser    | Anvil     | 1553 | Forward kinetic fire: three heavy turrets, two fixed cannons, autocannons, PD   |
+| Cruiser    | Squall    | 1423 | Missile broadsides (eight launchers), PD and flak                               |
+| Battleship | Leviathan | 3335 | Broadsides of eight heavy turrets and ten launchers, radiators between them, PD |
+| Carrier    | Ark       | 1701 | Attack, PD and decoy drone hangars on both flanks, PD and flak                  |
 
 ## Controls
 
-**Scenarios:** Scenarios (toolbar) → choose one → add designs to the fleet (or take the suggested fleet) within the budget → Start battle → results → back to the editor.
+**Scenarios:** Scenarios (toolbar) → choose one → add designs to the fleet (or take the suggested fleet) within the budget → Start battle → results → back to the editor. **Watch AI battle** lets the AI fly the fleet (or the suggested one) while you watch: Tab follows the next ship, +/− change the time scale up to ×8.
 
 **Editor:** search the palette or open a category, hover a part for its numbers, click it, then click to place (stays in placing mode; Esc/right-click stops) ·
 green edges = where the part can connect; the status line says what will connect ·

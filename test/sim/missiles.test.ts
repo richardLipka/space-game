@@ -152,8 +152,9 @@ describe("M5 missiles", () => {
     const R = 10;
     const dmg = 30;
     blast(w, vec2(1.25, 0), R, dmg); // centred on part a
-    expect(60 - s.part("a").hp).toBeCloseTo(dmg, 6);
-    expect(60 - s.part("b").hp).toBeCloseTo(dmg * (1 - 1 / R), 6);
+    const plate = cat.get("core:hull.square.s").def.hp;
+    expect(plate - s.part("a").hp).toBeCloseTo(dmg, 6);
+    expect(plate - s.part("b").hp).toBeCloseTo(dmg * (1 - 1 / R), 6);
     // Wreck b, then blast from a's centre again: c is behind the wreck.
     s.destroyPart("b");
     const c0 = s.part("c").hp;
@@ -313,7 +314,7 @@ describe("M5 point defense", () => {
     spawnMissile(w, enemy, def, vec2(700, 0), vec2(-1, 0), vec2(-300, 0), ship.id);
     w.run(90);
     expect(w.combat.stats.shots).toBeGreaterThan(0); // the PD
-    expect(ship.part("gun").ammo).toBe(150); // the manual gun never fired (full internal magazine)
+    expect(ship.part("gun").ammo).toBe(cat.get("core:weapon.gun.drone.xs").def.weapon!.internalMagazine); // the manual gun never fired (full internal magazine)
   });
 
   it("5.14 a decoy pulls ≥ 70 % of incoming missiles off their target (seeded batch)", () => {

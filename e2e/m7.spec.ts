@@ -54,3 +54,33 @@ test("7.4 an over-budget fleet cannot start", async ({ page }) => {
   await expect(page.getByTestId("fleet-error").first()).toBeVisible();
   await expect(page.getByTestId("btn-start-battle")).toBeDisabled();
 });
+
+test("watch mode: the AI flies the suggested fleet, the player only watches", async ({ page }) => {
+  test.setTimeout(60_000);
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/");
+  await page.getByTestId("btn-scenarios").click();
+  await page.getByTestId("scenario-s09-fleet-action").click();
+  // An empty fleet: watching uses the suggested one.
+  await page.getByTestId("btn-watch-battle").click();
+  await expect(page.getByTestId("objective")).toBeVisible();
+  type G = {
+    __game: {
+      playerShips(): string[];
+      ai(id: string): { order: string | null } | null;
+      battle(): { status: string } | null;
+      killEnemies(): void;
+    };
+  };
+  const ais = await page.evaluate(() => {
+    const g = (window as unknown as G).__game;
+    return g.playerShips().map((id) => g.ai(id));
+  });
+  expect(ais.length).toBe(3);
+  for (const a of ais) expect(a).not.toBeNull();
+  await page.evaluate(() => (window as unknown as G).__game.killEnemies());
+  await expect(page.getByTestId("results")).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as G).__game.battle()?.status)).toBe("won");
+  expect(errors).toEqual([]);
+});
