@@ -75,7 +75,7 @@ test("flight HUD lists ammunition and where heat comes from and goes", async ({ 
   await game(page, (g) => g.openSandbox());
   await expect(page.getByTestId("ammo-autocannon-30")).toHaveText(String(AUTOCANNON_MAG));
   await expect(page.getByTestId("ammo-kinetic-120")).toHaveText(String(KINETIC_MAG));
-  await expect(page.getByTestId("group-2")).toContainText(`loaded ${2 * AC_LOADED}/${2 * AC_LOADED}`);
+  await expect(page.getByTestId("wb-group-2")).toContainText(`${2 * AC_LOADED}/${2 * AC_LOADED}`);
   await page.keyboard.down("w");
   await expect(page.locator("#hud")).toContainText("engines");
   await page.keyboard.up("w");

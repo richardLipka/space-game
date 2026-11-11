@@ -25,7 +25,7 @@ test("M6: allies follow under AI; Tab hands the previous ship to the AI; J/K/L g
     .toMatchObject({ order: "follow" });
 
   await page.keyboard.press("Tab");
-  await expect(page.locator("#hud")).toContainText("Kestrel");
+  await expect(page.getByTestId("ship-name")).toContainText("Kestrel");
   expect(await game(page, `window.__game.ai(${JSON.stringify(ids[1])})`)).toBeNull();
   await expect
     .poll(() => game<{ order: string }>(page, `window.__game.ai(${JSON.stringify(ids[0])})`))
@@ -112,6 +112,56 @@ test("group keys use the key position: a Czech layout's '+' on the 1 key selects
   await expect(page.getByTestId("wb-group-2")).toHaveAttribute("aria-pressed", "true");
   await press("+", "Digit1");
   await expect(page.getByTestId("wb-group-1")).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator("#hud")).toContainText("×1 ");
+  await expect(page.getByTestId("time-scale")).toHaveText("×1");
+  expect(errors).toEqual([]);
+});
+
+test("cockpit: instruments, damage plans and the contacts list give orders and pick targets", async ({
+  page,
+}) => {
+  const errors = await open(page);
+  await game(page, "window.__game.openSandbox()");
+  await expect(page.getByTestId("speed")).toBeVisible();
+  // Instruments and the own ship's plan: one polygon per part.
+  for (const id of ["inst-thrust", "inst-fuel", "inst-heat", "inst-power", "panel-hull", "panel-target"])
+    await expect(page.getByTestId(id)).toBeVisible();
+  const parts = (await game<string[]>(page, "window.__game.partUids()")).length;
+  await expect(page.locator('[data-testid="panel-hull"] polygon')).toHaveCount(parts);
+  await expect(page.getByTestId("own-hull")).toContainText("100%");
+
+  // A click on a hostile contact targets it: its plan appears on the right.
+  const enemies = await game<string[]>(page, "window.__game.enemies()");
+  const allies = (await game<string[]>(page, "window.__game.playerShips()")).slice(1);
+  await expect(page.locator('[data-testid="panel-target"] polygon')).toHaveCount(0);
+  await page.getByTestId(`contact-${enemies[1]}`).click();
+  await expect(page.getByTestId("target")).not.toContainText("none");
+  await expect(page.getByTestId("target-hull")).toContainText("100%");
+  expect(await page.locator('[data-testid="panel-target"] polygon').count()).toBeGreaterThan(0);
+  const order = (id: string) =>
+    game<{ order: string; target?: string }>(page, `window.__game.ai(${JSON.stringify(id)})`);
+
+  // ★ makes an enemy the fleet's priority target; again releases the fleet.
+  await page.getByTestId(`contact-priority-${enemies[0]}`).click();
+  for (const a of allies)
+    await expect.poll(() => order(a)).toMatchObject({ order: "attack", target: enemies[0] });
+  await expect(page.getByTestId(`contact-${enemies[0]}`)).toHaveClass(/prio/);
+  await page.getByTestId(`contact-priority-${enemies[0]}`).click();
+  for (const a of allies) await expect.poll(() => order(a)).toMatchObject({ order: "follow" });
+
+  // Orders for one ship and for the whole fleet.
+  await page.getByTestId(`contact-hold-${allies[0]}`).click();
+  await expect.poll(() => order(allies[0]!)).toMatchObject({ order: "hold" });
+  await expect.poll(() => order(allies[1]!)).toMatchObject({ order: "follow" });
+  await page.getByTestId("fleet-guard").click();
+  for (const a of allies) await expect.poll(() => order(a)).toMatchObject({ order: "guard" });
+  await page.getByTestId(`contact-attack-${allies[1]}`).click();
+  await expect.poll(() => order(allies[1]!)).toMatchObject({ order: "attack", target: enemies[1] });
+  // Help me: the fleet attacks an enemy, which is marked as the priority.
+  await page.getByTestId("fleet-help").click();
+  for (const a of allies) await expect.poll(() => order(a)).toMatchObject({ order: "attack" });
+  await expect(page.locator(".ck-contact.prio")).toHaveCount(1);
+  await page.getByTestId("fleet-free").click();
+  for (const a of allies) await expect.poll(() => order(a)).toMatchObject({ order: null });
+  await page.screenshot({ path: "test-results/cockpit.png" });
   expect(errors).toEqual([]);
 });

@@ -7,7 +7,7 @@ import type { World } from "../sim/world";
 import { Camera, CAMERA_MODES } from "../render/camera";
 import { Scene } from "../render/scene";
 import type { ThemeResolver } from "../render/theme";
-import { Hud } from "./hud";
+import { Hud, type Contact, type OrderKind } from "./hud";
 import type { InputController, UiCommand } from "./input";
 import type { PowerGroup } from "../data/schemas/design";
 import { partCentroid, partPiecesShipFrame } from "../sim/ship/ship";
@@ -16,7 +16,7 @@ import { pointInPolygon } from "../sim/core/geometry";
 import { aiProfile } from "../data/ai/index";
 import type { AiProfile } from "../data/schemas/ai";
 import type { Order } from "../sim/ai/brain";
-import { updateBattle, type Battle } from "../sim/scenario/battle";
+import { GUARD_RADIUS, updateBattle, type Battle } from "../sim/scenario/battle";
 import { el } from "./editor/dom";
 
 export interface FlightSetup {
@@ -92,7 +92,24 @@ export class FlightScreen {
     private readonly hudEl: HTMLElement,
     private readonly input: InputController,
   ) {
-    this.hud = new Hud(hudEl);
+    this.hud = new Hud(hudEl, {
+      target: (id) => {
+        if (this.setup?.world.hasShip(id)) this.targetId = id;
+      },
+      order: (kind, id) => this.giveOrder(kind, id),
+      help: () => this.callForHelp(),
+      priority: (id) => this.togglePriority(id),
+      select: (id, add) => {
+        const had = this.selectedAllies.has(id);
+        if (!add) this.selectedAllies.clear();
+        if (had && (add || this.selectedAllies.size === 0)) this.selectedAllies.delete(id);
+        else this.selectedAllies.add(id);
+      },
+      watch: (id) => {
+        const i = this.setup?.playerShips.findIndex((s) => s.id === id) ?? -1;
+        if (i >= 0) this.controlled = i;
+      },
+    });
     this.powerPanel = document.createElement("div");
     this.powerPanel.className = "power-panel";
     this.powerPanel.dataset.testid = "power-panel";
@@ -101,19 +118,24 @@ export class FlightScreen {
     this.resultsPanel = el("div", { class: "results-panel", "data-testid": "results", hidden: "" });
     document.body.append(this.resultsPanel);
     this.weaponBar = el("div", { class: "weapon-bar", "data-testid": "weapon-bar", hidden: "" });
-    document.body.append(this.weaponBar);
-    this.launchPanel = el("div", { class: "launch-panel", "data-testid": "launch-panel", hidden: "" });
-    document.body.append(this.launchPanel);
+    this.hud.fireControlSlot.append(this.weaponBar);
+    this.launchPanel = el("div", {
+      class: "launch-panel ck-panel",
+      "data-testid": "launch-panel",
+      hidden: "",
+    });
+    this.hud.ordnanceSlot.append(this.launchPanel);
   }
 
   private readonly weaponBar: HTMLElement;
   private weaponBarKey = "";
 
   /**
-   * Weapon groups along the bottom of the screen (spec §9.2): one card per group with its key, mode and
-   * the weapons in it as a column (one row per weapon type: count, loaded rounds, reload), the selected
-   * groups highlighted. Click selects, Shift+click adds. Missile launchers and hangars are listed one by
-   * one in the launch panel on the right (renderLaunchPanel).
+   * Fire control along the bottom of the screen (spec §9.2): one card per weapon group with its key, mode,
+   * settings (fire range and target priority) and the weapons in it as a column (one row per weapon type:
+   * count, loaded rounds, reload), the selected groups highlighted; then the magazines. Click selects a
+   * group, Shift+click adds, a click on the mode cycles it. Missile launchers, hangars and point defense
+   * are in the ordnance panel on the right (renderLaunchPanel).
    */
   private renderWeaponBar(): void {
     const ship = this.controlledShip;
@@ -146,10 +168,32 @@ export class FlightScreen {
           state: alive.length === 0 ? "lost" : ready > 0 ? "ready" : `${wait.toFixed(1)} s`,
         };
       });
-      const name = ship.groupSettings.get(g)?.name ?? "";
-      return { g, mode, name, types, alive: types.some((t) => t.alive > 0) };
+      const set = ship.groupSettings.get(g);
+      const blocked = list.some((w) => w.isBlocked && w.part.hp > 0);
+      return {
+        g,
+        mode,
+        name: set?.name ?? "",
+        settings: `range ${set?.range ? `${set.range} m` : "weapon"} · aim ${set?.priority ?? "target"}`,
+        blocked,
+        types,
+        alive: types.some((t) => t.alive > 0),
+      };
     });
-    const key = `${ship.id}|${[...this.selectedGroups].join()}|${JSON.stringify(info)}`;
+    const ammoTypes = [
+      ...new Set(
+        ship.weapons
+          .filter((w) => w.def.ammoType && w.def.internalMagazine > 0 && w.def.kind !== "missile")
+          .map((w) => w.def.ammoType as string),
+      ),
+    ].sort();
+    const mags = ammoTypes.map((type) => {
+      const parts = ship.parts.filter((p) => p.def.def.magazine?.ammoType === type);
+      const stock = parts.filter((p) => p.hp > 0).reduce((n, p) => n + Math.floor(p.ammo), 0);
+      const cap = parts.reduce((n, p) => n + p.def.def.magazine!.capacity, 0);
+      return { type, stock, cap };
+    });
+    const key = `${ship.id}|${[...this.selectedGroups].join()}|${JSON.stringify(info)}|${JSON.stringify(mags)}`;
     bar.hidden = false;
     if (key === this.weaponBarKey) return;
     this.weaponBarKey = key;
@@ -165,6 +209,20 @@ export class FlightScreen {
           el("span", { class: `wb-state${t.state === "ready" ? " ready" : ""}` }, t.state),
         ),
       );
+      const mode = el(
+        "span",
+        {
+          class: "wb-mode",
+          "data-testid": `wb-mode-${x.g}`,
+          title: "Click: next mode (manual → hold → ai). G does the same for the selected groups",
+        },
+        x.mode.toUpperCase(),
+      );
+      mode.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const order = ["manual", "hold", "ai"] as const;
+        ship.groupModes.set(x.g, order[(order.indexOf(x.mode) + 1) % order.length]!);
+      });
       const chip = el(
         "button",
         {
@@ -177,10 +235,12 @@ export class FlightScreen {
           "div",
           { class: "wb-head" },
           el("span", { class: "wb-key" }, String(x.g)),
-          el("span", { class: "wb-mode", "data-testid": `wb-mode-${x.g}` }, x.mode.toUpperCase()),
+          mode,
           el("span", { class: "wb-gname" }, x.name),
+          ...(x.blocked ? [el("span", { class: "wb-blocked", title: "Line of fire blocked" }, "⊘")] : []),
         ),
         ...rows,
+        el("div", { class: "wb-settings", "data-testid": `wb-settings-${x.g}` }, x.settings),
       );
       chip.addEventListener("mousedown", (e) => e.stopPropagation());
       chip.addEventListener("click", (e) => {
@@ -195,14 +255,43 @@ export class FlightScreen {
       });
       bar.append(chip);
     }
+    if (mags.length) {
+      bar.append(
+        el(
+          "div",
+          { class: "wb-group wb-mags", "data-testid": "wb-magazines" },
+          el("div", { class: "wb-head" }, el("span", { class: "wb-gname" }, "MAGAZINES")),
+          ...mags.map((m) => {
+            const frac = m.cap > 0 ? m.stock / m.cap : 0;
+            return el(
+              "div",
+              { class: `wb-mag${m.stock === 0 ? " alert" : frac < 0.25 ? " warn" : ""}` },
+              el("span", { class: "wb-wname" }, m.type),
+              el(
+                "span",
+                { class: "lp-bar" },
+                el("span", { class: "lp-fill", style: `width:${Math.round(frac * 100)}%` }),
+              ),
+              el(
+                "span",
+                { class: "wb-ammo" },
+                el("span", { "data-testid": `ammo-${m.type}` }, String(m.stock)),
+                `/${m.cap}${m.cap === 0 ? " no magazine" : ""}`,
+              ),
+            );
+          }),
+        ),
+      );
+    }
   }
 
   private readonly launchPanel: HTMLElement;
   private launchPanelKey = "";
 
   /**
-   * Launch panel on the right: every missile launcher and every hangar on its own row with what it holds,
-   * whether it can launch now and a bar filling up while it reloads. M / Shift+M and H / Shift+H launch.
+   * Ordnance panel on the right: every missile launcher and every hangar on its own row with what it holds,
+   * whether it can launch now and a bar filling up while it reloads (M / Shift+M and H / Shift+H launch),
+   * how many missiles and drones are out, and point defense with its "also fire at ships" switch (O).
    */
   private renderLaunchPanel(): void {
     const ship = this.controlledShip;
@@ -215,11 +304,25 @@ export class FlightScreen {
     const hangars = ship
       ? ship.parts.filter((p) => p.def.def.hangar).sort((a, b) => (a.uid < b.uid ? -1 : 1))
       : [];
-    if (!ship || (launchers.length === 0 && hangars.length === 0)) {
+    const world = this.setup?.world;
+    const pds = ship ? ship.weapons.filter((w) => w.def.kind === "pd") : [];
+    const drones = ship && world ? world.allShips().filter((s) => s.drone?.mother === ship.id) : [];
+    const missilesOut = ship && world ? world.combat.missiles.filter((m) => m.owner === ship.id).length : 0;
+    if (
+      !ship ||
+      (launchers.length === 0 &&
+        hangars.length === 0 &&
+        pds.length === 0 &&
+        drones.length === 0 &&
+        !missilesOut)
+    ) {
       panel.hidden = true;
       this.launchPanelKey = "";
       return;
     }
+    const liveDrones = drones.filter((d) => !d.inert && !d.defeated);
+    const pdAlive = pds.filter((w) => w.part.hp > 0).length;
+    const hasTarget = !!this.targetId;
     const lRows = launchers.map((w) => {
       const lost = w.part.hp <= 0;
       const loaded = lost ? 0 : Math.floor(w.part.ammo);
@@ -270,6 +373,14 @@ export class FlightScreen {
       lRows.map((r) => [r.state, r.loaded, Math.round(r.fill * 20)]),
       hRows.map((r) => [r.state, r.stored, Math.round(r.fill * 20)]),
       magazine,
+      missilesOut,
+      liveDrones.length,
+      drones.length,
+      pdAlive,
+      pds.length,
+      ship.pdEngageShips,
+      ship.dronesStored,
+      hasTarget,
     ]);
     panel.hidden = false;
     if (key === this.launchPanelKey) return;
@@ -294,34 +405,48 @@ export class FlightScreen {
         ),
         el("span", { class: "lp-state" }, state),
       );
-    panel.replaceChildren();
-    if (launchers.length) {
+    panel.replaceChildren(
+      el(
+        "header",
+        { class: "ck-head" },
+        el("span", { class: "ck-head-title" }, "ORDNANCE"),
+        el("span", { class: "ck-head-info" }, "M missile · H drone"),
+      ),
+    );
+    if (launchers.length || missilesOut) {
       panel.append(
         el(
           "div",
           { class: "lp-head", "data-testid": "wb-missiles" },
-          el("b", {}, "M"),
-          ` Missiles · ${readyL}/${launchers.length} ready · ${left + magazine} left `,
+          el("b", {}, "MISSILES"),
+          ` ${readyL}/${launchers.length} ready · ${left + magazine} left · out `,
+          el("span", { "data-testid": "missiles-out" }, String(missilesOut)),
           el(
             "span",
             { class: "lp-status", "data-testid": "wb-missiles-status" },
             readyL ? "ready" : waitOf(lRows),
           ),
         ),
+        ...(launchers.length && !hasTarget
+          ? [el("div", { class: "lp-hint" }, "right-click a target first")]
+          : []),
         ...lRows.map((r, i) =>
           row(`wb-launcher-${i + 1}`, `Launcher ${i + 1}`, `${r.loaded}/${r.cap}`, r.state, r.fill),
         ),
       );
     }
-    if (hangars.length) {
-      const stored = hRows.reduce((n, r) => n + r.stored, 0);
+    if (hangars.length || drones.length) {
       const readyH = hRows.filter((r) => r.state === "ready").length;
       panel.append(
         el(
           "div",
           { class: "lp-head", "data-testid": "wb-drones" },
-          el("b", {}, "H"),
-          ` Drones · ${stored} aboard `,
+          el("b", {}, "DRONES"),
+          " aboard ",
+          el("span", { "data-testid": "drones-stored" }, String(ship.dronesStored)),
+          " · out ",
+          el("span", { "data-testid": "drones-out" }, String(liveDrones.length)),
+          drones.length > liveDrones.length ? ` · lost ${drones.length - liveDrones.length}` : "",
           el(
             "span",
             { class: "lp-status", "data-testid": "wb-drones-status" },
@@ -330,6 +455,30 @@ export class FlightScreen {
         ),
         ...hRows.map((r, i) =>
           row(`wb-hangar-${i + 1}`, `Hangar ${r.kind}`, `${r.stored}/${r.cap}`, r.state, r.fill),
+        ),
+      );
+    }
+    if (pds.length) {
+      const toggle = el(
+        "button",
+        {
+          class: `ck-btn${ship.pdEngageShips ? " on" : ""}`,
+          "data-testid": "pd-ships",
+          title: "Point defense also fires at ships (O)",
+        },
+        ship.pdEngageShips ? "on" : "off",
+      );
+      toggle.addEventListener("click", () => {
+        ship.pdEngageShips = !ship.pdEngageShips;
+        toggle.blur();
+      });
+      panel.append(
+        el(
+          "div",
+          { class: "lp-head", "data-testid": "wb-pd" },
+          el("b", {}, "POINT DEFENSE"),
+          ` ${pdAlive}/${pds.length} auto · vs ships `,
+          toggle,
         ),
       );
     }
@@ -480,24 +629,81 @@ export class FlightScreen {
     });
   }
 
-  /** J / K / L: orders for the selected allies (all when none are selected), also while paused. */
-  private giveOrder(kind: Order["kind"]): void {
+  /** Friendly AI ships that take orders: every ship on the pilot's side flown by the AI (not drones). */
+  private commandable(): Ship[] {
+    const world = this.setup?.world;
+    const me = this.controlledShip;
+    if (!world || !me || this.setup?.spectate) return [];
+    return world.allShips().filter((s) => s !== me && s.team === me.team && !s.drone && world.ai.has(s.id));
+  }
+
+  /** Enemy the fleet was told to attack first (★ in the contacts panel, or "Help me"). */
+  priorityId: string | null = null;
+
+  /**
+   * Orders (J / K / L and the contacts panel), also while paused: for one ship, or for the picked ships,
+   * or for every friendly AI ship when none are picked. "guard" keeps them close to the pilot's ship,
+   * engaging what comes near it; "free" lets them choose for themselves.
+   */
+  private giveOrder(kind: OrderKind, id?: string, attackId: string | null = this.targetId): void {
     const world = this.setup?.world;
     const me = this.controlledShip;
     if (!world || !me) return;
-    const targets = this.allies().filter(
-      (s) => this.selectedAllies.size === 0 || this.selectedAllies.has(s.id),
-    );
+    const all = this.commandable();
+    const targets = id
+      ? all.filter((s) => s.id === id)
+      : all.filter((s) => this.selectedAllies.size === 0 || this.selectedAllies.has(s.id));
+    let order: Order | null;
+    if (kind === "follow") order = { kind: "follow", leader: me.id };
+    else if (kind === "guard") order = { kind: "guard", target: me.id, radius: GUARD_RADIUS };
+    else if (kind === "attack") {
+      if (!attackId || !world.hasShip(attackId) || world.getShip(attackId).team === me.team) return;
+      order = { kind: "attack", target: attackId };
+    } else order = null;
     for (const s of targets) {
       const st = world.ai.get(s.id);
       if (!st) continue;
-      if (kind === "follow") st.order = { kind: "follow", leader: me.id };
-      else if (kind === "attack") {
-        if (!this.targetId) continue;
-        st.order = { kind: "attack", target: this.targetId };
-      } else st.order = { kind: "hold", point: world.physics.getWorldCenter(s.id) };
+      st.order = kind === "hold" ? { kind: "hold", point: world.physics.getWorldCenter(s.id) } : order;
       st.nextEval = 0;
     }
+  }
+
+  /** ★ on a hostile contact: every friendly AI ship attacks it first; again releases them to follow. */
+  private togglePriority(id: string): void {
+    const world = this.setup?.world;
+    const me = this.controlledShip;
+    if (!world || !me || !world.hasShip(id) || world.getShip(id).team === me.team) return;
+    if (this.priorityId === id) {
+      this.priorityId = null;
+      for (const s of this.commandable()) {
+        const st = world.ai.get(s.id);
+        if (st?.order?.kind === "attack" && st.order.target === id) {
+          st.order = { kind: "follow", leader: me.id };
+          st.nextEval = 0;
+        }
+      }
+      return;
+    }
+    this.priorityId = id;
+    for (const s of this.commandable()) this.giveOrder("attack", s.id, id);
+  }
+
+  /** "Help me": the nearest enemy that is attacking the pilot (or just the nearest) becomes the priority. */
+  private callForHelp(): void {
+    const world = this.setup?.world;
+    const me = this.controlledShip;
+    if (!world || !me) return;
+    const pos = world.physics.getWorldCenter(me.id);
+    const foes = world.allShips().filter((s) => s.team !== me.team && !s.defeated && !s.drone);
+    const onMe = foes.filter((s) => world.ai.get(s.id)?.targetId === me.id);
+    const dist = (s: Ship) => {
+      const c = world.physics.getWorldCenter(s.id);
+      return Math.hypot(c.x - pos.x, c.y - pos.y);
+    };
+    const threat = (onMe.length ? onMe : foes).sort((a, b) => dist(a) - dist(b))[0];
+    if (!threat) return;
+    this.priorityId = null;
+    this.togglePriority(threat.id);
   }
 
   /** Ctrl+click: select the ally nearest the cursor (Ctrl+Shift adds); on empty space, clear. */
@@ -506,7 +712,7 @@ export class FlightScreen {
     if (!world) return;
     let best: string | null = null;
     let bestD = 60;
-    for (const s of this.allies()) {
+    for (const s of this.commandable()) {
       const c = this.camera.worldToScreen(world.physics.getWorldCenter(s.id));
       const d = Math.hypot(c.x - screen.x, c.y - screen.y) - s.layout.boundingRadius * this.camera.zoom;
       if (d < bestD) {
@@ -555,6 +761,7 @@ export class FlightScreen {
     this.targetId = null;
     this.debugTrigger = false;
     this.selectedAllies.clear();
+    this.priorityId = null;
     this.selectedGroups.clear();
     this.selectedGroups.add(1);
     this.scene = new Scene(this.theme, this.app);
@@ -758,6 +965,7 @@ export class FlightScreen {
     const world = setup.world;
     const ship = ships[this.controlled]!;
     this.camera.resize(this.app.screen.width, this.app.screen.height);
+    this.camera.insets = this.hud.viewInsets();
     const me = scene.shipCenter(ship, world, alpha);
     let target: { x: number; y: number } | null = null;
     let best = Infinity;
@@ -776,11 +984,20 @@ export class FlightScreen {
     }
     const radius = Math.max(...ship.parts.map((p) => Math.hypot(p.position.x, p.position.y))) + 2;
     this.camera.update(me, radius, target, dtReal);
-    scene.targetId = this.targetId;
-    scene.courseIds = this.targetId && this.targetId !== ship.id ? [ship.id, this.targetId] : [ship.id];
+    // Watching: show what the followed ship's AI is attacking.
+    const aiTarget = setup.spectate ? (world.ai.get(ship.id)?.targetId ?? null) : null;
+    const shownTarget = setup.spectate
+      ? aiTarget && world.hasShip(aiTarget)
+        ? aiTarget
+        : null
+      : this.targetId;
+    scene.targetId = shownTarget;
+    scene.courseIds = shownTarget && shownTarget !== ship.id ? [ship.id, shownTarget] : [ship.id];
     const hoverUid = this.input.ejectMode ? this.partUnder(this.input.mouse) : null;
     scene.eject = this.input.ejectMode ? { shipId: ship.id, hoverUid } : null;
     scene.render(world, this.camera, alpha);
+    if (this.priorityId && (!world.hasShip(this.priorityId) || world.getShip(this.priorityId).defeated))
+      this.priorityId = null;
     const battle = setup.battle;
     if (battle && battle.status !== "running" && !this.battleShown) {
       this.battleShown = true;
@@ -799,20 +1016,27 @@ export class FlightScreen {
       showHelp: this.showHelp,
       fps: this.fps,
       title: setup.title,
-      selectedGroups: this.selectedGroups,
-      targetId: this.targetId,
+      targetId: shownTarget,
+      priorityId: this.priorityId,
+      spectate: !!setup.spectate,
       eject: this.input.ejectMode ? { hoverUid } : null,
-      allies: this.allies().map((s) => {
-        const st = world.ai.get(s.id);
-        return {
-          ship: s,
-          order: st?.order?.kind ?? "-",
-          behaviour: st?.behaviour ?? "-",
-          selected: this.selectedAllies.has(s.id),
-        };
-      }),
+      contacts: world
+        .allShips()
+        .filter((s) => s !== ship)
+        .map((s): Contact => {
+          const st = world.ai.get(s.id);
+          const friendly = s.team === ship.team;
+          return {
+            ship: s,
+            friendly,
+            commandable: friendly && !!st && !s.drone && !setup.spectate,
+            order: st ? (st.order?.kind ?? "free") : "-",
+            behaviour: st?.behaviour ?? "-",
+            selected: this.selectedAllies.has(s.id),
+          };
+        }),
       targetAi: (() => {
-        const st = this.targetId ? world.ai.get(this.targetId) : undefined;
+        const st = shownTarget ? world.ai.get(shownTarget) : undefined;
         if (!st || !this.showOverlays) return null;
         const top = Object.entries(st.scores)
           .sort((a, b) => b[1] - a[1])

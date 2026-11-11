@@ -12,6 +12,25 @@ export class Camera {
   mode: CameraMode = "follow-target";
   width = 800;
   height = 600;
+  /**
+   * Screen edges covered by HUD panels (px). The view is centred in, and fitted to, what is left, so the
+   * ship and its target are never framed underneath a panel.
+   */
+  insets = { left: 0, right: 0, top: 0, bottom: 0 };
+
+  /** Size and centre of the part of the screen not covered by panels. */
+  get viewWidth(): number {
+    return Math.max(50, this.width - this.insets.left - this.insets.right);
+  }
+  get viewHeight(): number {
+    return Math.max(50, this.height - this.insets.top - this.insets.bottom);
+  }
+  get cx(): number {
+    return this.insets.left + this.viewWidth / 2;
+  }
+  get cy(): number {
+    return this.insets.top + this.viewHeight / 2;
+  }
 
   static readonly MIN_ZOOM = 0.005;
   static readonly MAX_ZOOM = 80;
@@ -41,12 +60,12 @@ export class Camera {
       desiredCenter = { x: ship.x + (target.x - ship.x) * w, y: ship.y + (target.y - ship.y) * w };
       const spanX = Math.abs(ship.x - target.x) + radius * 4;
       const spanY = Math.abs(ship.y - target.y) + radius * 4;
-      const fit = Math.min((this.width * 0.8) / spanX, (this.height * 0.8) / spanY);
+      const fit = Math.min((this.viewWidth * 0.8) / spanX, (this.viewHeight * 0.8) / spanY);
       desiredZoom = clamp(fit * this.userZoom, Camera.MIN_ZOOM, Camera.MAX_ZOOM);
     } else if (this.mode === "follow-target") {
       // No target: frame the ship at a comfortable size.
       desiredZoom = clamp(
-        (Math.min(this.width, this.height) * 0.12 * this.userZoom) / Math.max(radius, 1),
+        (Math.min(this.viewWidth, this.viewHeight) * 0.12 * this.userZoom) / Math.max(radius, 1),
         Camera.MIN_ZOOM,
         Camera.MAX_ZOOM,
       );
@@ -65,15 +84,15 @@ export class Camera {
 
   worldToScreen(p: Vec2): Vec2 {
     return {
-      x: (p.x - this.center.x) * this.zoom + this.width / 2,
-      y: -(p.y - this.center.y) * this.zoom + this.height / 2,
+      x: (p.x - this.center.x) * this.zoom + this.cx,
+      y: -(p.y - this.center.y) * this.zoom + this.cy,
     };
   }
 
   screenToWorld(p: Vec2): Vec2 {
     return {
-      x: (p.x - this.width / 2) / this.zoom + this.center.x,
-      y: -(p.y - this.height / 2) / this.zoom + this.center.y,
+      x: (p.x - this.cx) / this.zoom + this.center.x,
+      y: -(p.y - this.cy) / this.zoom + this.center.y,
     };
   }
 }

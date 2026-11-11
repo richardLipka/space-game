@@ -75,6 +75,14 @@ M launch a missile (Shift+M salvo) · H launch a drone (Shift+H all); each launc
 J allies follow · K allies attack my target · L allies hold · Ctrl+click select allies (Ctrl+Shift adds) ·
 B eject mode (click a part to jettison it and everything hanging on it; B/Esc leaves) · Shift+B jettison all wrecks
 
+**Cockpit:** the flight screen is laid out as a ship's control system around the edge of the view; the camera frames the action in the free centre.
+
+- **Top:** scenario and objective, clock and time scale, a heading tape (the green marker is where the ship is actually moving), and blinking alerts (overheating, incoming missiles, no fuel, parts cut off).
+- **Left:** helm instruments (speed, the thrust delivered right now, fuel with burn rate and time left, heat with what makes and sheds it, power and battery) and a plan of your ship with every part coloured by its hit points. Point at a part for its state.
+- **Right:** the same plan for your target with range and closing speed; the contacts list; ordnance (each missile launcher and hangar with its reload, missiles and drones out, point defense).
+- **Bottom:** fire control, one card per weapon group with its mode (click it to change), fire range, aim priority, weapons and reloads, then the magazines.
+- **Contacts:** every ship with direction, distance and hull. Click a hostile to target it; ★ makes it the fleet's priority target. Click a friendly ship to pick it for orders, or use its FOL / ATK / HLD / GRD buttons. The fleet buttons order everyone: Help me (attack whoever is attacking you), Protect me, Follow, Attack tgt, Hold, Free. While watching a battle, a click follows that ship.
+
 ## Layout
 
 - `src/sim` — pure, deterministic simulation (lint forbids DOM, rendering, wall-clock time, `Math.random`)

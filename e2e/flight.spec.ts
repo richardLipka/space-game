@@ -39,7 +39,7 @@ test("speed kill (X) brings the fighter back to rest (turning to burn if that is
   test.setTimeout(60_000);
   await ready(page);
   await page.keyboard.press("Tab"); // the fighter has rear-facing RCS (the gunboat does not)
-  await expect(page.locator("#hud")).toContainText("Kestrel");
+  await expect(page.getByTestId("ship-name")).toContainText("Kestrel");
   const speed = page.getByTestId("speed");
   await page.keyboard.down("w");
   await expect.poll(async () => Number(await speed.textContent())).toBeGreaterThan(20);
@@ -54,7 +54,7 @@ test("speed kill (X) brings the fighter back to rest (turning to burn if that is
 test("speed kill (X) stops the gunboat, which has no retro thrust, by flipping", async ({ page }) => {
   test.setTimeout(45_000);
   await ready(page);
-  await expect(page.locator("#hud")).toContainText("Lancer");
+  await expect(page.getByTestId("ship-name")).toContainText("Lancer");
   const speed = page.getByTestId("speed");
   await page.keyboard.down("w");
   await expect.poll(async () => Number(await speed.textContent())).toBeGreaterThan(20);
@@ -67,7 +67,7 @@ test("speed kill (X) stops the gunboat, which has no retro thrust, by flipping",
 test("flip and burn (Shift+X) stops a ship without retro thrust", async ({ page }) => {
   test.setTimeout(45_000);
   await ready(page);
-  await expect(page.locator("#hud")).toContainText("Lancer");
+  await expect(page.getByTestId("ship-name")).toContainText("Lancer");
   const speed = page.getByTestId("speed");
   await page.keyboard.down("w");
   await expect.poll(async () => Number(await speed.textContent())).toBeGreaterThan(20);

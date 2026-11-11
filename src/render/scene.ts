@@ -165,10 +165,7 @@ export class Scene {
 
   render(world: World, camera: Camera, alpha: number): void {
     const z = camera.zoom;
-    this.worldLayer.position.set(
-      camera.width / 2 - camera.center.x * z,
-      camera.height / 2 + camera.center.y * z,
-    );
+    this.worldLayer.position.set(camera.cx - camera.center.x * z, camera.cy + camera.center.y * z);
     this.worldLayer.scale.set(z, -z);
     this.drawGrid(world, camera);
     this.drawAsteroids(world, camera, alpha);
@@ -336,14 +333,17 @@ export class Scene {
   /** Edge markers for ships outside the view (spec §10.1). */
   private drawOffscreenIndicators(world: World, camera: Camera, alpha: number): void {
     const m = 14;
-    const cx = camera.width / 2;
-    const cy = camera.height / 2;
+    // Indicators sit on the edge of the view left free by the HUD panels.
+    const cx = camera.cx;
+    const cy = camera.cy;
+    const hw = camera.viewWidth / 2;
+    const hh = camera.viewHeight / 2;
     for (const ship of world.allShips()) {
       const p = camera.worldToScreen(this.shipCenter(ship, world, alpha));
-      if (p.x >= 0 && p.x <= camera.width && p.y >= 0 && p.y <= camera.height) continue;
+      if (Math.abs(p.x - cx) <= hw && Math.abs(p.y - cy) <= hh) continue;
       const dx = p.x - cx;
       const dy = p.y - cy;
-      const k = Math.min((cx - m) / Math.abs(dx || 1e-9), (cy - m) / Math.abs(dy || 1e-9));
+      const k = Math.min((hw - m) / Math.abs(dx || 1e-9), (hh - m) / Math.abs(dy || 1e-9));
       const ex = cx + dx * k;
       const ey = cy + dy * k;
       const a = Math.atan2(dy, dx);

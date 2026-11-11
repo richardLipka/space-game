@@ -22,7 +22,7 @@ test("M5: Harrier launches missiles at its target (M), drones (H), and toggles P
   await page.locator("#view").click({ position: { x: 5, y: 5 } });
   await page.keyboard.press("Tab");
   await page.keyboard.press("Tab");
-  await expect(page.locator("#hud")).toContainText("Harrier");
+  await expect(page.getByTestId("ship-name")).toContainText("Harrier");
   await expect(page.locator("#hud")).toContainText("right-click a target first");
 
   // Target the Sentinel picket (the last enemy) and launch.
