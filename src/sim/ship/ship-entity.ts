@@ -1,3 +1,4 @@
+import { arcadeControl, type FlightModel } from "../flight/arcade";
 import type { PowerGroup, ShipDesign, WeaponGroupSettings } from "../../data/schemas/design";
 import { allocate, wrenchOf, type Wrench } from "../flight/allocator";
 import { flightControl, IDLE_INTENT, type ControlIntent, type FlightState } from "../flight/controller";
@@ -103,6 +104,8 @@ export class Ship {
   propulsion: PropulsionModel = { actuators: [], engines: [] };
   throttles: number[] = [];
   lastWrench: Wrench = { fx: 0, fy: 0, torque: 0 };
+  /** Flight model the ship flew under on the last tick (set by the world). */
+  flightModel: FlightModel = "newtonian";
   lastDesired: Wrench = { fx: 0, fy: 0, torque: 0 };
   /** Speed-kill reference velocity provider (spec §6.7 hook): world zero for now. */
   referenceVelocity: () => Vec2 = () => ZERO;
@@ -383,13 +386,18 @@ export class Ship {
     this.power = report;
   }
 
-  /** Steps 4–5: intent → desired wrench → throttles → achieved wrench, consuming fuel per network. */
+  /**
+   * Steps 4–5: intent → desired wrench → throttles → achieved wrench, consuming fuel per network.
+   * Under the arcade model the wrench comes from a speed loop instead of the thrust allocation; the
+   * throttles then only say how hard the engines work (fuel, heat, power, exhaust).
+   */
   control(ctx: {
     angle: number;
     angularVelocity: number;
     velocity: Vec2;
     dt: number;
     disabled?: boolean;
+    model?: FlightModel;
   }): Wrench {
     const mp = this.massProps;
     if (ctx.disabled) {
@@ -401,17 +409,43 @@ export class Ship {
     }
     this.propulsion = this.propulsionNow();
     const acts = this.propulsion.actuators;
-    const { desired, weights } = flightControl(this.intent, this.flight, {
-      mass: mp.mass,
-      inertia: mp.inertia,
-      angle: ctx.angle,
-      angularVelocity: ctx.angularVelocity,
-      velocity: ctx.velocity,
-      referenceVelocity: this.referenceVelocity(),
-      caps: capabilities(acts),
-      dt: ctx.dt,
-    });
-    let u = allocate(acts, desired, { weights });
+    const caps = capabilities(acts);
+    this.flightModel = ctx.model ?? "newtonian";
+    let arcade: Wrench | null = null;
+    let u: number[];
+    let desired: Wrench;
+    if (this.flightModel === "arcade") {
+      // The ship stops by itself: speed kill has nothing to do.
+      this.flight.speedKill = "off";
+      const cmd = arcadeControl(
+        this.intent,
+        {
+          mass: mp.mass,
+          inertia: mp.inertia,
+          angle: ctx.angle,
+          angularVelocity: ctx.angularVelocity,
+          velocity: ctx.velocity,
+          caps,
+          dt: ctx.dt,
+        },
+        acts,
+      );
+      arcade = desired = cmd.wrench;
+      u = cmd.throttles;
+    } else {
+      const cmd = flightControl(this.intent, this.flight, {
+        mass: mp.mass,
+        inertia: mp.inertia,
+        angle: ctx.angle,
+        angularVelocity: ctx.angularVelocity,
+        velocity: ctx.velocity,
+        referenceVelocity: this.referenceVelocity(),
+        caps,
+        dt: ctx.dt,
+      });
+      desired = cmd.desired;
+      u = allocate(acts, desired, { weights: cmd.weights });
+    }
 
     // Fuel per network: scale down a network's actuators if its tanks run dry this tick.
     const flowByNet = new Map<number, number>();
@@ -435,7 +469,7 @@ export class Ship {
       this.lastThrottle.set(a.partUid, Math.max(this.lastThrottle.get(a.partUid) ?? 0, u[i]!)),
     );
     this.lastDesired = desired;
-    this.lastWrench = wrenchOf(acts, u);
+    this.lastWrench = arcade ?? wrenchOf(acts, u);
     if (this.intent.speedKill) this.intent = { ...this.intent, speedKill: undefined };
     return this.lastWrench;
   }

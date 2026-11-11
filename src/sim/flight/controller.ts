@@ -12,6 +12,11 @@ export interface ControlIntent {
   readonly faceAngle?: number | undefined;
   /** One-shot speed-kill command for this tick. */
   readonly speedKill?: "keep" | "flip" | "cancel" | undefined;
+  /**
+   * Arcade flight only: the world velocity the ship should hold (the AI steers by velocity). Takes the place
+   * of `thrust`.
+   */
+  readonly desiredVelocity?: Vec2 | undefined;
 }
 
 export const IDLE_INTENT: ControlIntent = { thrust: ZERO, rotate: 0 };

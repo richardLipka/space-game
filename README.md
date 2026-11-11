@@ -75,6 +75,11 @@ M launch a missile (Shift+M salvo) · H launch a drone (Shift+H all); each launc
 J allies follow · K allies attack my target · L allies hold · Ctrl+click select allies (Ctrl+Shift adds) ·
 B eject mode (click a part to jettison it and everything hanging on it; B/Esc leaves) · Shift+B jettison all wrecks
 
+**Flight models:** pick one in the editor toolbar (test flights and the sandbox) or in the skirmish setup; scenarios always use Newtonian.
+
+- **Newtonian** (default): thrust adds speed and nothing takes it away; engines and thrusters are allocated to give the force and turn you ask for. You brake by burning the other way (X).
+- **Arcade:** hold W and the ship flies, up to its top speed; let go and it stops. Turning turns where it flies, A/D still strafe (60 % of top speed), S reverses (50 %). Top speed and the time to reach it come from the ship: heavier ships are slower and take longer, more engine thrust helps both, and losing engines slows the ship down. For example a 2 t Wasp does about 225 m/s, a 16 t Rapier 140 m/s and the 49 t Leviathan 83 m/s. AI ships fly by the same rules; drones and missiles keep Newtonian flight.
+
 **Cockpit:** the flight screen is laid out as a ship's control system around the edge of the view; the camera frames the action in the free centre.
 
 - **Top:** scenario and objective, clock and time scale, a heading tape (the green marker is where the ship is actually moving), and blinking alerts (overheating, incoming missiles, no fuel, parts cut off).

@@ -18,6 +18,7 @@ import { transformPoints } from "./core/geometry";
 import { EXPLOSION } from "./combat/constants";
 import { Ship } from "./ship/ship-entity";
 import type { ControlIntent } from "./flight/controller";
+import type { FlightModel } from "./flight/arcade";
 import {
   applyContactDamage,
   CombatState,
@@ -35,6 +36,8 @@ export interface WorldConfig {
   readonly seed: number;
   /** Defeated ships lose control and stop firing (spec §8.1). Scenarios and test flights enable it. */
   readonly enforceDefeat?: boolean;
+  /** Flight model of every ship (drones always fly newtonian). Default newtonian. */
+  readonly flightModel?: FlightModel;
 }
 
 export interface Arena {
@@ -111,11 +114,17 @@ export class World {
 
   readonly combat = new CombatState();
   enforceDefeat: boolean;
+  /**
+   * How ships fly: newtonian (spec §6) or arcade (speed hold with a top speed, see flight/arcade.ts).
+   * Set before the first step. Drones always fly newtonian: their control is written for it.
+   */
+  flightModel: FlightModel;
 
   constructor(config: WorldConfig) {
     this.seed = config.seed;
     this.rng = new Rng(config.seed);
     this.enforceDefeat = config.enforceDefeat ?? false;
+    this.flightModel = config.flightModel ?? "newtonian";
   }
 
   hasShip(id: string): boolean {
@@ -297,6 +306,7 @@ export class World {
         velocity: s.linearVelocity,
         dt,
         disabled: (this.enforceDefeat && ship.defeated) || ship.inert,
+        model: ship.drone ? "newtonian" : this.flightModel,
       });
       const f = rotate({ x: w.fx, y: w.fy }, s.angle);
       if (f.x !== 0 || f.y !== 0) this.physics.applyForceToCenter(ship.id, f);

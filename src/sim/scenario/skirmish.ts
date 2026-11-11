@@ -1,3 +1,4 @@
+import type { FlightModel } from "../flight/arcade";
 import type { AiProfile } from "../../data/schemas/ai";
 import type { ShipDesign } from "../../data/schemas/design";
 import type { Scenario } from "../../data/schemas/scenario";
@@ -30,6 +31,8 @@ export interface SkirmishSetup {
   readonly sides: readonly [readonly SkirmishShip[], readonly SkirmishShip[]];
   /** Distance between the two lines at the start (m). */
   readonly distance: number;
+  /** How ships fly in this battle (default newtonian). */
+  readonly flightModel?: FlightModel;
 }
 
 export const DEFAULT_SKIRMISH: SkirmishSetup = {

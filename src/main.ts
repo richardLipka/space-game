@@ -1,4 +1,5 @@
 /** Browser entry: app shell with the ship editor (default) and the flight screen (test flight / sandbox). */
+import { preferredFlightModel } from "./ui/flight-model";
 import { Application } from "pixi.js";
 import catalogueJson from "./data/core/catalogue.json";
 import fighterJson from "./data/designs/demo-fighter.json";
@@ -150,6 +151,8 @@ async function main(): Promise<void> {
       const s = world.addShip(e.design, catalogue, { position: vec2(e.x, e.y), angle: Math.PI, team: 1 });
       world.setAi(s.id, aiProfile(e.profile));
     }
+    // Test flights and the sandbox use the model picked in the toolbar.
+    world.flightModel = preferredFlightModel();
     editor.hide();
     mode = "flight";
     flight.start({ world, playerShips: ships, title });
@@ -214,6 +217,7 @@ async function main(): Promise<void> {
         droneDesigns: [...droneDesigns.values()],
       });
       applySkirmishOrders(battle, sk, setup);
+      battle.world.flightModel = setup.flightModel ?? "newtonian";
       const watch = battle.playerShips.length === 0;
       editor.hide();
       mode = "flight";

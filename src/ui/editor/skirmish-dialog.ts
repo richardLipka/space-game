@@ -8,6 +8,13 @@ import {
   type SkirmishShip,
 } from "../../sim/scenario/skirmish";
 import { safeStorage } from "../storage";
+import type { FlightModel } from "../../sim/flight/arcade";
+import {
+  FLIGHT_MODEL_INFO,
+  flightModelSelect,
+  preferredFlightModel,
+  rememberFlightModel,
+} from "../flight-model";
 import { el } from "./dom";
 
 const STORE_KEY = "space-game.skirmish.v1";
@@ -20,7 +27,7 @@ const STORE_KEY = "space-game.skirmish.v1";
 export class SkirmishDialog {
   private readonly dialog: HTMLDialogElement;
   private readonly body: HTMLElement;
-  private setup: { sides: [SkirmishShip[], SkirmishShip[]]; distance: number };
+  private setup: { sides: [SkirmishShip[], SkirmishShip[]]; distance: number; flightModel: FlightModel };
 
   constructor(
     private readonly designs: () => ShipDesign[],
@@ -42,13 +49,20 @@ export class SkirmishDialog {
     if (!this.dialog.open) this.dialog.showModal();
   }
 
-  private load(): { sides: [SkirmishShip[], SkirmishShip[]]; distance: number } {
+  private load(): { sides: [SkirmishShip[], SkirmishShip[]]; distance: number; flightModel: FlightModel } {
     try {
       const raw = safeStorage.get(STORE_KEY);
       if (raw) {
         const v = JSON.parse(raw) as SkirmishSetup;
         if (Array.isArray(v.sides) && v.sides.length === 2)
-          return { sides: [[...v.sides[0]], [...v.sides[1]]], distance: Number(v.distance) || 5000 };
+          return {
+            sides: [[...v.sides[0]], [...v.sides[1]]],
+            distance: Number(v.distance) || 5000,
+            flightModel:
+              v.flightModel === "arcade" || v.flightModel === "newtonian"
+                ? v.flightModel
+                : preferredFlightModel(),
+          };
       }
     } catch {
       /* fall back to the default */
@@ -56,6 +70,7 @@ export class SkirmishDialog {
     return {
       sides: [[...DEFAULT_SKIRMISH.sides[0]], [...DEFAULT_SKIRMISH.sides[1]]],
       distance: DEFAULT_SKIRMISH.distance,
+      flightModel: preferredFlightModel(),
     };
   }
 
@@ -121,6 +136,7 @@ export class SkirmishDialog {
       this.onStart({
         sides: [this.setup.sides[0].map((x) => ({ ...x })), this.setup.sides[1].map((x) => ({ ...x }))],
         distance: this.setup.distance,
+        flightModel: this.setup.flightModel,
       });
     });
     const reset = el("button", { "data-testid": "skirmish-reset" }, "Reset");
@@ -128,6 +144,7 @@ export class SkirmishDialog {
       this.setup = {
         sides: [[...DEFAULT_SKIRMISH.sides[0]], [...DEFAULT_SKIRMISH.sides[1]]],
         distance: DEFAULT_SKIRMISH.distance,
+        flightModel: this.setup.flightModel,
       };
       this.save();
       this.render();
@@ -141,7 +158,22 @@ export class SkirmishDialog {
         "Give every ship a pilot: you (side 1) or an AI type. Without a player ship you watch the battle. Tab switches between your ships.",
       ),
       sides,
-      el("label", { class: "sk-dist" }, "Start distance (m) ", dist),
+      el(
+        "div",
+        { class: "sk-options" },
+        el("label", { class: "sk-dist" }, "Start distance (m) ", dist),
+        flightModelSelect("skirmish-flight-model", this.setup.flightModel, (m) => {
+          this.setup.flightModel = m;
+          rememberFlightModel(m);
+          this.save();
+          this.render();
+        }),
+      ),
+      el(
+        "p",
+        { class: "dim", "data-testid": "skirmish-flight-help" },
+        FLIGHT_MODEL_INFO[this.setup.flightModel].help,
+      ),
       ...errors.map((e) => el("div", { class: "error", "data-testid": "skirmish-error" }, e)),
       el("div", { class: "actions" }, reset, close, start),
     );

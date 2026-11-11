@@ -1,6 +1,7 @@
 import type { Ship } from "../sim/ship/ship-entity";
 import type { World } from "../sim/world";
 import { capabilities } from "../sim/flight/propulsion";
+import { arcadeLimits } from "../sim/flight/arcade";
 import { nearBoundary } from "../sim/physics/forces";
 import { length, radToDeg, sub } from "../sim/core/vec2";
 import { el } from "./editor/dom";
@@ -84,6 +85,8 @@ FLEET     J follow · K attack my target · L hold · Ctrl+click or click a cont
 SHIP      P power priority · R radiators · N networks · B eject mode (click a part) · Shift+B eject all wrecks
           Tab switch ship · hold Y + click: destroy part (debug)
 VIEW      C camera · wheel zoom · middle-drag pan (free cam) · V overlays · T theme
+MODELS    Newtonian: thrust adds speed, brake by burning the other way. Arcade (pick it before a test flight
+          or a skirmish): hold W to fly up to the top speed, release to stop, turning turns where you fly
 TIME      +/- or [ ] time scale (×1 at start) · Space pause · ? help · Esc editor`;
 
 /** Sets text, class or HTML only when it changed (the HUD is refreshed every frame). */
@@ -208,6 +211,7 @@ export class Hud {
 
   private readonly shipName = el("b", { "data-testid": "ship-name" });
   private readonly speed = el("span", { class: "ck-big", "data-testid": "speed" });
+  private readonly unit = el("span", { class: "ck-unit" });
   private readonly nav = el("div", { class: "ck-nav" });
   private readonly gThrust = gauge("THRUST", "thrust");
   private readonly gFuel = gauge("FUEL", "fuel");
@@ -275,7 +279,7 @@ export class Hud {
     const helm = panel(
       "HELM",
       "helm",
-      this.buildDiv("ck-speed", this.speed, el("span", { class: "ck-unit" }, "m/s"), this.nav),
+      this.buildDiv("ck-speed", this.speed, this.unit, this.nav),
       this.gThrust.root,
       this.gFuel.root,
       this.gHeat.root,
@@ -373,6 +377,8 @@ export class Hud {
     const caps = capabilities(acts);
     const speed = length(s.linearVelocity);
     const hdg = ((radToDeg(s.angle) % 360) + 360) % 360;
+    const model = ship.drone ? "newtonian" : world.flightModel;
+    const arcade = model === "arcade" ? arcadeLimits(mp.mass, mp.inertia, caps) : null;
     const alerts: string[] = [];
     const alert = (level: "warn" | "alert", text: string, testid?: string) =>
       alerts.push(
@@ -388,6 +394,7 @@ export class Hud {
     html(
       this.clock,
       `<span class="dim">T+</span>${world.time.toFixed(1)} s <span class="dim">tick <span data-testid="tick">${world.tick}</span></span> ` +
+        `<b class="ck-model ${model}" data-testid="flight-model-tag">${model.toUpperCase()}</b> ` +
         `<b data-testid="time-scale">×${info.timeScale}</b>${info.paused ? ' <b class="warn">PAUSED</b>' : ""} ` +
         `<span class="dim">cam ${info.cameraMode} · ${info.theme} · ${info.fps.toFixed(0)} fps · ? help · Esc editor</span>`,
     );
@@ -407,6 +414,10 @@ export class Hud {
     html(this.shipName, `${esc(ship.design.name)} <span class="dim">${ship.id}</span>`);
     txt(this.speed, speed.toFixed(1));
     html(
+      this.unit,
+      arcade ? `m/s <span data-testid="top-speed">of ${arcade.topSpeed.toFixed(0)}</span>` : "m/s",
+    );
+    html(
       this.nav,
       `<span><i>HDG</i>${hdg.toFixed(0).padStart(3, "0")}°</span>` +
         `<span><i>ROT</i>${radToDeg(s.angularVelocity).toFixed(1)}°/s</span>` +
@@ -415,12 +426,14 @@ export class Hud {
     // Thrust actually delivered now (all engines and thrusters), against the best the ship can do forward.
     const w = ship.lastWrench;
     const thrust = Math.hypot(w.fx, w.fy);
-    const maxThrust = Math.max(caps.fwd, 1);
+    const maxThrust = Math.max(arcade ? mp.mass * arcade.accel : caps.fwd, 1);
     setGauge(this.gThrust, thrust / maxThrust);
     txt(this.gThrust.value, `${Math.round(clamp01(thrust / maxThrust) * 100)}% · ${kn(thrust)}`);
     html(
       this.gThrust.detail,
-      `accel <b>${(thrust / mp.mass).toFixed(1)}</b> m/s² · max fwd ${(caps.fwd / mp.mass).toFixed(1)} lat ${(Math.min(caps.left, caps.right) / mp.mass).toFixed(1)} · turn ${radToDeg(caps.torqueCcw / mp.inertia).toFixed(0)}°/s² · ${(mp.mass / 1000).toFixed(2)} t`,
+      arcade
+        ? `top speed <b>${arcade.topSpeed.toFixed(0)}</b> m/s in ${(arcade.topSpeed / Math.max(arcade.accel, 1e-6)).toFixed(1)} s · strafe ${arcade.strafeSpeed.toFixed(0)} · reverse ${arcade.reverseSpeed.toFixed(0)} · turn ${radToDeg(arcade.turnRate).toFixed(0)}°/s · ${(mp.mass / 1000).toFixed(2)} t`
+        : `accel <b>${(thrust / mp.mass).toFixed(1)}</b> m/s² · max fwd ${(caps.fwd / mp.mass).toFixed(1)} lat ${(Math.min(caps.left, caps.right) / mp.mass).toFixed(1)} · turn ${radToDeg(caps.torqueCcw / mp.inertia).toFixed(0)}°/s² · ${(mp.mass / 1000).toFixed(2)} t`,
     );
     const fuelFrac = ship.fuelCapacity > 0 ? ship.totalFuel / ship.fuelCapacity : 0;
     const burn = acts.reduce((sum, a, i) => sum + a.fuelFlow * (ship.throttles[i] ?? 0), 0);
@@ -484,7 +497,9 @@ export class Hud {
     const sk = ship.flight.speedKill;
     html(
       this.modes,
-      `<span class="ck-chip${sk === "off" ? "" : " on"}">SPEED KILL <b data-testid="speedkill">${sk}</b></span>` +
+      (arcade
+        ? `<span class="ck-chip on">AUTO BRAKE <b>on</b></span>`
+        : `<span class="ck-chip${sk === "off" ? "" : " on"}">SPEED KILL <b data-testid="speedkill">${sk}</b></span>`) +
         `<span class="ck-chip${info.faceCursor ? " on" : ""}">FACE CURSOR <b>${info.faceCursor ? "on" : "off"}</b></span>` +
         (ship.radiatorExposure.size > 0
           ? `<span class="ck-chip${ship.radiatorsExtended ? " on" : ""}">RADIATORS <b>${ship.radiatorsExtended ? "out" : "in"}</b></span>`

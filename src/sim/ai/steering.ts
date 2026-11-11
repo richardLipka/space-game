@@ -69,6 +69,16 @@ export function steerToIntent(world: World, ship: Ship, caps: CapabilityProfile,
   const body = world.physics.getBodyState(ship.id);
   const angle = body.angle;
   if (s.coast) return { thrust: vec2(0, 0), rotate: 0, faceAngle: s.faceAngle ?? undefined };
+  if (world.flightModel === "arcade" && !ship.drone) {
+    // Arcade ships hold a velocity themselves: hand it over, nose along the way when free to choose.
+    const moving = length(s.desiredVel) > 1;
+    return {
+      thrust: vec2(0, 0),
+      rotate: 0,
+      faceAngle: s.faceAngle ?? (moving ? angleOf(s.desiredVel) : angle),
+      desiredVelocity: s.desiredVel,
+    };
+  }
   const dv = sub(s.desiredVel, body.linearVelocity);
   const dvLen = length(dv);
   let face = s.faceAngle ?? angle;

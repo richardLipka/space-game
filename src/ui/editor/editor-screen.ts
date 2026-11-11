@@ -1,3 +1,4 @@
+import { flightModelSelect, preferredFlightModel, rememberFlightModel } from "../flight-model";
 import { SkirmishDialog } from "./skirmish-dialog";
 import type { SkirmishSetup } from "../../sim/scenario/skirmish";
 import type { Application } from "pixi.js";
@@ -311,6 +312,7 @@ export class EditorScreen {
       mirror,
       overlays,
       el("span", { class: "ed-sep" }),
+      flightModelSelect("flight-model", preferredFlightModel(), rememberFlightModel),
       this.button("Test flight", "btn-test-flight", () => this.testFlight()),
       this.button("Scenarios", "btn-scenarios", () => this.scenarioDialog.open(), "Pick a scenario to fight"),
       this.button("Sandbox", "btn-sandbox", () => this.services.openSandbox()),

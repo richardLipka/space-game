@@ -844,6 +844,21 @@ body {
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
 }
+.sk-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 24px;
+}
+.flight-model {
+  white-space: nowrap;
+}
+.flight-model select {
+  font: inherit;
+  color: var(--panel-fg);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+}
 
 /* ---------- Flight: cockpit HUD ----------
  * Panels around the edge of the screen (the centre stays clear):
@@ -1136,6 +1151,8 @@ body {
   text-shadow: 0 0 8px color-mix(in srgb, var(--hud-fg) 45%, transparent);
 }
 .ck-unit {
+  font-size: 11px;
+  white-space: nowrap;
   color: var(--hud-dim);
 }
 .ck-nav,
@@ -1545,4 +1562,12 @@ body {
   .ck-plan {
     height: clamp(70px, 18vh, 140px);
   }
+}
+.ck-model {
+  padding: 0 4px;
+  letter-spacing: 0.08em;
+  border: 1px solid currentColor;
+}
+.ck-model.arcade {
+  color: var(--ck-ok);
 }
