@@ -23,7 +23,8 @@
     "balance:scenarios": "tsx src/headless/scenarios-cli.ts",
     "tune": "tsx src/headless/tune-cli.ts",
     "balance:derive": "tsx src/headless/derive-cli.ts && prettier --write src/data/core/catalogue.json",
-    "ai:study": "tsx src/headless/ai-study-cli.ts"
+    "ai:study": "tsx src/headless/ai-study-cli.ts",
+    "tuning": "tsx src/headless/tuning-cli.ts"
   },
   "type": "module",
   "dependencies": {

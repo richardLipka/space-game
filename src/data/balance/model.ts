@@ -158,7 +158,9 @@ export const BALANCE = {
   },
 } as const;
 
-export type Balance = typeof BALANCE;
+/** The parameter table with every number widened, so tuning tools can build variants of it. */
+type Widen<T> = T extends number ? number : { readonly [K in keyof T]: Widen<T[K]> };
+export type Balance = Widen<typeof BALANCE>;
 
 export const G0 = 9.80665;
 
@@ -177,7 +179,7 @@ export function partVolume(p: Pick<PartDef, "outline">, B: Balance = BALANCE): n
   return (Math.abs(a) / 2) * B.depth;
 }
 
-export type ComponentClass = keyof Balance["density"];
+export type ComponentClass = keyof (typeof BALANCE)["density"];
 
 /** Which row of the density and hit-point tables a part uses. */
 export function componentClass(p: PartDef): ComponentClass {

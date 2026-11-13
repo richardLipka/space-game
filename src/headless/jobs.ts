@@ -1,9 +1,12 @@
 import catalogueJson from "../data/core/catalogue.json";
 import { validateCatalogue } from "../data/validate";
 import { applyOverlay, type BalanceOverlay } from "../data/balance/overlay";
+import { BALANCE, deriveCatalogue, type Balance } from "../data/balance/model";
+import { setRuntimeBalance } from "../sim/systems/heat";
 import { AI_PROFILES, aiProfile } from "../data/ai/index";
 import { BUNDLED_DESIGNS, CORE_DRONES } from "../data/designs/index";
 import { SCENARIOS } from "../data/scenarios/index";
+import type { Scenario } from "../data/schemas/scenario";
 import { PartCatalogue } from "../sim/ship/catalogue";
 import { runMatch, type MatchResult } from "./balance";
 import { runScenario, type ScenarioRun } from "./scenario-runs";
@@ -24,6 +27,8 @@ export type Job =
       readonly profile: string;
       readonly timeLimit: number;
       readonly overlay: BalanceOverlay;
+      /** Balance-model parameters to derive the catalogue from (default: the game's own table). */
+      readonly balance?: Balance;
     }
   | {
       readonly kind: "skirmish";
@@ -35,6 +40,15 @@ export type Job =
       readonly seed: number;
       readonly timeLimit: number;
       readonly overlay: BalanceOverlay;
+      /** Balance-model parameters to derive the catalogue from (default: the game's own table). */
+      readonly balance?: Balance;
+      /**
+       * Seeded random offsets of every ship's spawn (m) and heading (degrees). Mirror matches are otherwise
+       * so symmetric that both ships take the same damage at the same moment.
+       */
+      readonly jitter?: { readonly position: number; readonly angle: number };
+      /** End the battle as soon as nobody can fight any more (it would only run out the clock). */
+      readonly stopWhenDisarmed?: boolean;
     }
   | {
       readonly kind: "scenario";
@@ -43,6 +57,8 @@ export type Job =
       readonly profile: string;
       readonly timeLimit: number;
       readonly overlay: BalanceOverlay;
+      /** Balance-model parameters to derive the catalogue from (default: the game's own table). */
+      readonly balance?: Balance;
     };
 
 export type JobResult =
@@ -64,24 +80,64 @@ const base = (() => {
 })();
 const catalogues = new Map<string, PartCatalogue>();
 
-/** The core catalogue with `overlay` applied (cached per overlay). */
-export function catalogueFor(overlay: BalanceOverlay): PartCatalogue {
-  const key = JSON.stringify(overlay);
+/**
+ * The core catalogue derived from `balance` (default: the game's table) with `overlay` applied. Cached per
+ * combination; the cache is kept small because tuning tries a new combination every few battles.
+ */
+export function catalogueFor(overlay: BalanceOverlay, balance?: Balance): PartCatalogue {
+  const key = JSON.stringify([overlay, balance ?? null]);
   let c = catalogues.get(key);
   if (!c) {
-    c = PartCatalogue.fromJson(applyOverlay(base, overlay));
+    if (catalogues.size >= 16) catalogues.clear();
+    const derived = balance ? deriveCatalogue(base, balance) : base;
+    c = PartCatalogue.fromJson(applyOverlay(derived, overlay));
     catalogues.set(key, c);
   }
   return c;
 }
 
+/** Spawn points and headings moved by a seeded random amount (the same job always moves them the same). */
+export function jitterSpawns(
+  sc: Scenario,
+  seed: number,
+  j: { readonly position: number; readonly angle: number },
+): Scenario {
+  let state = (seed * 2654435761) | 0;
+  const rnd = () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), state | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return (((t ^ (t >>> 14)) >>> 0) / 4294967296) * 2 - 1;
+  };
+  const move = (t: { position: [number, number]; angle: number }) => ({
+    position: [t.position[0] + rnd() * j.position, t.position[1] + rnd() * j.position] as [number, number],
+    angle: t.angle + rnd() * j.angle,
+  });
+  return {
+    ...sc,
+    enemies: sc.enemies.map((e) => ({ ...e, spawn: move(e.spawn) })),
+    playerSpawns: sc.playerSpawns.map(move),
+  };
+}
+
+/** Runs a job with its balance parameters in force (catalogue and run-time values), then restores them. */
 export function runJob(job: Job): JobResult {
-  const cat = catalogueFor(job.overlay);
+  setRuntimeBalance(job.balance ?? BALANCE);
+  try {
+    return runJobWith(job);
+  } finally {
+    setRuntimeBalance(BALANCE);
+  }
+}
+
+function runJobWith(job: Job): JobResult {
+  const cat = catalogueFor(job.overlay, job.balance);
   if (job.kind === "skirmish") {
     const sc = job.arenaFrom ? SCENARIOS.find((x) => x.id === job.arenaFrom) : undefined;
     const arena = sc?.arena ?? { width: 14000, height: 10000, asteroids: [], gravityWells: [] };
     const sk = skirmishBattle(job.setup, BUNDLED_DESIGNS, arena);
-    const battle = startBattle({ ...sk.scenario, seed: job.seed }, sk.fleet, cat, {
+    const scenario = job.jitter ? jitterSpawns(sk.scenario, job.seed, job.jitter) : sk.scenario;
+    const battle = startBattle({ ...scenario, seed: job.seed }, sk.fleet, cat, {
       seed: job.seed,
       designs: BUNDLED_DESIGNS,
       profiles: sk.profiles,
@@ -94,6 +150,7 @@ export function runJob(job: Job): JobResult {
       battle.world.step();
       updateBattle(battle);
       obs.tick(1 / 60);
+      if (job.stopWhenDisarmed && i % 60 === 59 && !obs.undecided()) break;
     }
     return { kind: "skirmish", job, result: { label: job.label, seed: job.seed, metrics: obs.finish() } };
   }

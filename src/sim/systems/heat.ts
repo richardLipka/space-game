@@ -8,14 +8,22 @@ export const HEAT = {
    * Hull surface radiation (W per metre of exposed outline). Every ship sheds a little heat through its
    * skin, so small or cool ships manage without radiators (decision log: Hull radiation).
    */
-  hullRadiation: BALANCE.heat.hullPerMetre,
+  hullRadiation: BALANCE.heat.hullPerMetre as number,
   /** Heat level where throttling starts (fraction of capacity). */
   throttleStart: 0.7,
   /** Output factor at 100 % heat. */
   throttleMin: 0.5,
   /** HP lost per second per unit of excess heat fraction, as a fraction of max HP. */
   overheatDamage: 0.5,
-} as const;
+};
+
+/**
+ * Sets the run-time values the balance model controls (hull radiation) for the battles that follow.
+ * The headless tuning tools call it per battle with the parameters under test; the game never does.
+ */
+export function setRuntimeBalance(b: { readonly heat: { readonly hullPerMetre: number } }): void {
+  HEAT.hullRadiation = b.heat.hullPerMetre;
+}
 
 /** Output factor for heat-producing parts: 1 below 70 %, linear down to 0.5 at 100 %, 0.5 above. */
 export function heatThrottle(level: number): number {

@@ -34,6 +34,7 @@ npm run balance:scenarios      # every scenario AI vs AI with its suggested flee
 npm run tune                   # automated tuning toward 1–5 min fights → balance-report/tune (add --apply to write it)
 npm run ai:study               # AI types against each other on the mirror scenarios, parameter sweeps → balance-report/ai-study
 npm run balance:derive         # regenerate the core catalogue from the balance model (src/data/balance/model.ts)
+npm run tuning -- eval         # mirror fights vs fight-length targets; also sensitivity, ga (hours, resumable), apply → docs/tuning.md
 ```
 
 ## Ships
@@ -76,7 +77,7 @@ M launch a missile (Shift+M salvo) · H launch a drone (Shift+H all); each launc
 J allies follow · K allies attack my target · L allies hold · Ctrl+click select allies (Ctrl+Shift adds) ·
 B eject mode (click a part to jettison it and everything hanging on it; B/Esc leaves) · Shift+B jettison all wrecks
 
-**Balance model:** every component's mass, hit points, power, heat, fuel and ammunition are derived from its volume by the formulas in [docs/balance-model.md](docs/balance-model.md) (`npm run balance:derive` regenerates the catalogue).
+**Balance model:** every component's mass, hit points, power, heat, fuel and ammunition are derived from its volume by the formulas in [docs/balance-model.md](docs/balance-model.md) (`npm run balance:derive` regenerates the catalogue). Its parameters are tuned by fight length with `npm run tuning`, step by step or by a genetic algorithm running for hours ([docs/tuning.md](docs/tuning.md)).
 
 **Ordnance and drive:** missiles are the magazine's, not the launcher's: fit smart-missile magazines (steer while their motor burns) or rocket magazines (fly straight, twice as many, reload twice as fast). Z picks the missile type M launches, U the drone type H launches, or click the type in the ordnance panel. Reloading a launcher and readying a drone take power. I switches the drive on ships with ion engines: all engines, ion only (little thrust, almost no fuel, a lot of power) or chemical only.
 

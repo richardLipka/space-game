@@ -7,7 +7,19 @@ import { capabilityProfile } from "../sim/ai/capabilities";
  * of it ships spent overheated or short of power, and what ammunition was left. Reads the world only.
  */
 export type EndReason =
-  "command-destroyed" | "incapacitated" | "timeout-out-of-ammo" | "timeout-retreat" | "timeout-stalemate";
+  | "command-destroyed"
+  | "incapacitated"
+  | "timeout-out-of-ammo"
+  /** Nobody can fight because every weapon is destroyed (ships that can still fly are not defeated). */
+  | "timeout-disarmed"
+  | "timeout-retreat"
+  | "timeout-stalemate";
+
+/** A ship that can still hurt someone: a weapon that can fire, missiles or drones. */
+const armed = (s: Ship) => {
+  const c = capabilityProfile(s);
+  return c.weapons.fixedDps + c.weapons.turretDps > 0 || c.missiles.stock > 0 || c.drones.stored > 0;
+};
 
 export interface ShipStats {
   readonly design: string;
@@ -88,6 +100,15 @@ export class BattleObserver {
     }
   }
 
+  /**
+   * True while at least one ship on each side is undefeated and someone can still fight. When it turns
+   * false nothing more can happen (both sides disarmed or out of ammunition), so a measuring run may stop.
+   */
+  undecided(): boolean {
+    const live = [...this.a, ...this.b].filter((s) => !s.defeated && !s.inert);
+    return live.some(armed);
+  }
+
   finish(): BattleMetrics {
     const w = this.world;
     const aDown = this.a.every((s) => s.defeated);
@@ -108,13 +129,15 @@ export class BattleObserver {
         : "incapacitated";
     } else {
       const live = [...this.a, ...this.b].filter((s) => !s.defeated && !s.inert);
-      const armed = live.filter((s) => {
-        const c = capabilityProfile(s);
-        return c.weapons.fixedDps + c.weapons.turretDps > 0 || c.missiles.stock > 0 || c.drones.stored > 0;
-      });
       const retreating = live.some((s) => w.ai.get(s.id)?.behaviour === "retreat");
-      reason =
-        armed.length === 0 ? "timeout-out-of-ammo" : retreating ? "timeout-retreat" : "timeout-stalemate";
+      const weaponsLeft = live.some((s) => s.weapons.some((x) => x.part.hp > 0 && x.def.kind !== "pd"));
+      reason = !live.some(armed)
+        ? weaponsLeft
+          ? "timeout-out-of-ammo"
+          : "timeout-disarmed"
+        : retreating
+          ? "timeout-retreat"
+          : "timeout-stalemate";
     }
     const st = w.combat.stats;
     return {
