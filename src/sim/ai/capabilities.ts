@@ -1,4 +1,5 @@
-import { capabilities, G0 } from "../flight/propulsion";
+import { capabilities } from "../flight/propulsion";
+import { deltaV, effectiveIsp, weaponDps } from "../../data/balance/model";
 import { hpFactor } from "../ship/ship";
 import type { Ship } from "../ship/ship-entity";
 
@@ -72,9 +73,9 @@ export function capabilityProfile(ship: Ship): CapabilityProfile {
     thrust += Math.hypot(a.fx, a.fy);
     flow += a.fuelFlow;
   }
-  const isp = flow > 0 ? thrust / (flow * G0) : 0;
+  const isp = effectiveIsp(thrust, flow);
   const fuel = ship.totalFuel;
-  const deltaV = isp > 0 && fuel > 0 ? isp * G0 * Math.log(m / Math.max(1e-6, m - fuel)) : 0;
+  const dv = deltaV(isp, m, fuel);
 
   const guns: { dps: number; reach: number; spread: number; fixed: boolean }[] = [];
   let fixedDps = 0;
@@ -113,7 +114,7 @@ export function capabilityProfile(ship: Ship): CapabilityProfile {
     let dps = 0;
     let reach = d.range;
     if (d.kind === "beam" && d.beam) {
-      dps = d.beam.dps * (ship.power.supply > 0 ? 1 : 0);
+      dps = weaponDps(d) * (ship.power.supply > 0 ? 1 : 0);
       beamDps += dps;
     } else if (d.projectile) {
       reach = Math.min(d.range, d.projectile.speed * d.projectile.lifetime);
@@ -122,7 +123,7 @@ export function capabilityProfile(ship: Ship): CapabilityProfile {
         ammoGuns++;
         if (has) ammoReady++;
       }
-      dps = has ? (d.projectile.damage / d.fireInterval) * Math.max(0.25, hpFactor(p)) : 0;
+      dps = has ? weaponDps(d) * Math.max(0.25, hpFactor(p)) : 0;
     }
     if (dps <= 0) continue;
     if (d.mount === "fixed") {
@@ -157,7 +158,7 @@ export function capabilityProfile(ship: Ship): CapabilityProfile {
     accel: { fwd: caps.fwd / m, back: caps.back / m, left: caps.left / m, right: caps.right / m },
     alpha,
     turnTime180,
-    deltaV,
+    deltaV: dv,
     weapons: {
       fixedDps,
       turretDps,

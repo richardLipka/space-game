@@ -1,7 +1,7 @@
 /**
  * Balance-model tuning by fight length (docs/tuning.md).
  *
- *   npm run tuning -- eval        [--set hp=1.5,fuelHeat=20000] [--params file.json] [--seeds 4] [--round 0]
+ *   npm run tuning -- eval        [--set pace=7,fuelHeat=20000] [--params file.json] [--seeds 4] [--round 0]
  *                                 [--matchups small-wasp,large-anvil] [--note "why"]
  *   npm run tuning -- sensitivity [--genes hp,fuelHeat] [--factor 1.5] [--set …] [--params …] [--seeds 4]
  *   npm run tuning -- history
@@ -133,6 +133,12 @@ function table(cfg: TuningConfig, e: Evaluation): string {
         .join(" ")}`,
     );
   }
+  if (e.refused.length) rows.push(`REFUSED without battles: ${e.refused.join("; ")}`);
+  rows.push(
+    `design margins (power, cooling; today's = 1 or better): ${e.margins
+      .map((m) => `${m.design.replace("fleet-", "")} ${m.power.toFixed(2)}/${m.cooling.toFixed(2)}`)
+      .join(", ")}`,
+  );
   const ch = changes(cfg.genes, e.params);
   rows.push(ch.length ? `params: ${ch.join(", ")}` : "params: the game's current values");
   return rows.join("\n");

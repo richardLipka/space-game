@@ -1,7 +1,9 @@
 import { type Vec2, angleBetween, cross, degToRad, length, normalize, sub, ZERO } from "../core/vec2";
 import { hpFactor, isIntact, partCentroid, toShipDir, type MassProps, type PartInstance } from "../ship/ship";
 
-export const G0 = 9.80665;
+import { fuelFlow, G0 } from "../../data/balance/model";
+
+export { G0 };
 
 /**
  * One controllable force/torque source at full throttle, expressed in the ship frame about the CoM.
@@ -70,7 +72,7 @@ export function buildPropulsion(
   for (const p of parts) {
     const t = p.def.def.engine?.thrust ?? p.def.def.thruster?.thrust ?? 0;
     const isp = p.def.def.engine?.isp ?? p.def.def.thruster?.isp ?? 1;
-    if (t > 0) maxFlow = Math.max(maxFlow, t / (isp * G0));
+    if (t > 0) maxFlow = Math.max(maxFlow, fuelFlow(t, isp));
   }
 
   for (const p of parts) {
@@ -90,7 +92,7 @@ export function buildPropulsion(
       engines.push({ partUid: p.uid, phi, outOfGimbal, direction: outOfGimbal ? ZERO : dir });
       if (!outOfGimbal && hasFuel && hf > 0) {
         const f = def.engine.thrust * hf * Math.cos(phi);
-        const flow = (def.engine.thrust * hf) / (def.engine.isp * G0);
+        const flow = fuelFlow(def.engine.thrust * hf, def.engine.isp);
         actuators.push({
           kind: "engine",
           partUid: p.uid,
@@ -107,7 +109,7 @@ export function buildPropulsion(
       const dir = toShipDir(p, p.def.thrusterDir);
       const f = def.thruster.thrust * hf;
       const r = sub(pos, mp.center);
-      const flow = f / (def.thruster.isp * G0);
+      const flow = fuelFlow(f, def.thruster.isp);
       actuators.push({
         kind: "thruster",
         partUid: p.uid,

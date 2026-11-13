@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { BALANCE, deriveCatalogue } from "../../src/data/balance/model";
+import { BALANCE, deriveCatalogue, hullPerMetre } from "../../src/data/balance/model";
 import { validateCatalogue } from "../../src/data/validate";
 import { HEAT } from "../../src/sim/systems/heat";
 import { DEFAULT_CONFIG, configFrom, limitOf, type TuningConfig } from "../../src/headless/tuning/config";
-import { bandError, evaluate, jobsFor, matchupStats } from "../../src/headless/tuning/fitness";
+import { bandError, evaluate, evaluateMany, jobsFor, matchupStats } from "../../src/headless/tuning/fitness";
+import { references, viability } from "../../src/headless/tuning/viability";
 import {
   checkGenes,
+  currentValue,
   decode,
   encode,
   startParams,
@@ -14,7 +16,13 @@ import {
   type Gene,
 } from "../../src/headless/tuning/genome";
 import { breed, DEFAULT_GA, initialState, meanLoss, record } from "../../src/headless/tuning/ga";
-import { applyParams, formatNumber, rewriteModel } from "../../src/headless/tuning/apply";
+import {
+  applyParams,
+  balanceChanges,
+  formatNumber,
+  rewriteModel,
+  writtenBalance,
+} from "../../src/headless/tuning/apply";
 import { jitterSpawns, runJob } from "../../src/headless/jobs";
 import type { Scenario } from "../../src/data/schemas/scenario";
 import type { BattleMetrics } from "../../src/headless/observe";
@@ -53,10 +61,11 @@ describe("tuning genome", () => {
     for (const rec of Object.values(v.overlay.weapons ?? {})) expect(rec.damage).toBe(1);
   });
 
-  it("DNA round-trips through values (4 significant digits), and stays inside each range", () => {
+  it("DNA round-trips through values (6 significant digits), and stays inside each range", () => {
     const p = startParams(genes);
     const back = decode(genes, encode(genes, p));
-    for (const g of genes) expect(back[g.id]! / p[g.id]!).toBeCloseTo(1, 3);
+    for (const g of genes)
+      expect(Math.abs(back[g.id]! - p[g.id]!), g.id).toBeLessThanOrEqual(Math.abs(p[g.id]!) * 1e-3 + 1e-9);
     const lo = decode(
       genes,
       genes.map(() => -1),
@@ -71,15 +80,30 @@ describe("tuning genome", () => {
     }
   });
 
-  it("maps genes to the balance table and the overlay: values, factors on whole sections, weapon factors", () => {
-    const p = { ...startParams(genes), hp: 2, hpArmor: 2000, fuelHeat: 30_000, dmgLaser: 1.5 };
+  it("the default DNA holds exchange rates of the model, never single part values", () => {
+    for (const g of genes) expect(g.target, g.id).toMatch(/^balance:[\w.]+$/);
+    const p = { ...startParams(genes), pace: 9, hpArmor: 5, fuelHeat: 30_000, beam: 0.8 };
     const v = variant(genes, p);
+    expect(v.balance.weapons.killTime).toBe(9);
+    expect(v.balance.hp.armor).toBe(5);
     expect(v.balance.heat.perKgFuel).toBe(30_000);
-    expect(v.balance.hp.structure).toBe(BALANCE.hp.structure * 2);
-    // The section factor applies after the value a gene set inside it.
-    expect(v.balance.hp.armor).toBe(4000);
+    expect(v.balance.weapons.family.beam).toBe(0.8);
+    expect(v.overlay).toEqual({});
+    // The anchor is not a gene, and the game's table is untouched.
+    expect(v.balance.hp.structure).toBe(BALANCE.hp.structure);
+    expect(BALANCE.weapons.killTime).not.toBe(9);
+  });
+
+  it("still maps custom genes: factors on whole sections (after values set inside them) and overlay factors", () => {
+    const custom: Gene[] = [
+      { id: "all", target: "balance:hp.system.*", min: 0.1, max: 10 },
+      { id: "reactorHp", target: "balance:hp.system.reactor", min: 0.1, max: 10 },
+      { id: "dmg", target: "overlay:weapons.core:weapon.laser.turret.s.damage", min: 0.1, max: 10 },
+    ];
+    const v = variant(custom, { all: 2, reactorHp: 3, dmg: 1.5 });
+    expect(v.balance.hp.system.engine).toBeCloseTo(BALANCE.hp.system.engine * 2, 9);
+    expect(v.balance.hp.system.reactor).toBe(6);
     expect(v.overlay.weapons?.["core:weapon.laser.turret.s"]?.damage).toBe(1.5);
-    expect(BALANCE.hp.structure).toBe(324); // the game's table is untouched
   });
 
   it("rejects genes with bad ranges, unknown paths and duplicates", () => {
@@ -104,14 +128,14 @@ describe("tuning battles", () => {
       ...DEFAULT_CONFIG,
       matchups: [{ id: "t", sides: [["fleet-wasp"], ["fleet-wasp"]], band: [5, 10], limit: 3 }],
     };
-    const jobs = jobsFor(cfg, { ...startParams(genes), hullHeat: 4000 }, [1]);
+    const jobs = jobsFor(cfg, { ...startParams(genes), hullHeat: 0.02 }, [1]);
     expect(jobs).toHaveLength(1);
     const job = jobs[0]!;
     expect(job.kind === "skirmish" && job.timeLimit).toBe(3);
-    expect(job.balance?.heat.hullPerMetre).toBe(4000);
+    expect(job.balance?.heat.hullTurretsPerMetre).toBe(0.02);
     const r = runJob(job);
     expect(r.kind).toBe("skirmish");
-    expect(HEAT.hullRadiation).toBe(BALANCE.heat.hullPerMetre);
+    expect(HEAT.hullRadiation).toBe(hullPerMetre(BALANCE));
   });
 
   it("spawn jitter is seeded: the same seed moves ships the same way, another seed differently", () => {
@@ -200,7 +224,7 @@ describe("tuning loss", () => {
       },
     ];
     const a = evaluate(c, startParams(genes), results);
-    const b = evaluate(c, { ...startParams(genes), hp: 4 }, results);
+    const b = evaluate(c, { ...startParams(genes), pace: 20 }, results);
     expect(a.parts.drift).toBe(0);
     expect(b.parts.drift).toBeGreaterThan(0.1);
   });
@@ -222,6 +246,8 @@ describe("tuning GA", () => {
     parts: {},
     matchups: [],
     inBand: 0,
+    refused: [],
+    margins: [],
   });
 
   it("finds a hidden optimum and is reproducible from its seed", () => {
@@ -248,8 +274,8 @@ describe("tuning GA", () => {
   });
 
   it("starts from the given parameters and keeps elites, re-measuring them", () => {
-    const s = initialState(genes, DEFAULT_GA, 1, { ...startParams(genes), hp: 2 });
-    expect(decode(genes, s.population[0]!.dna).hp).toBe(2);
+    const s = initialState(genes, DEFAULT_GA, 1, { ...startParams(genes), pace: 8 });
+    expect(decode(genes, s.population[0]!.dna).pace).toBe(8);
     expect(s.population).toHaveLength(DEFAULT_GA.population);
     record(
       s,
@@ -272,13 +298,17 @@ describe("tuning apply", () => {
       modelSrc,
       new Map([
         ["heat.perKgFuel", 30_000],
-        ["hp.armor", 1500],
+        ["hp.armor", 4.5],
+        ["weapons.family.beam", 0.6],
+        ["hp.system.reactor", 2.5],
         ["power.battery.chargeTime", 12],
       ]),
     );
     expect(missing).toEqual([]);
     expect(text).toContain("    perKgFuel: 30_000,");
-    expect(text).toContain("    armor: 1500,");
+    expect(text).toContain("    armor: 4.5,");
+    expect(text).toContain("      beam: 0.6,");
+    expect(text).toContain("      reactor: 2.5,");
     expect(text).toContain("      chargeTime: 12,");
     // density.armor is a different path and stays.
     expect(text).toContain("    armor: 160,");
@@ -294,20 +324,60 @@ describe("tuning apply", () => {
     expect(formatNumber(0.012)).toBe("0.012");
   });
 
-  it("applying parameters gives a catalogue the model re-derives unchanged", () => {
-    const p = { ...startParams(genes), hp: 1.7, fuelHeat: 25_000, missileFactor: 6, dmgCannon: 1.3 };
+  it("applying parameters writes every gene into the model and gives a catalogue it re-derives unchanged", () => {
+    const p = {
+      ...startParams(genes),
+      pace: 9.3,
+      hpArmor: 4.2,
+      fuelHeat: 25_000,
+      beam: 0.6,
+      rangePrice: 0.3,
+    };
     const r = applyParams(genes, p, modelSrc, catalogue);
     expect(r.missing).toEqual([]);
     expect(r.changes.join("\n")).toMatch(/heat\.perKgFuel: 12000 → 25000/);
-    const cannon = r.catalogue.parts.find((x) => x.id === "core:weapon.cannon.turret.m")!;
-    const before = catalogue.parts.find((x) => x.id === "core:weapon.cannon.turret.m")!;
-    expect(cannon.weapon!.projectile!.damage).toBeCloseTo(before.weapon!.projectile!.damage * 1.3, 0);
+    // Every default gene's path can be written.
+    const mid = Object.fromEntries(genes.map((g) => [g.id, Number(((g.min + g.max) / 2).toPrecision(4))]));
+    const all = applyParams(genes, mid, modelSrc, catalogue);
+    expect(all.missing).toEqual([]);
+    expect(all.changes.length).toBe(genes.filter((g) => mid[g.id] !== currentValue(g)).length);
+    // Slower pace: less damage everywhere.
+    const ac = (c: typeof catalogue) =>
+      c.parts.find((x) => x.id === "core:weapon.autocannon.turret.s")!.weapon!.projectile!.damage;
+    expect(ac(r.catalogue) / ac(catalogue)).toBeCloseTo(BALANCE.weapons.killTime / 9.3, 2);
     // The written table, read back, derives exactly this catalogue (what the balance-model test checks).
-    const written = variant(genes, p).balance;
-    const reDerived = deriveCatalogue(r.catalogue, {
-      ...written,
-      hp: Object.fromEntries(Object.entries(written.hp).map(([k, v]) => [k, Number(v.toPrecision(4))])),
-    } as typeof written);
+    const reDerived = deriveCatalogue(r.catalogue, writtenBalance(balanceChanges(variant(genes, p).balance)));
     expect(reDerived).toEqual(r.catalogue);
+  });
+});
+
+describe("tuning viability", () => {
+  const cfg: TuningConfig = {
+    ...DEFAULT_CONFIG,
+    matchups: DEFAULT_CONFIG.matchups.filter((m) => ["small-spark", "large-rapier"].includes(m.id)),
+  };
+
+  it("today's values pass with no penalty; margins are the editor's power and cooling numbers", () => {
+    const ref = references(cfg);
+    expect([...ref.keys()]).toEqual(["fleet-rapier", "fleet-spark"]);
+    const v = viability(cfg, startParams(cfg.genes), ref);
+    expect(v.refused).toEqual([]);
+    expect(v.penalty).toBeCloseTo(0, 9);
+    for (const m of v.margins) expect(m.power).toBeGreaterThan(0);
+    expect(HEAT.hullRadiation).toBe(hullPerMetre(BALANCE));
+  });
+
+  it("refuses a set that leaves designs without power, before any battle", async () => {
+    const p = { ...startParams(cfg.genes), supply: 0.35 };
+    const v = viability(cfg, p, references(cfg));
+    expect(v.refused.join(" ")).toMatch(/power/);
+    let ran = 0;
+    const [e] = await evaluateMany(cfg, [p], [1], async (jobs) => {
+      ran += jobs.length;
+      return [];
+    });
+    expect(ran).toBe(0);
+    expect(e!.refused.length).toBeGreaterThan(0);
+    expect(e!.loss).toBeGreaterThanOrEqual(cfg.viability.refusedLoss);
   });
 });

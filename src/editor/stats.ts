@@ -1,8 +1,9 @@
 import type { ShipDesign } from "../data/schemas/design";
+import { deltaV, effectiveIsp, fuelFlow, weaponHeatRate, weaponPowerDemand } from "../data/balance/model";
 import type { PowerGroup } from "../data/schemas/design";
 import type { PartCatalogue } from "../sim/ship/catalogue";
 import type { LayoutIndex } from "../sim/ship/layout";
-import { buildPropulsion, capabilities, G0 } from "../sim/flight/propulsion";
+import { buildPropulsion, capabilities } from "../sim/flight/propulsion";
 import { FLIGHT } from "../sim/flight/controller";
 import { HEAT, hullDissipation } from "../sim/systems/heat";
 import { computeMassProps, instantiateParts } from "../sim/ship/ship";
@@ -94,7 +95,7 @@ export function designStats(
     fuelCap += d.fuelTank?.capacity ?? 0;
     if (d.engine) {
       thrustSum += d.engine.thrust;
-      flowSum += d.engine.thrust / (d.engine.isp * G0);
+      flowSum += fuelFlow(d.engine.thrust, d.engine.isp);
       demand.propulsion += d.engine.powerDraw;
       heatGen += d.engine.heatAtMax;
     }
@@ -123,15 +124,15 @@ export function designStats(
     if (d.magazine) ammo[d.magazine.ammoType] = (ammo[d.magazine.ammoType] ?? 0) + d.magazine.capacity;
     const w = d.weapon;
     if (w) {
-      const draw = (w.powerDraw ?? 0) + (w.powerPerShot ?? 0) / w.fireInterval;
+      const draw = weaponPowerDemand(w);
       if (w.kind === "pd") demand.pointDefense += draw;
       else demand.weapons += draw;
-      heatGen += (w.heatWhileFiring ?? 0) + (w.heatPerShot ?? 0) / w.fireInterval;
+      heatGen += weaponHeatRate(w);
     }
   });
 
-  const isp = flowSum > 0 ? thrustSum / (flowSum * G0) : 0;
-  const deltaV = fuelCap > 0 && isp > 0 ? isp * G0 * Math.log(mp.mass / (mp.mass - fuelCap)) : 0;
+  const isp = effectiveIsp(thrustSum, flowSum);
+  const dv = deltaV(isp, mp.mass, fuelCap);
   const alpha = Math.min(caps.torqueCcw, caps.torqueCw) / mp.inertia;
   const box = aabbOf([...layout.outlines.values()].flat());
   const length = Math.max(box.maxX - box.minX, box.maxY - box.minY);
@@ -151,7 +152,7 @@ export function designStats(
     },
     alpha,
     turn180: turnTime(Math.PI, alpha),
-    fuel: { capacity: fuelCap, deltaV },
+    fuel: { capacity: fuelCap, deltaV: dv },
     power: { production, battery, demand },
     heat: {
       generation: heatGen,

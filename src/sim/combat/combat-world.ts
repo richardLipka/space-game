@@ -1,4 +1,5 @@
 import { type Vec2, add, dot, length, lengthSq, normalize, rotate, scale, sub } from "../core/vec2";
+import { weaponDps } from "../../data/balance/model";
 import { rayPolygon } from "../core/geometry";
 import { gravityAccel } from "../physics/forces";
 import type { ContactImpulse } from "../physics/planck-adapter";
@@ -311,9 +312,8 @@ function gunDps(s: Ship): number {
   let dps = 0;
   for (const w of s.weapons) {
     if (w.part.hp <= 0 || w.def.kind === "pd") continue;
-    if (w.def.projectile) dps += w.def.projectile.damage / w.def.fireInterval;
-    else if (w.def.beam) dps += w.def.beam.dps;
-    else if (w.def.kind === "missile") dps += (s.nextMissile(w.uid)?.damage ?? 0) / w.def.fireInterval;
+    const missile = w.def.kind === "missile" ? s.nextMissile(w.uid) : null;
+    if (w.def.kind !== "missile" || missile) dps += weaponDps(w.def, missile ?? undefined);
   }
   return dps;
 }

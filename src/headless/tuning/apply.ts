@@ -9,15 +9,16 @@ import { type Gene, type Params, variant } from "./genome";
  * the overlay's factors applied to the numbers the model does not derive (weapon damage).
  */
 
-/** Rounds to 4 significant digits, the precision written into the source. */
-const sig4 = (v: number) => Number(v.toPrecision(4));
+/** Rounds to 6 significant digits, the precision written into the source. */
+const sig6 = (v: number) => Number(v.toPrecision(6));
 
 /** Every number in the table that differs from the game's, by dotted path (rounded as written). */
 export function balanceChanges(b: Balance, ref: Balance = BALANCE): Map<string, number> {
   const out = new Map<string, number>();
   const walk = (x: unknown, y: unknown, path: string) => {
     if (typeof x === "number") {
-      const v = sig4(x);
+      if (x === y) return;
+      const v = sig6(x);
       if (v !== y) out.set(path, v);
     } else if (x && typeof x === "object")
       for (const k of Object.keys(x))
@@ -62,7 +63,7 @@ export function rewriteModel(
       stack.push(unquote(open[1]!));
       continue;
     }
-    if (/^\s*\}.*,\s*$/.test(line)) {
+    if (/^\s*\}/.test(line)) {
       stack.pop();
       continue;
     }

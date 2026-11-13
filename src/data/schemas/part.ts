@@ -96,8 +96,8 @@ export const PartDef = Type.Object(
     conducts: Type.Optional(Type.Boolean()),
     /**
      * Per-part multipliers on what the balance model (data/balance/model.ts) derives from the part's volume:
-     * mass, hit points, its main output (reactor power, thrust, tank or magazine capacity, dissipation) and
-     * the share of a game's rounds a gun holds itself.
+     * mass, hit points, its main output (reactor power, thrust, tank or magazine capacity, dissipation, a
+     * beam's power draw), the share of a game's rounds a gun holds itself, weapon damage and armor rating.
      */
     balance: Type.Optional(
       Type.Object(
@@ -106,6 +106,11 @@ export const PartDef = Type.Object(
           hp: Type.Optional(PositiveNumber),
           output: Type.Optional(PositiveNumber),
           internalShare: Type.Optional(PositiveNumber),
+          /** Weapons: damage rate, and a burst's damage as a multiple of a direct hit. */
+          damage: Type.Optional(PositiveNumber),
+          burst: Type.Optional(PositiveNumber),
+          /** Armor: rating as a multiple of the model's plate. */
+          armor: Type.Optional(PositiveNumber),
         },
         strict,
       ),

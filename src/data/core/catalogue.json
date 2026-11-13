@@ -345,7 +345,10 @@
       "mass": 640,
       "hp": 4320,
       "cost": 36,
-      "armor": 30
+      "armor": 30,
+      "balance": {
+        "armor": 1.5
+      }
     },
     {
       "id": "core:armor.wedge.m",
@@ -366,7 +369,8 @@
       "armor": 25,
       "balance": {
         "mass": 1.3,
-        "hp": 1.15
+        "hp": 1.15,
+        "armor": 1.25
       }
     },
     {
@@ -420,7 +424,10 @@
       "mass": 213,
       "hp": 1440,
       "cost": 12,
-      "armor": 30
+      "armor": 30,
+      "balance": {
+        "armor": 1.5
+      }
     },
     {
       "id": "core:reactor.s",
@@ -732,7 +739,8 @@
         }
       },
       "balance": {
-        "mass": 1.75
+        "mass": 1.75,
+        "damage": 0.67094
       }
     },
     {
@@ -813,6 +821,9 @@
           "damage": 15,
           "lifetime": 1.4
         }
+      },
+      "balance": {
+        "damage": 1.06236
       }
     },
     {
@@ -856,7 +867,8 @@
       },
       "balance": {
         "mass": 2.6,
-        "hp": 1.3
+        "hp": 1.3,
+        "damage": 1.01102
       }
     },
     {
@@ -930,7 +942,9 @@
       },
       "balance": {
         "mass": 1.25,
-        "hp": 0.85
+        "hp": 0.85,
+        "damage": 1.32864,
+        "output": 2.3864
       }
     },
     {
@@ -1050,6 +1064,10 @@
           "burstRadius": 25,
           "burstDamage": 18
         }
+      },
+      "balance": {
+        "damage": 0.181597,
+        "burst": 1.8
       }
     },
     {
@@ -1172,7 +1190,8 @@
       "balance": {
         "mass": 0.45,
         "hp": 0.8,
-        "internalShare": 1
+        "internalShare": 1,
+        "damage": 2.78773
       }
     },
     {

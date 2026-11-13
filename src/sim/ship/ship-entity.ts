@@ -1,4 +1,5 @@
 import type { MissileDef } from "../../data/schemas/part";
+import { weaponHeatRate, weaponPowerDemand } from "../../data/balance/model";
 import { arcadeControl, type FlightModel } from "../flight/arcade";
 import type { PowerGroup, ShipDesign, WeaponGroupSettings } from "../../data/schemas/design";
 import { allocate, wrenchOf, type Wrench } from "../flight/allocator";
@@ -387,8 +388,7 @@ export class Ship {
         else if (group === "hangar")
           demand =
             (this.hangarCooldown.get(p.uid) ?? 0) > 1e-9 && p.ammo >= 1 ? (d.hangar!.powerDraw ?? 0) : 0;
-        else if (this.activeWeapons.has(p.uid))
-          demand = (d.weapon!.powerDraw ?? 0) + (d.weapon!.powerPerShot ?? 0) / d.weapon!.fireInterval;
+        else if (this.activeWeapons.has(p.uid)) demand = weaponPowerDemand(d.weapon!);
         consumers.push({ uid: p.uid, group, demand });
       }
       const res = allocatePower(sources, batteries, consumers, this.powerPriority, dt);
@@ -532,8 +532,7 @@ export class Ship {
       if (d.weapon && this.activeWeapons.has(p.uid)) {
         // A browned-out powered weapon only works (and heats) in proportion to the power it receives.
         const served = consumerGroup(p) ? (this.powerFactors.get(p.uid) ?? 0) : 1;
-        weapon =
-          ((d.weapon.heatWhileFiring ?? 0) + (d.weapon.heatPerShot ?? 0) / d.weapon.fireInterval) * served;
+        weapon = weaponHeatRate(d.weapon) * served;
       }
       sources.reactors += reactor;
       sources.propulsion += propulsion;

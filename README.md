@@ -31,7 +31,7 @@ npm run sim -- --scenario test/fixtures/scenarios/asteroid-field.json --ticks 60
 npm run golden:update  # re-baseline golden hashes (explain every change in the PR)
 npm run balance -- --seeds 8   # balance matrix of the weapon archetypes → balance-report/report.html
 npm run balance:scenarios      # every scenario AI vs AI with its suggested fleet → fight lengths, end reasons
-npm run tune                   # automated tuning toward 1–5 min fights → balance-report/tune (add --apply to write it)
+npm run tune                   # archetype duels → suggested overlay (balance-report/tune); accept results through the model
 npm run ai:study               # AI types against each other on the mirror scenarios, parameter sweeps → balance-report/ai-study
 npm run balance:derive         # regenerate the core catalogue from the balance model (src/data/balance/model.ts)
 npm run tuning -- eval         # mirror fights vs fight-length targets; also sensitivity, ga (hours, resumable), apply → docs/tuning.md

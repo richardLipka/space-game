@@ -49,6 +49,21 @@ export interface LossWeights {
   readonly drift: number;
 }
 
+/**
+ * Ship designs must stay workable: a parameter set that leaves a fleet design with much less power for its
+ * weapons, or much less cooling for its heat, than it has today is refused before any battle is fought.
+ * Margins are the editor's own numbers (power production ÷ combat demand, dissipation ÷ heat at full use),
+ * each compared with the same design under the game's current values.
+ */
+export interface Viability {
+  /** Refuse a set when any design's margin falls below this share of its current margin (or of 1). */
+  readonly refuseBelow: number;
+  /** Loss per squared shortfall below 1 × the reference margin, for sets that are not refused. */
+  readonly weight: number;
+  /** Loss of a refused set (plus its shortfall), so the search learns to stay away. */
+  readonly refusedLoss: number;
+}
+
 export interface TuningConfig {
   readonly genes: readonly Gene[];
   readonly matchups: readonly Matchup[];
@@ -57,122 +72,45 @@ export interface TuningConfig {
   /** Time limit per battle (s); a fight still running then counts as this long and as a timeout. */
   readonly timeLimit: number;
   readonly loss: LossWeights;
+  readonly viability: Viability;
 }
 
 /**
- * Default genes: the balance-model parameters that set how long fights last and what ends them.
- * Hit points set the pace for every weapon; heat, power and ammunition decide whether ships can keep
- * fighting; per-weapon damage lets one weapon family's mirror fights be tuned apart from the others.
+ * Default genes: the balance model's exchange rates (src/data/balance/model.ts), never single part values.
+ * Every one is a ratio or a rate the formulas turn into many parts' numbers at once, and they are chosen to
+ * pull apart: the pace moves every fight; HP ratios decide what breaks first; family shares move one weapon
+ * family against the others; supply, cooling and endurance decide whether ships can keep fighting.
+ * Structure HP per m³ stays fixed: it anchors the scale.
  */
-export const DEFAULT_GENES: readonly Gene[] = [
-  { id: "hp", target: "balance:hp.*", min: 0.25, max: 6, log: true, note: "hit points of every component" },
-  { id: "hpArmor", target: "balance:hp.armor", min: 400, max: 4000, log: true, note: "armor HP per m³" },
-  {
-    id: "hpCommand",
-    target: "balance:hp.command",
-    min: 600,
-    max: 6000,
-    log: true,
-    note: "command module HP per m³",
-  },
-  {
-    id: "hpWeapon",
-    target: "balance:hp.weapon",
-    min: 250,
-    max: 2500,
-    log: true,
-    note: "weapon HP per m³ (fights end in mutual disarming when turrets break first)",
-  },
-  {
-    id: "missileFactor",
-    target: "balance:ordnance.damageFactor",
-    min: 1.5,
-    max: 15,
-    log: true,
-    note: "smart missile warhead ÷ heavy shell",
-  },
-  {
-    id: "fireTime",
-    target: "balance:game.fireTime",
-    min: 60,
-    max: 480,
-    log: true,
-    note: "seconds of fire per magazine",
-  },
-  {
-    id: "fuelHeat",
-    target: "balance:heat.perKgFuel",
-    min: 4000,
-    max: 80000,
-    log: true,
-    note: "engine heat per kg of fuel (J)",
-  },
-  {
-    id: "muzzleHeat",
-    target: "balance:heat.muzzleShare",
-    min: 0.004,
-    max: 0.08,
-    log: true,
-    note: "gun heat as a share of muzzle energy",
-  },
-  {
-    id: "radiator",
-    target: "balance:heat.radiatorTurrets",
-    min: 0.75,
-    max: 3,
-    log: true,
-    note: "laser turrets one m³ of radiator cools",
-  },
-  {
-    id: "hullHeat",
-    target: "balance:heat.hullPerMetre",
-    min: 800,
-    max: 6000,
-    log: true,
-    note: "heat the hull sheds per metre (W)",
-  },
-  {
-    id: "reactor",
-    target: "balance:power.perVolume",
-    min: 100_000,
-    max: 320_000,
-    log: true,
-    note: "reactor output per m³ (W)",
-  },
-  {
-    id: "dmgLaser",
-    target: "overlay:weapons.core:weapon.laser.turret.s.damage",
-    min: 0.4,
-    max: 2.5,
-    log: true,
-    note: "small laser turret damage factor",
-  },
-  {
-    id: "dmgAutocannon",
-    target: "overlay:weapons.core:weapon.autocannon.turret.s.damage",
-    min: 0.4,
-    max: 2.5,
-    log: true,
-    note: "autocannon turret damage factor",
-  },
-  {
-    id: "dmgLightAutocannon",
-    target: "overlay:weapons.core:weapon.autocannon.turret.light.damage",
-    min: 0.4,
-    max: 2.5,
-    log: true,
-    note: "light autocannon turret damage factor",
-  },
-  {
-    id: "dmgCannon",
-    target: "overlay:weapons.core:weapon.cannon.turret.m.damage",
-    min: 0.4,
-    max: 2.5,
-    log: true,
-    note: "medium cannon turret damage factor",
-  },
-];
+const g = (id: string, path: string, min: number, max: number, note: string, log = true): Gene => ({
+  id,
+  target: `balance:${path}`,
+  min,
+  max,
+  log,
+  note,
+});
 
+export const DEFAULT_GENES: readonly Gene[] = [
+  g("pace", "weapons.killTime", 1.5, 25, "s for 1 m³ of kinetic weapon system to destroy 1 m³ of structure"),
+  g("hpArmor", "hp.armor", 1, 12, "armor HP per m³ ÷ structure"),
+  g("hpCommand", "hp.command", 2, 20, "command module HP per m³ ÷ structure"),
+  g("hpWeapon", "hp.weapon", 0.6, 6, "weapon HP per m³ ÷ structure (disarming vs destruction)"),
+  g("hpSystems", "hp.systems", 0.4, 3, "factor on every other system's HP ratio"),
+  g("armorStop", "armor.stop", 0.05, 1.5, "s of a 1 m³ kinetic system's damage a plate stops per hit"),
+  g("beam", "weapons.family.beam", 0.15, 2, "beam damage rate per system m³ ÷ kinetic"),
+  g("missile", "weapons.family.missile", 0.3, 4, "missile damage rate per system m³ ÷ kinetic"),
+  g("pd", "weapons.family.pd", 0.4, 5, "point-defense damage rate per system m³ ÷ kinetic"),
+  g("rangePrice", "weapons.range.exponent", -0.5, 1, "damage rate × (range ÷ 1500 m)^−x", false),
+  g("calibre", "weapons.calibre.exponent", -0.3, 0.3, "damage rate × (interval ÷ 0.12 s)^x", false),
+  g("supply", "power.turretsPerVolume", 0.5, 2.5, "reactor output per m³, in laser turrets"),
+  g("radiator", "heat.radiatorTurrets", 0.75, 4, "laser turrets one m³ of radiator cools"),
+  g("hullHeat", "heat.hullTurretsPerMetre", 0.004, 0.04, "laser turrets of heat a metre of hull sheds"),
+  g("fuelHeat", "heat.perKgFuel", 3000, 80_000, "engine heat per kg of fuel (J)"),
+  g("muzzleHeat", "heat.muzzleShare", 0.003, 0.08, "gun heat as a share of muzzle energy"),
+  g("fireTime", "game.fireTime", 60, 480, "s of fire one magazine gives one weapon"),
+  g("missileHp", "hp.missilePerKg", 0.0003, 0.005, "missile HP per kg ÷ structure HP per m³"),
+];
 const mirror = (designs: readonly string[]): readonly [readonly string[], readonly string[]] => [
   designs,
   designs,
@@ -218,6 +156,7 @@ export const DEFAULT_CONFIG: TuningConfig = {
     allowedSpread: 1,
     drift: 0.05,
   },
+  viability: { refuseBelow: 0.6, weight: 1, refusedLoss: 5 },
 };
 
 /** A config from JSON over the default (genes and matchups replace the default lists when given). */
@@ -227,5 +166,6 @@ export function configFrom(json: Partial<TuningConfig> | undefined): TuningConfi
     ...DEFAULT_CONFIG,
     ...json,
     loss: { ...DEFAULT_CONFIG.loss, ...(json.loss ?? {}) },
+    viability: { ...DEFAULT_CONFIG.viability, ...(json.viability ?? {}) },
   };
 }

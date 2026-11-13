@@ -60,25 +60,58 @@ One number per parameter set; lower is better and 0 means every matchup is on ta
 
 The terms are weighted by each matchup's `weight` and averaged. **drift** adds
 `drift × Σ (gene position − start position)²` so the search does not wander from the current values
-without reason. All weights are in `loss` in the config.
+without reason. **viability** adds the design-margin shortfall (see Design viability below). All weights
+are in `loss` and `viability` in the config.
 
 ## Parameters (genes)
 
-A gene is one tuned number with a range; the DNA is each gene's position in its range, a number in
-[0, 1], on a log scale for `log` genes. Targets:
+The DNA holds the [balance model's](balance-model.md) exchange rates, never the values of single parts.
+Each gene is a ratio or rate that the formulas turn into many parts' numbers at once. A change therefore
+stays consistent: a slower pace lowers every weapon's damage, armor rating and warhead together, and more
+reactor per m³ shrinks every energy weapon's system volume. Structure HP per m³ is not a gene: it anchors
+the scale.
 
-- `balance:<path>`: a number in the model table, e.g. `balance:heat.perKgFuel`.
-- `balance:<path>.*`: a factor on every number under the path, e.g. `balance:hp.*` scales the HP of every
-  component class. It applies after genes that set values inside the same path.
-- `overlay:<section>.<key>.<field>`: a factor in the balance overlay, for numbers the model does not derive.
-  Weapon damage, e.g. `overlay:weapons.core:weapon.laser.turret.s.damage`.
+The DNA is each gene's position in its range, a number in [0, 1] (on a log scale for log genes):
 
-Default genes: overall HP, armor, command and weapon HP, smart-missile warhead factor, magazine fire time,
-engine and gun heat, radiator capacity, hull radiation, reactor output, and damage factors for the laser,
-the two autocannons and the medium cannon. `npm run tuning -- report` lists them with their ranges.
+| Gene | Model rate | Range | Moves |
+|---|---|---|---|
+| pace | `weapons.killTime` (s) | 1.5–25 | every fight's length |
+| hpArmor, hpCommand, hpWeapon | `hp.armor`, `hp.command`, `hp.weapon` (÷ structure) | 1–12, 2–20, 0.6–6 | what breaks first: armor, the command module, or weapons (disarming) |
+| hpSystems | `hp.systems` (factor on all other systems) | 0.4–3 | engines, reactors, radiators and so on |
+| armorStop | `armor.stop` (s of 1 m³ kinetic fire per hit) | 0.05–1.5 | big hits vs small ones against armor |
+| beam, missile, pd | `weapons.family.*` (÷ kinetic) | 0.15–2, 0.3–4, 0.4–5 | one weapon family against the others |
+| rangePrice | `weapons.range.exponent` | −0.5–1 (linear) | long range costs (or earns) damage |
+| calibre | `weapons.calibre.exponent` | −0.3–0.3 (linear) | slow heavy hits vs fast light ones |
+| supply | `power.turretsPerVolume` | 0.5–2.5 | reactor output, so beam system volume |
+| radiator, hullHeat | `heat.radiatorTurrets`, `heat.hullTurretsPerMetre` | 0.75–4, 0.004–0.04 | cooling |
+| fuelHeat, muzzleHeat | `heat.perKgFuel`, `heat.muzzleShare` | 3–80 kJ/kg, 0.3–8 % | heat from manoeuvring and firing |
+| fireTime | `game.fireTime` (s) | 60–480 | ammunition endurance |
+| missileHp | `hp.missilePerKg` | 0.0003–0.005 | how easily point defense stops missiles |
 
-Hull radiation (`heat.hullPerMetre`) is read by the simulation at run time; a tuning battle sets it for its
-own run and restores it afterwards.
+Custom configs can also use:
+
+- `balance:<path>.*`: a factor on every number under a path. It applies after genes that set values inside
+  the same path.
+- `overlay:<section>.<key>.<field>`: a factor in the balance overlay. It is meant for experiments only:
+  `apply` refuses factors on numbers the model derives.
+
+Hull radiation is read by the simulation at run time; a tuning battle sets it from its parameters and
+restores it afterwards.
+
+## Design viability
+
+Fleet designs are built for today's numbers, and a parameter set can break them, for example by leaving a
+ship without power for its weapons. Before any battle, the tool measures every design the matchups use with
+the editor's own stats:
+
+- **Power margin:** production ÷ combat demand (weapons, point defense, gyros, hangars).
+- **Cooling margin:** dissipation ÷ heat at full use.
+
+Each margin is compared with the same design today, capped at 1. A shortfall adds
+`weight × (1 − share)²` to the loss. If any margin falls below `refuseBelow` (60 %) of its reference, the
+set is refused without battles: its loss is `refusedLoss` (5) plus the shortfall. A refused set costs
+milliseconds instead of minutes, and the search learns to avoid it. `eval` prints every design's margins.
+These settings are in `viability` in the config.
 
 ## Step mode
 
@@ -87,7 +120,7 @@ npm run tuning -- eval --note "baseline"
 ```
 
 ```bash
-npm run tuning -- eval --set hp=1.4,missileFactor=5 --note "slower pace, weaker missiles"
+npm run tuning -- eval --set pace=7,missile=1.2 --note "slower pace, weaker missiles"
 ```
 
 `eval` prints one row per matchup: band, median (↑ too long, ↓ too short), every fight's length, timeouts,
@@ -96,7 +129,7 @@ Every eval is appended to `steps.jsonl`; `history` lists them with what changed.
 values from a file: `last-eval.json`, a GA run's `best.json`, or plain `{ "hp": 1.4 }`.
 
 ```bash
-npm run tuning -- sensitivity --genes hp,hpWeapon,missileFactor --seeds 3
+npm run tuning -- sensitivity --genes pace,hpWeapon,missile --seeds 3
 ```
 
 `sensitivity` measures each gene a step below and above its value (×/÷ `--factor`, default 1.5) on the same

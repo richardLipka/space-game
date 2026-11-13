@@ -1,4 +1,5 @@
 import type { PartDef } from "../../data/schemas/part";
+import { weaponDps, weaponHeatRate } from "../../data/balance/model";
 import { fmt } from "./dom";
 
 const kN = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 1e5 ? 0 : 1)} kN` : `${n.toFixed(0)} N`);
@@ -72,7 +73,8 @@ export function partInfoRows(d: PartDef): [string, string][] {
       if (w.traverseRate !== undefined) rows.push(["Turn rate", `${w.traverseRate}°/s`]);
       if (w.arc) rows.push(["Arc", `${w.arc[0]}° … ${w.arc[1]}°`]);
     }
-    if (w.projectile) rows.push(["Damage", `${w.projectile.damage} per round`]);
+    if (w.projectile)
+      rows.push(["Damage", `${w.projectile.damage} per round · ${Math.round(weaponDps(w))}/s`]);
     if (w.beam) rows.push(["Damage", `${w.beam.dps} per second`]);
     if (w.kind === "missile") rows.push(["Fires", "what its missile magazines hold"]);
     if (w.powerPerShot) rows.push(["Reload", `${fmt.watts(w.powerPerShot / w.fireInterval)} while loading`]);
@@ -80,7 +82,7 @@ export function partInfoRows(d: PartDef): [string, string][] {
     rows.push(["Range", `${w.range} m`]);
     if (w.ammoType) rows.push(["Ammo", w.ammoType]);
     if (w.powerDraw) rows.push(["Power draw", fmt.watts(w.powerDraw)]);
-    const heat = (w.heatWhileFiring ?? 0) + (w.heatPerShot ?? 0) / w.fireInterval;
+    const heat = weaponHeatRate(w);
     if (heat > 0) rows.push(["Heat firing", fmt.watts(heat)]);
   }
   if (d.hangar) {

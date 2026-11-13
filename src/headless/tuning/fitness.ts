@@ -4,6 +4,7 @@ import type { BattleMetrics } from "../observe";
 import { engagementOf, median } from "../tune";
 import { limitOf, type Matchup, type TuningConfig } from "./config";
 import { encode, startParams, type Params, variant } from "./genome";
+import { references, viability, type Margins, type ViabilityResult } from "./viability";
 
 /**
  * Measuring a parameter set: every matchup fought `seeds` times, the fight lengths compared with the
@@ -41,10 +42,13 @@ export interface MatchupStats {
 export interface Evaluation {
   readonly params: Params;
   readonly loss: number;
-  /** Loss parts: length error, timeouts, ammunition, spread, drift. */
+  /** Loss parts: length error, timeouts, ammunition, spread, drift, viability. */
   readonly parts: Readonly<Record<string, number>>;
   readonly matchups: readonly MatchupStats[];
   readonly inBand: number;
+  /** Why the set was refused without battles (designs left without power or cooling); empty if fought. */
+  readonly refused: readonly string[];
+  readonly margins: readonly Margins[];
 }
 
 const ship = (designId: string, pilot: Matchup["pilot"]): SkirmishShip => ({
@@ -161,7 +165,12 @@ export function drift(cfg: TuningConfig, p: Params): number {
 }
 
 /** Scores one parameter set from its battles (results whose label is "<tag>|<matchup>"). */
-export function evaluate(cfg: TuningConfig, p: Params, results: readonly JobResult[]): Evaluation {
+export function evaluate(
+  cfg: TuningConfig,
+  p: Params,
+  results: readonly JobResult[],
+  via?: ViabilityResult,
+): Evaluation {
   const by = new Map<string, BattleMetrics[]>();
   for (const r of results) {
     if (r.kind !== "skirmish") continue;
@@ -184,9 +193,40 @@ export function evaluate(cfg: TuningConfig, p: Params, results: readonly JobResu
     ammoOut: sum((s, m) => (m.weight ?? 1) * cfg.loss.ammoOut * s.ammoOut),
     spread: sum((s, m) => (m.weight ?? 1) * cfg.loss.spread * Math.max(0, s.spread - cfg.loss.allowedSpread)),
     drift: cfg.loss.drift * drift(cfg, p),
+    viability: via?.penalty ?? 0,
   };
   const loss = Object.values(parts).reduce((a, b) => a + b, 0);
-  return { params: p, loss, parts, matchups, inBand: matchups.filter((m) => m.inBand).length };
+  return {
+    params: p,
+    loss,
+    parts,
+    matchups,
+    inBand: matchups.filter((m) => m.inBand).length,
+    refused: [],
+    margins: via?.margins ?? [],
+  };
+}
+
+/** A set refused before any battle: its loss is the refusal plus how far short its designs fall. */
+export function refusedEvaluation(cfg: TuningConfig, p: Params, via: ViabilityResult): Evaluation {
+  const parts = { viability: cfg.viability.refusedLoss + via.penalty, drift: cfg.loss.drift * drift(cfg, p) };
+  return {
+    params: p,
+    loss: parts.viability + parts.drift,
+    parts,
+    matchups: [],
+    inBand: 0,
+    refused: via.refused,
+    margins: via.margins,
+  };
+}
+
+const refs = new WeakMap<TuningConfig, Map<string, Margins>>();
+/** The designs' margins under the start values, measured once per config. */
+export function referenceMargins(cfg: TuningConfig): Map<string, Margins> {
+  let r = refs.get(cfg);
+  if (!r) refs.set(cfg, (r = references(cfg)));
+  return r;
 }
 
 /** Runs and scores several parameter sets on the same seeds (one batch, so all threads stay busy). */
@@ -196,13 +236,18 @@ export async function evaluateMany(
   seeds: readonly number[],
   run: (jobs: Job[]) => Promise<JobResult[]>,
 ): Promise<Evaluation[]> {
-  const jobs = sets.flatMap((p, i) => jobsFor(cfg, p, seeds, `p${i}`));
-  const results = await run(jobs);
+  const ref = referenceMargins(cfg);
+  const via = sets.map((p) => viability(cfg, p, ref));
+  const jobs = sets.flatMap((p, i) => (via[i]!.refused.length ? [] : jobsFor(cfg, p, seeds, `p${i}`)));
+  const results = jobs.length ? await run(jobs) : [];
   return sets.map((p, i) =>
-    evaluate(
-      cfg,
-      p,
-      results.filter((r) => r.kind === "skirmish" && r.result.label.startsWith(`p${i}|`)),
-    ),
+    via[i]!.refused.length
+      ? refusedEvaluation(cfg, p, via[i]!)
+      : evaluate(
+          cfg,
+          p,
+          results.filter((r) => r.kind === "skirmish" && r.result.label.startsWith(`p${i}|`)),
+          via[i],
+        ),
   );
 }

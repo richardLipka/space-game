@@ -9,8 +9,8 @@ import type { BalanceOverlay } from "../../data/balance/overlay";
  * A gene's target is one of
  * - `balance:<path>`      a number in the balance model table (src/data/balance/model.ts), e.g.
  *                         `balance:heat.perKgFuel`;
- * - `balance:<path>.*`    a factor on every number under that path, e.g. `balance:hp.*` scales the hit
- *                         points of every component class (the value is the factor, 1 = unchanged);
+ * - `balance:<path>.*`    a factor on every number under that path, e.g. `balance:hp.system.*` scales the hit
+ *                         points of every system class (the value is the factor, 1 = unchanged);
  * - `overlay:<path>`      a factor in the balance overlay (src/data/balance/overlay.ts) for numbers the model
  *                         does not derive, e.g. `overlay:weapons.core:weapon.laser.turret.s.damage`.
  *                         The last segment is the field; the one before it is the record key (a part id may
@@ -92,11 +92,11 @@ export function toUnit(g: Gene, v: number): number {
   return g.log ? Math.log(x / g.min) / Math.log(g.max / g.min) : (x - g.min) / (g.max - g.min);
 }
 
-/** A gene's value at position u in its range, rounded to 4 significant digits (readable reports). */
+/** A gene's value at position u in its range, rounded to 6 significant digits (enough to keep the game's own values). */
 export function fromUnit(g: Gene, u: number): number {
   const t = clamp01(u);
   const v = g.log ? g.min * Math.pow(g.max / g.min, t) : g.min + (g.max - g.min) * t;
-  return Number(v.toPrecision(4));
+  return Number(v.toPrecision(6));
 }
 
 export const encode = (genes: readonly Gene[], p: Params): number[] =>

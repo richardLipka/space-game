@@ -11,8 +11,16 @@ import { DRONE, MISSILE } from "../../src/sim/combat/constants";
 import { spawnMissile, stepMissiles } from "../../src/sim/combat/missiles";
 import { capabilities } from "../../src/sim/flight/propulsion";
 import {
+  armorRating,
   BALANCE,
+  type Balance,
   burnHeat,
+  hpPerVolume,
+  kineticRate,
+  systemVolume,
+  weaponDps,
+  weaponHeatRate,
+  weaponPowerDemand,
   chemicalThrust,
   deriveCatalogue,
   fuelFlow,
@@ -51,6 +59,7 @@ const block = D("block", [
   ["h1", "hull.square.m", -1.75, 0],
   ["h2", "hull.square.m", 1.75, 0],
 ]);
+const nice3 = (v: number) => Number(v.toPrecision(3));
 const hp = (ship: { parts: { hp: number }[] }) => ship.parts.reduce((s, p) => s + Math.max(0, p.hp), 0);
 
 describe("balance model: the catalogue follows the formulas", () => {
@@ -124,13 +133,48 @@ describe("balance model: the catalogue follows the formulas", () => {
     expect(chem.powerDraw).toBe(0);
   });
 
-  it("a smart missile's warhead is ten times a heavy kinetic round; a rocket's is smaller", () => {
+  it("weapon damage follows the system volume: weapon, its magazine, and the reactor and radiator it needs", () => {
+    const kinetic = kineticRate();
+    // The reference weapons sit exactly on their family's rate.
+    for (const [id, family] of [
+      ["weapon.autocannon.turret.s", "kinetic"],
+      ["weapon.laser.turret.s", "beam"],
+      ["weapon.pd.gatling.s", "pd"],
+    ] as const) {
+      const p = part(id);
+      const w = p.weapon!;
+      const vSys = systemVolume(partVolume(p), w, BALANCE.weapons.internalShare);
+      expect(weaponDps(w) / vSys, id).toBeCloseTo(kinetic * BALANCE.weapons.family[family], 1);
+      expect(p.balance?.damage ?? 1, id).toBe(1);
+    }
+    const laser = part("weapon.laser.turret.s");
+    // A laser's system: itself, one m³ of reactor and half a m³ of radiator.
+    expect(systemVolume(partVolume(laser), laser.weapon!, 0.1)).toBeCloseTo(partVolume(laser) + 1 + 0.5, 6);
+    // Shared formulas: one number for damage rate, power demand and heat whoever asks.
+    const ac = part("weapon.autocannon.turret.s").weapon!;
+    expect(weaponDps(ac)).toBeCloseTo(ac.projectile!.damage / ac.fireInterval, 9);
+    expect(weaponPowerDemand(laser.weapon!)).toBe(laser.weapon!.powerDraw);
+    expect(weaponHeatRate(ac)).toBeCloseTo(ac.heatPerShot! / ac.fireInterval, 9);
+  });
+
+  it("armor stops a set share of a kinetic system's damage per hit; HP classes are multiples of structure", () => {
+    expect(part("armor.square.s").armor).toBe(nice3(armorRating(1)));
+    expect(part("armor.square.m").armor).toBe(nice3(armorRating(1.5)));
+    expect(hpPerVolume("structure")).toBe(BALANCE.hp.structure);
+    expect(hpPerVolume("armor")).toBeCloseTo(BALANCE.hp.structure * BALANCE.hp.armor, 9);
+    expect(hpPerVolume("reactor")).toBeCloseTo(
+      BALANCE.hp.structure * BALANCE.hp.systems * BALANCE.hp.system.reactor,
+      9,
+    );
+  });
+
+  it("missile warheads and HP follow the missile system and the structure anchor", () => {
     const smart = part("magazine.missile.s").magazine!.missile!;
     const rocket = part("magazine.rocket.s").magazine!.missile!;
     const shell = part("weapon.cannon.fixed.m").weapon!.projectile!;
-    expect(smart.damage / shell.damage).toBeCloseTo(BALANCE.ordnance.damageFactor, 6);
     expect(smart.damage / shell.damage).toBeGreaterThanOrEqual(10);
     expect(rocket.damage).toBeLessThan(smart.damage);
+    expect(smart.hp).toBe(nice3(BALANCE.hp.structure * BALANCE.hp.missilePerKg * smart.mass));
     expect(smart.guidance).toBe("pn");
     expect(rocket.guidance).toBe("none");
     // Launchers hold nothing themselves and have no missile of their own.
@@ -138,6 +182,38 @@ describe("balance model: the catalogue follows the formulas", () => {
     expect(launcher.internalMagazine).toBe(0);
     expect(launcher.missile).toBeUndefined();
     expect(launcher.powerPerShot).toBe(loadEnergy(BALANCE.ordnance.refMissileMass));
+  });
+
+  it("one exchange rate moves every number that depends on it, and nothing else", () => {
+    const B = structuredClone(BALANCE) as unknown as Balance & { weapons: { killTime: number } };
+    (B.weapons as { killTime: number }).killTime = BALANCE.weapons.killTime * 2;
+    const slow = deriveCatalogue(raw, B);
+    const get = (c: Catalogue, id: string) => c.parts.find((p) => p.id === `core:${id}`)!;
+    // Twice the kill time: half the damage rate of every weapon, half the armor rating and warheads...
+    for (const id of ["weapon.autocannon.turret.s", "weapon.lance.fixed.m", "weapon.cannon.turret.m"])
+      expect(weaponDps(get(slow, id).weapon!) / weaponDps(part(id).weapon!), id).toBeCloseTo(0.5, 2);
+    expect(get(slow, "armor.square.s").armor! / part("armor.square.s").armor!).toBeCloseTo(0.5, 2);
+    expect(
+      get(slow, "magazine.missile.s").magazine!.missile!.damage /
+        part("magazine.missile.s").magazine!.missile!.damage,
+    ).toBeCloseTo(0.5, 2);
+    // ...and nothing about mass, hit points, power or heat.
+    for (const id of ["reactor.s", "hull.square.m", "weapon.laser.turret.s", "radiator.s"]) {
+      expect(get(slow, id).mass, id).toBe(part(id).mass);
+      expect(get(slow, id).hp, id).toBe(part(id).hp);
+    }
+    // More reactor per m³: reactors and command modules give more; beams draw the same and hit as hard
+    // (their system needs less reactor volume, so a little less damage per weapon).
+    const B2 = structuredClone(BALANCE) as unknown as { power: { turretsPerVolume: number } };
+    B2.power.turretsPerVolume = 2;
+    const rich = deriveCatalogue(raw, B2 as unknown as Balance);
+    expect(get(rich, "reactor.s").reactor!.maxOutput).toBe(2 * part("reactor.s").reactor!.maxOutput);
+    expect(get(rich, "weapon.laser.turret.s").weapon!.powerDraw).toBe(
+      part("weapon.laser.turret.s").weapon!.powerDraw,
+    );
+    expect(weaponDps(get(rich, "weapon.laser.turret.s").weapon!)).toBeLessThan(
+      weaponDps(part("weapon.laser.turret.s").weapon!),
+    );
   });
 });
 

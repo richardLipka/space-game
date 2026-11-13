@@ -3,11 +3,12 @@
  *
  *   npm run tune -- [--iterations 8] [--seeds 3] [--fine-seeds 8] [--threads N] [--target 150]
  *                   [--scenarios s02,s03,…] [--profile balanced] [--limit 600] [--start overlay.json]
- *                   [--out balance-report/tune] [--apply]
+ *                   [--out balance-report/tune]
  *
  * Runs the archetype duels and the scenarios, adjusts a balance overlay until fights last the target time
  * and weapon types are even, and writes iteration-NN.json, overlay.json, catalogue.tuned.json, diff.txt
- * and report.html to --out. --apply also writes the tuned values into src/data/core/catalogue.json.
+ * and report.html to --out. The catalogue is derived from the balance model: accept results there or with
+ * `npm run tuning -- apply`.
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -108,10 +109,12 @@ console.log(
   `\n${best.converged ? "Converged" : "Not converged"} after ${iterations.length} iterations (${((Date.now() - t0) / 1000).toFixed(0)} s). Overlay of iteration ${best.index}: ${JSON.stringify(best.overlay)}`,
 );
 console.log(`${diff.length} catalogue changes; report: ${join(out, "report.html")}`);
-if (flag("apply")) {
-  writeFileSync(join(root, "src/data/core/catalogue.json"), JSON.stringify(tuned, null, 2) + "\n");
-  console.log("Applied to src/data/core/catalogue.json — run `npm run golden:update` and the tests.");
-}
+// The catalogue is derived from the balance model: an overlay written into it would be undone by the next
+// `npm run balance:derive` and fails the model test, so results are carried into the model instead.
+if (flag("apply"))
+  console.log(
+    "--apply is no longer supported: the catalogue is derived from src/data/balance/model.ts. Carry the overlay's direction into the model, or use `npm run tuning -- apply` (docs/tuning.md).",
+  );
 
 function toHtml(its: readonly Iteration[], chosen: Iteration, d: readonly string[]): string {
   const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
