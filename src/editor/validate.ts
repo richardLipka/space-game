@@ -217,8 +217,11 @@ export function validateDesignLayout(
   const magazines = new Set(
     design.parts
       .filter((p) => inMain(p.uid))
-      .map((p) => defs.get(p.uid)!.magazine?.ammoType)
-      .filter(Boolean),
+      // Launchers ("missile") take any missile magazine: the magazine decides the type.
+      .flatMap((p) => {
+        const m = defs.get(p.uid)!.magazine;
+        return m ? (m.missile ? [m.ammoType, "missile"] : [m.ammoType]) : [];
+      }),
   );
   for (const p of design.parts) {
     const ammo = defs.get(p.uid)!.weapon?.ammoType;
@@ -227,7 +230,10 @@ export function validateDesignLayout(
       issues.push({
         severity: "warning",
         code: "no-ammo-source",
-        message: `${defs.get(p.uid)!.name} has no connected ${ammo} magazine.`,
+        message:
+          ammo === "missile"
+            ? `${defs.get(p.uid)!.name} has no connected missile magazine (smart missiles or rockets).`
+            : `${defs.get(p.uid)!.name} has no connected ${ammo} magazine.`,
         parts: [p.uid],
       });
     }

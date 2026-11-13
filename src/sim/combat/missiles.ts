@@ -51,7 +51,7 @@ export function spawnMissile(
   muzzle: Vec2,
   dir: Vec2,
   muzzleVelocity: Vec2,
-  targetId: string,
+  targetId: string | null,
   source?: string,
 ): Missile {
   const m: Missile = {
@@ -156,18 +156,21 @@ function outsideArena(world: World, p: Vec2): boolean {
 /**
  * Step 10b: guide, move and fuse missiles. Runs after the physics step and projectiles, so missiles shot
  * down this tick are already gone. Guidance needs thrust: once the fuel is spent the missile stops steering
- * (and can no longer be pulled by decoys) and flies straight on, still able to hit whatever is in its path,
- * until it leaves the arena or has coasted for MISSILE.maxCoastTime.
+ * (and can no longer be pulled by decoys) and flies straight on, still able to hit whatever is in its path.
+ * After MISSILE.selfDestructAfter seconds of that it destroys itself (or it leaves the arena). Rockets
+ * (guidance "none") never steer.
  */
 export function stepMissiles(world: World, dt: number): void {
   const keep: Missile[] = [];
   for (const m of world.combat.missiles) {
     if (m.hp <= 0) continue;
     const burning = m.fuel > 0;
-    if (burning) considerDecoys(world, m);
+    // Rockets have no seeker: nothing steers them and decoys mean nothing to them.
+    const guided = m.def.guidance !== "none";
+    if (burning && guided) considerDecoys(world, m);
     if (m.target && !world.hasShip(m.target)) m.target = null;
     let accel = gravityAccel(world.gravityWells, m.pos);
-    if (burning && m.target) {
+    if (burning && guided && m.target) {
       const tp = world.physics.getWorldCenter(m.target);
       const tv = world.physics.getBodyState(m.target).linearVelocity;
       const want = angleOf(guidanceDirection(m, tp, tv));
@@ -202,7 +205,12 @@ export function stepMissiles(world: World, dt: number): void {
     if (!burning) {
       // Coasting: point along the flight path (the motor is dead, nothing turns it).
       if (length(m.vel) > 1e-6) m.heading = angleOf(m.vel);
-      if (m.age > m.def.fuel + MISSILE.maxCoastTime || outsideArena(world, m.pos)) continue;
+      if (outsideArena(world, m.pos)) continue;
+      if (m.age > m.def.fuel + MISSILE.selfDestructAfter) {
+        // It missed and can no longer turn: it destroys itself.
+        pushEvent(world, "missile-down", m.pos, 0.5);
+        continue;
+      }
     }
     keep.push(m);
   }

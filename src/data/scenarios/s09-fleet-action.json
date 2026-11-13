@@ -3,7 +3,7 @@
   "name": "Fleet action",
   "description": "A battle group: a gun cruiser, a missile frigate and a point-defense picket.",
   "order": 9,
-  "budget": 2000,
+  "budget": 2050,
   "maxPlayerShips": 4,
   "arena": {
     "width": 9000,

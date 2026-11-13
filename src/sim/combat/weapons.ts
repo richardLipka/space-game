@@ -1,3 +1,4 @@
+import type { MissileDef } from "../../data/schemas/part";
 import type { WeaponDef } from "../../data/schemas/part";
 import { type Vec2, add, angleOf, degToRad, fromAngle, rotate, sub } from "../core/vec2";
 import type { Rng } from "../core/rng";
@@ -84,8 +85,10 @@ export interface FireOrder {
   readonly dir: Vec2;
   /** Shooter velocity at the muzzle (inherited by projectiles). */
   readonly muzzleVelocity: Vec2;
-  /** Missiles: the ship to home on. */
+  /** Missiles: the ship to home on (none for a rocket fired without a target). */
   readonly targetId?: string | null;
+  /** Missiles: the round taken from a magazine. */
+  readonly missile?: MissileDef;
   /** Burst shells (flak): seconds until the predicted intercept, when the shell bursts by itself. */
   readonly fuseTime?: number;
 }
@@ -96,6 +99,12 @@ export interface WeaponHost {
   /** Served power fraction for a powered weapon (1 when it needs none). */
   powerFactor(uid: string): number;
   drawRounds(uid: string, n: number): number;
+  /** Launchers: the missile the launcher would load next from its magazines (null = none left). */
+  nextMissile(uid: string): MissileDef | null;
+  /** Launchers: takes that missile out of its magazine. */
+  drawMissile(uid: string): MissileDef | null;
+  /** Launchers on automatic fire: does the launcher point at where a rocket would meet the target? */
+  rocketAligned(muzzle: Vec2, mountAngle: number, targetId: string | null): boolean;
   addHeat(joules: number): void;
   setBeamActive(uid: string, on: boolean): void;
 }
@@ -159,13 +168,21 @@ export function updateWeapons(
   const orders: FireOrder[] = [];
   let launchedOne = false;
   for (const w of weapons) {
-    w.cooldown = Math.max(0, w.cooldown - dt);
     const def = w.def;
+    // A launcher reloads on power: a brown-out slows it, and it draws power only while reloading.
+    const reloading = def.kind === "missile" && w.cooldown > 1e-9;
+    w.cooldown = Math.max(0, w.cooldown - dt * (reloading ? host.powerFactor(w.uid) : 1));
+    if (def.kind === "missile" && w.beamActive !== reloading) {
+      w.beamActive = reloading;
+      host.setBeamActive(w.uid, reloading);
+    }
     const isPd = def.kind === "pd";
     const ok = enabled && isIntact(w.part) && (isPd || host.isCommanded(w.uid));
     if (!ok) {
-      if (w.beamActive) host.setBeamActive(w.uid, false);
-      w.beamActive = false;
+      if (w.beamActive && def.kind !== "missile") {
+        host.setBeamActive(w.uid, false);
+        w.beamActive = false;
+      }
       continue;
     }
     const mode = modes.get(w.group) ?? "manual";
@@ -173,17 +190,26 @@ export function updateWeapons(
     const mount: Mount = { muzzle, mountAngle, muzzleVelocity: pose.velocityAt(muzzle) };
 
     if (def.kind === "missile") {
-      // Launchers do not aim: missiles steer themselves (spec §9.5).
+      // Launchers do not aim: smart missiles steer themselves (spec §9.5), rockets fly where they point.
       let targetId: string | null = null;
       const launching = cmd.launch === "one" ? !launchedOne : !!cmd.launch;
-      if (launching || (mode === "manual" && cmd.selected.has(w.group) && cmd.trigger))
-        targetId = cmd.targetId;
-      else if (mode === "ai" && !cmd.missileVolleys) targetId = targeting.ship(w, mount)?.id ?? null;
+      const ordered = launching || (mode === "manual" && cmd.selected.has(w.group) && cmd.trigger);
+      const auto = !ordered && mode === "ai" && !cmd.missileVolleys;
+      if (ordered) targetId = cmd.targetId;
+      else if (auto) targetId = targeting.ship(w, mount)?.id ?? null;
       w.aimError = 0;
-      if (!targetId || w.cooldown > 1e-9) continue;
-      if (def.ammoType && host.drawRounds(w.uid, 1) < 1) continue;
+      if ((!ordered && !auto) || w.cooldown > 1e-9) continue;
+      const next = host.nextMissile(w.uid);
+      if (!next) continue;
+      const rocket = next.guidance === "none";
+      // A smart missile needs a target; a rocket can be fired blind, but the AI waits until it points right.
+      if (!rocket && !targetId) continue;
+      if (rocket && (auto || cmd.missileVolleys) && !host.rocketAligned(muzzle, mountAngle, targetId))
+        continue;
+      const round = host.drawMissile(w.uid);
+      if (!round) continue;
       const perf = weaponPerformance(w);
-      w.cooldown += perf.interval;
+      w.cooldown += perf.interval * (round.reload ?? 1);
       if (cmd.launch === "one") launchedOne = true;
       if (def.heatPerShot) host.addHeat(def.heatPerShot);
       const angle = mountAngle + (perf.spread > 0 ? rng.normal(0, perf.spread) : 0);
@@ -194,6 +220,7 @@ export function updateWeapons(
         dir: fromAngle(angle),
         muzzleVelocity: mount.muzzleVelocity,
         targetId,
+        missile: round,
       });
       continue;
     }

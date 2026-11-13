@@ -33,6 +33,7 @@ npm run balance -- --seeds 8   # balance matrix of the weapon archetypes → bal
 npm run balance:scenarios      # every scenario AI vs AI with its suggested fleet → fight lengths, end reasons
 npm run tune                   # automated tuning toward 1–5 min fights → balance-report/tune (add --apply to write it)
 npm run ai:study               # AI types against each other on the mirror scenarios, parameter sweeps → balance-report/ai-study
+npm run balance:derive         # regenerate the core catalogue from the balance model (src/data/balance/model.ts)
 ```
 
 ## Ships
@@ -74,6 +75,10 @@ LMB fire selected groups at the cursor · 1–9 select weapon group (the keys ab
 M launch a missile (Shift+M salvo) · H launch a drone (Shift+H all); each launcher and hangar is listed on the right with its reload · O PD also fires at ships ·
 J allies follow · K allies attack my target · L allies hold · Ctrl+click select allies (Ctrl+Shift adds) ·
 B eject mode (click a part to jettison it and everything hanging on it; B/Esc leaves) · Shift+B jettison all wrecks
+
+**Balance model:** every component's mass, hit points, power, heat, fuel and ammunition are derived from its volume by the formulas in [docs/balance-model.md](docs/balance-model.md) (`npm run balance:derive` regenerates the catalogue).
+
+**Ordnance and drive:** missiles are the magazine's, not the launcher's: fit smart-missile magazines (steer while their motor burns) or rocket magazines (fly straight, twice as many, reload twice as fast). Z picks the missile type M launches, U the drone type H launches, or click the type in the ordnance panel. Reloading a launcher and readying a drone take power. I switches the drive on ships with ion engines: all engines, ion only (little thrust, almost no fuel, a lot of power) or chemical only.
 
 **Flight models:** pick one in the editor toolbar (test flights and the sandbox) or in the skirmish setup; scenarios always use Newtonian.
 

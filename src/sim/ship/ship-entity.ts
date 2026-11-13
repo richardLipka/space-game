@@ -1,3 +1,4 @@
+import type { MissileDef } from "../../data/schemas/part";
 import { arcadeControl, type FlightModel } from "../flight/arcade";
 import type { PowerGroup, ShipDesign, WeaponGroupSettings } from "../../data/schemas/design";
 import { allocate, wrenchOf, type Wrench } from "../flight/allocator";
@@ -88,7 +89,21 @@ function consumerGroup(p: PartInstance): PowerGroup | null {
   const w = d.weapon;
   if (w && ((w.powerDraw ?? 0) > 0 || (w.powerPerShot ?? 0) > 0))
     return w.kind === "pd" ? "pointDefense" : "weapons";
+  if ((d.hangar?.powerDraw ?? 0) > 0) return "hangar";
   return null;
+}
+
+/** Which engines the pilot lets the ship use (ion engines are weak but burn almost no fuel). */
+export type DriveMode = "all" | "ion" | "chemical";
+export const DRIVE_MODES: readonly DriveMode[] = ["all", "ion", "chemical"];
+
+/** Missiles of one type the ship still holds in its magazines. */
+export interface MissileStock {
+  /** Ammunition id of the magazines ("missile-smart", "missile-rocket"). */
+  readonly type: string;
+  readonly name: string;
+  readonly count: number;
+  readonly def: MissileDef;
 }
 
 /**
@@ -161,7 +176,13 @@ export class Ship {
   drone: DroneLink | null = null;
   /** Drone that lost fuel, link or decoy lifetime: no control, no weapons (spec §9.7). Never cleared. */
   inert = false;
-  inertReason: "no-fuel" | "out-of-range" | "mother-lost" | "expired" | null = null;
+  inertReason: "no-fuel" | "out-of-range" | "mother-lost" | "expired" | "self-destruct" | null = null;
+  /** Missile type (magazine ammunition id) the launchers load; null = smart missiles first, then rockets. */
+  missileType: string | null = null;
+  /** Drone type H launches; null = any hangar. */
+  droneType: string | null = null;
+  /** Engines in use: all, ion only (cruise on power, almost no fuel) or chemical only. */
+  driveMode: DriveMode = "all";
   /** Drones each hangar still has to launch, and seconds until it can launch the next one. */
   readonly hangarPending = new Map<string, number>();
   readonly hangarCooldown = new Map<string, number>();
@@ -362,6 +383,10 @@ export class Ship {
         else if (group === "propulsion")
           demand =
             ((d.engine?.powerDraw ?? 0) + (d.thruster?.powerDraw ?? 0)) * (this.lastThrottle.get(p.uid) ?? 0);
+        // A hangar draws power while it readies its next drone.
+        else if (group === "hangar")
+          demand =
+            (this.hangarCooldown.get(p.uid) ?? 0) > 1e-9 && p.ammo >= 1 ? (d.hangar!.powerDraw ?? 0) : 0;
         else if (this.activeWeapons.has(p.uid))
           demand = (d.weapon!.powerDraw ?? 0) + (d.weapon!.powerPerShot ?? 0) / d.weapon!.fireInterval;
         consumers.push({ uid: p.uid, group, demand });
@@ -480,7 +505,9 @@ export class Ship {
    */
   propulsionNow(): PropulsionModel {
     this.updateNetworks();
+    const mode = this.driveMode;
     const pctx: PropulsionContext = {
+      engineOn: (p) => mode === "all" || !!p.def.def.engine?.ion === (mode === "ion"),
       hasFuel: (uid) => this.fuelInNetwork(this.networkOf(uid)) > 0,
       factor: (uid) => this.partFactor(uid),
       commanded: (uid) => this.isCommanded(uid),
@@ -781,6 +808,7 @@ export class Ship {
       const p = w.part;
       if (p.hp <= 0 || !this.isCommanded(p.uid) || w.def.kind === "pd") return false;
       if (w.def.kind === "beam") return this.power.supply > 0;
+      if (w.def.kind === "missile") return this.nextMissile(p.uid) !== null;
       if (!w.def.ammoType) return true;
       if (p.ammo >= 1) return true;
       const net = this.networkOf(p.uid);
@@ -820,6 +848,73 @@ export class Ship {
 
   collisionPieces(): { pieces: Vec2[][]; tag: string }[] {
     return this.parts.map((p) => ({ pieces: partPiecesShipFrame(p), tag: `${this.id}/${p.uid}` }));
+  }
+
+  // ---------- missiles: the type is the magazine's, not the launcher's ----------
+  /** Intact missile magazines with rounds left: on a launcher's network, or on the command network. */
+  private missileMagazines(launcherUid?: string): PartInstance[] {
+    this.updateNetworks();
+    const net = launcherUid === undefined ? this.commandNetwork : this.networkOf(launcherUid);
+    if (net === null || net === undefined) return [];
+    return (this.networks.members[net] ?? [])
+      .map((u) => this.byUid.get(u)!)
+      .filter((p) => p.hp > 0 && p.ammo >= 1 && !!p.def.def.magazine?.missile)
+      .sort((a, b) => compareIds(a.uid, b.uid));
+  }
+
+  /** Missiles left by type, smart (guided) types first. */
+  missileStock(): MissileStock[] {
+    const by = new Map<string, MissileStock>();
+    for (const p of this.missileMagazines()) {
+      const m = p.def.def.magazine!;
+      const have = by.get(m.ammoType);
+      by.set(m.ammoType, {
+        type: m.ammoType,
+        name: m.missile!.name ?? m.ammoType,
+        count: (have?.count ?? 0) + Math.floor(p.ammo),
+        def: m.missile!,
+      });
+    }
+    const rank = (s: MissileStock) => (s.def.guidance === "none" ? 1 : 0);
+    return [...by.values()].sort((a, b) => rank(a) - rank(b) || (a.type < b.type ? -1 : 1));
+  }
+
+  /** Magazine a launcher loads from next: the selected type if any is left, else smart first, then rockets. */
+  private missileSource(launcherUid: string): PartInstance | null {
+    const mags = this.missileMagazines(launcherUid);
+    if (mags.length === 0) return null;
+    const wanted = mags.find((p) => p.def.def.magazine!.ammoType === this.missileType);
+    if (wanted) return wanted;
+    return mags.find((p) => p.def.def.magazine!.missile!.guidance !== "none") ?? mags[0]!;
+  }
+
+  /** The missile a launcher would load next (null when its magazines are empty). */
+  nextMissile(launcherUid: string): MissileDef | null {
+    return this.missileSource(launcherUid)?.def.def.magazine!.missile ?? null;
+  }
+
+  /** Takes the next missile out of its magazine. */
+  drawMissile(launcherUid: string): MissileDef | null {
+    const p = this.missileSource(launcherUid);
+    if (!p) return null;
+    p.ammo -= 1;
+    return p.def.def.magazine!.missile!;
+  }
+
+  /** Drones aboard by type (hangars that still work). */
+  droneStock(): { type: string; count: number }[] {
+    const by = new Map<string, number>();
+    for (const p of this.parts) {
+      const h = p.def.def.hangar;
+      if (!h || p.hp <= 0) continue;
+      by.set(h.droneType, (by.get(h.droneType) ?? 0) + Math.floor(p.ammo));
+    }
+    return [...by].map(([type, count]) => ({ type, count })).sort((a, b) => (a.type < b.type ? -1 : 1));
+  }
+
+  /** True when the ship has at least one ion engine (so the drive mode means something). */
+  get hasIonEngines(): boolean {
+    return this.parts.some((p) => p.def.def.engine?.ion);
   }
 
   // ---------- drones and hangars (spec §9.7) ----------

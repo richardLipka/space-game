@@ -101,7 +101,7 @@ describe("weapon groups: automatic fire range and target priority", () => {
         cat,
       );
       const enemy = w.addShip(mule, cat, { position: vec2(0, 5000), team: 1 });
-      const def = cat.get("core:weapon.missile.launcher.s").def.weapon!.missile!;
+      const def = cat.get("core:magazine.missile.s").def.magazine!.missile!;
       // A slow missile 1.2 km out: more than 4 s from impact, beyond the default automatic missile defense.
       spawnMissile(w, enemy, def, vec2(0, 1200), vec2(0, -1), vec2(0, -100), s.id).fuel = 0;
       w.run(20);
@@ -164,6 +164,7 @@ describe("launching missiles and drones one by one", () => {
       D([
         ["cmd", "command.s", 0, 0],
         ["hg", "hangar.attack.m", 0, 1.5],
+        ["bat", "battery.s", 0, -1.25], // readying a drone takes power
       ]),
       cat,
     );

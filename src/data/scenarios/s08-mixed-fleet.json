@@ -247,5 +247,5 @@
     "Tab switches ships; the others follow under AI.",
     "Concentrate fire: K sends your allies after your target."
   ],
-  "referenceDesigns": ["arch-autocannon", "arch-cannon", "arch-heavy"]
+  "referenceDesigns": ["arch-autocannon", "arch-heavy", "arch-laser"]
 }

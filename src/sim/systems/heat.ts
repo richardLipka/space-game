@@ -1,3 +1,5 @@
+import { BALANCE } from "../../data/balance/model";
+
 /** Global heat pool per ship (spec §7.4). */
 export const HEAT = {
   /** Base heat capacity of any ship (J); heat sinks add to it. */
@@ -6,7 +8,7 @@ export const HEAT = {
    * Hull surface radiation (W per metre of exposed outline). Every ship sheds a little heat through its
    * skin, so small or cool ships manage without radiators (decision log: Hull radiation).
    */
-  hullRadiation: 1_500,
+  hullRadiation: BALANCE.heat.hullPerMetre,
   /** Heat level where throttling starts (fraction of capacity). */
   throttleStart: 0.7,
   /** Output factor at 100 % heat. */

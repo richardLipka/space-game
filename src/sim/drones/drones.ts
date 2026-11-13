@@ -2,7 +2,8 @@ import { type Vec2, add, angleOf, length, normalize, rotate, scale, sub, vec2 } 
 import { compareIds } from "../core/ids";
 import { DRONE } from "../combat/constants";
 import { intercept } from "../combat/lead";
-import { pushEvent } from "../combat/combat-world";
+import { blast, pushEvent } from "../combat/combat-world";
+import { segmentPolygonDistance } from "../core/geometry";
 import { instantiateParts } from "../ship/ship";
 import { droneRole, type Ship } from "../ship/ship-entity";
 import type { World } from "../world";
@@ -32,8 +33,12 @@ function bayOf(world: World, ship: Ship, uid: string): { point: Vec2; normal: Ve
 export function launchDrones(world: World, dt: number): void {
   for (const ship of world.allShips()) {
     // Launch cooldowns run down whether or not anything is queued (single launches need them too).
-    for (const [uid, cd] of ship.hangarCooldown)
-      if (cd > 0) ship.hangarCooldown.set(uid, Math.max(0, cd - dt));
+    // Readying the next drone takes power: a brown-out slows it.
+    for (const [uid, cd] of ship.hangarCooldown) {
+      // The hangar may be gone (ejected or broken off).
+      if (!ship.parts.some((p) => p.uid === uid)) ship.hangarCooldown.delete(uid);
+      else if (cd > 0) ship.hangarCooldown.set(uid, Math.max(0, cd - dt * ship.powerFactorOf(uid)));
+    }
     if (ship.hangarPending.size === 0) continue;
     const disabled = ship.inert || (world.enforceDefeat && ship.defeated);
     for (const uid of [...ship.hangarPending.keys()].sort(compareIds)) {
@@ -85,6 +90,8 @@ export function updateDroneLinks(world: World, dt: number): void {
     if (!link || d.inert) continue;
     const mother = world.hasShip(link.mother) ? world.getShip(link.mother) : null;
     if (!mother || mother.defeated) d.makeInert("mother-lost");
+    // Out of fuel and nothing left to shoot with: it destroys itself instead of drifting as a hulk.
+    else if (d.totalFuel <= 0 && link.role !== "decoy" && !armed(d)) selfDestruct(world, d, false);
     else if (d.totalFuel <= 0) d.makeInert("no-fuel");
     else if (
       length(sub(world.physics.getWorldCenter(d.id), world.physics.getWorldCenter(mother.id))) >
@@ -96,6 +103,86 @@ export function updateDroneLinks(world: World, dt: number): void {
       if (life !== null && (world.tick - link.launchTick) * dt >= life) d.makeInert("expired");
     }
   }
+}
+
+/** Does the drone still have a weapon that can fire (intact, with a round or needing none)? */
+export function armed(d: Ship): boolean {
+  return d.weapons.some((w) => w.part.hp > 0 && (!w.def.ammoType || w.part.ammo >= 1));
+}
+
+/**
+ * Blows a drone up: with `blast`, a kamikaze explosion sized by its mass (DRONE.ram*); otherwise only a
+ * flash. Every part is destroyed, so the wreck breaks up like any other.
+ */
+export function selfDestruct(world: World, d: Ship, withBlast: boolean): void {
+  const pos = world.physics.getWorldCenter(d.id);
+  if (withBlast) {
+    const owner = d.drone && world.hasShip(d.drone.mother) ? d.drone.mother : d.id;
+    blast(world, pos, DRONE.ramRadius, DRONE.ramDamagePerKg * d.massProps.mass, {
+      source: { ship: owner, source: "drone" },
+      hostileTo: d.team,
+    });
+  }
+  pushEvent(world, "explosion", pos, withBlast ? DRONE.ramRadius * 0.5 : 1);
+  d.makeInert("self-destruct");
+  for (const p of [...d.parts].sort((a, b) => compareIds(a.uid, b.uid))) if (p.hp > 0) d.destroyPart(p.uid);
+}
+
+/** Nearest enemy that is still fighting (ships before drones). */
+function nearestEnemy(world: World, d: Ship): Ship | null {
+  const me = world.physics.getWorldCenter(d.id);
+  let best: Ship | null = null;
+  let bestKey = Infinity;
+  for (const s of world.allShips()) {
+    if (s.team === d.team || s.defeated || s.inert) continue;
+    const key = length(sub(world.physics.getWorldCenter(s.id), me)) + (s.drone ? 1e6 : 0);
+    if (key < bestKey) {
+      bestKey = key;
+      best = s;
+    }
+  }
+  return best;
+}
+
+/** Distance from a world point to the nearest hull outline of a ship (0 inside a part). */
+function hullDistance(world: World, s: Ship, p: Vec2): number {
+  const b = world.physics.getBodyState(s.id);
+  const local = rotate(sub(p, b.position), -b.angle);
+  if (s.layout.partAt(local)) return 0;
+  let best = Infinity;
+  for (const outline of s.layout.outlines.values())
+    best = Math.min(best, segmentPolygonDistance(local, local, outline).dist);
+  return best;
+}
+
+/**
+ * Kamikaze: a drone that can no longer shoot flies at the nearest enemy at ramSpeed and blows up at its
+ * hull. Returns false when there is no enemy left to ram.
+ */
+function kamikaze(world: World, d: Ship): boolean {
+  const target = nearestEnemy(world, d);
+  if (!target) return false;
+  const pos = world.physics.getWorldCenter(d.id);
+  const tPos = world.physics.getWorldCenter(target.id);
+  const tVel = world.physics.getBodyState(target.id).linearVelocity;
+  const dist = length(sub(tPos, pos));
+  if (
+    dist <= target.layout.boundingRadius + DRONE.ramFuse + 1 &&
+    hullDistance(world, target, pos) <= DRONE.ramFuse
+  ) {
+    selfDestruct(world, d, true);
+    return true;
+  }
+  // Lead the target and close at ramSpeed on top of its own velocity.
+  const sol = intercept(pos, world.physics.getBodyState(d.id).linearVelocity, tPos, tVel, DRONE.ramSpeed);
+  const aim = sol?.aimPoint ?? tPos;
+  const dir = length(sub(aim, pos)) > 1e-6 ? normalize(sub(aim, pos)) : vec2(1, 0);
+  const s = world.physics.getBodyState(d.id);
+  const local = rotate(sub(add(tVel, scale(dir, DRONE.ramSpeed)), s.linearVelocity), -s.angle);
+  const clamp = (v: number) => Math.max(-1, Math.min(1, v / 3));
+  d.intent = { thrust: vec2(clamp(local.x), clamp(local.y)), rotate: 0, faceAngle: angleOf(dir) };
+  d.weaponCommand = { trigger: false, aimPoint: null, selected: new Set(), targetId: target.id };
+  return true;
 }
 
 /** Velocity-matching steering toward a goal, as a ship-relative thrust intent. */
@@ -153,6 +240,8 @@ export function controlDrones(world: World): void {
       steer(d, world, pos, add(mState.linearVelocity, scale(away, DRONE.decoySpeed)), angleOf(away));
       continue;
     }
+    // No working weapon or no ammunition left: ram the nearest enemy.
+    if (!armed(d) && kamikaze(world, d)) continue;
     if (link.role === "pd") {
       escort();
       continue;

@@ -73,7 +73,7 @@ describe("M5 performance", () => {
       });
       d.drone = { mother: mother.id, hangarUid: "x", role: "attack", launchTick: 0 };
     }
-    const mdef = cat.get("core:weapon.missile.launcher.s").def.weapon!.missile!;
+    const mdef = cat.get("core:magazine.missile.s").def.magazine!.missile!;
     const rng = w.rng.fork();
     const topUp = () => {
       while (w.combat.missiles.length < 40) {

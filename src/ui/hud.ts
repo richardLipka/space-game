@@ -79,10 +79,11 @@ const wrapDeg = (d: number) => ((((d + 180) % 360) + 360) % 360) - 180;
 
 const HELP = `FLIGHT    W/S thrust · A/D strafe · Q/E rotate · F face cursor · X speed kill · Shift+X flip & burn
 WEAPONS   LMB fire · 1–9 weapon group (Shift adds) · G group mode · RMB target (or click a contact)
-ORDNANCE  M launch a missile (Shift+M salvo) · H launch a drone (Shift+H all) · O PD also fires at ships
+ORDNANCE  M launch a missile (Shift+M salvo) · Z missile type · H launch a drone (Shift+H all) · U drone type
+          O PD also fires at ships · smart missiles steer, rockets fly straight where the launcher points
 FLEET     J follow · K attack my target · L hold · Ctrl+click or click a contact to pick ships (Shift adds)
           contacts panel: Help me, Protect me, ★ priority target, orders per ship
-SHIP      P power priority · R radiators · N networks · B eject mode (click a part) · Shift+B eject all wrecks
+SHIP      P power priority · R radiators · I drive (all / ion / chemical engines) · N networks · B eject mode (click a part) · Shift+B eject all wrecks
           Tab switch ship · hold Y + click: destroy part (debug)
 VIEW      C camera · wheel zoom · middle-drag pan (free cam) · V overlays · T theme
 MODELS    Newtonian: thrust adds speed, brake by burning the other way. Arcade (pick it before a test flight
@@ -501,6 +502,9 @@ export class Hud {
         ? `<span class="ck-chip on">AUTO BRAKE <b>on</b></span>`
         : `<span class="ck-chip${sk === "off" ? "" : " on"}">SPEED KILL <b data-testid="speedkill">${sk}</b></span>`) +
         `<span class="ck-chip${info.faceCursor ? " on" : ""}">FACE CURSOR <b>${info.faceCursor ? "on" : "off"}</b></span>` +
+        (ship.hasIonEngines
+          ? `<span class="ck-chip${ship.driveMode === "all" ? "" : " on"}" data-testid="drive-mode" title="I: all engines, ion only, chemical only">DRIVE <b>${ship.driveMode}</b></span>`
+          : "") +
         (ship.radiatorExposure.size > 0
           ? `<span class="ck-chip${ship.radiatorsExtended ? " on" : ""}">RADIATORS <b>${ship.radiatorsExtended ? "out" : "in"}</b></span>`
           : ""),

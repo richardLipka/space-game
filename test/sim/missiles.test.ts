@@ -117,7 +117,7 @@ describe("M5 missiles", () => {
     const w = new World({ seed: 1 });
     w.addGravityWell({ position: vec2(0, -1000), mu: 4e7, softening: 10, coreRadius: 50 });
     const ship = w.addShip(shooter, cat, { position: vec2(-500, 0) });
-    const def = cat.get("core:weapon.missile.launcher.s").def.weapon!.missile!;
+    const def = cat.get("core:magazine.missile.s").def.magazine!.missile!;
     const m = spawnMissile(w, ship, def, vec2(0, 0), vec2(1, 0), vec2(0, 0), ship.id);
     m.fuel = 0;
     m.target = null;
@@ -132,7 +132,7 @@ describe("M5 missiles", () => {
     const w = new World({ seed: 1 });
     const ship = w.addShip(shooter, cat, { position: vec2(-500, 0) });
     const t = w.addShip(block, cat, { position: vec2(600, 300), team: 1 });
-    const def = cat.get("core:weapon.missile.launcher.s").def.weapon!.missile!;
+    const def = cat.get("core:magazine.missile.s").def.magazine!.missile!;
     const m = spawnMissile(w, ship, def, vec2(0, 0), vec2(1, 0), vec2(175, 0), t.id);
     m.fuel = 0;
     for (let i = 0; i < 60 * 4; i++) stepMissiles(w, SIM_DT);
@@ -147,7 +147,7 @@ describe("M5 missiles", () => {
     const w = new World({ seed: 1 });
     const ship = w.addShip(shooter, cat, { position: vec2(-500, 0) });
     const t = w.addShip(block, cat, { position: vec2(400, 0), team: 1 });
-    const def = cat.get("core:weapon.missile.launcher.s").def.weapon!.missile!;
+    const def = cat.get("core:magazine.missile.s").def.magazine!.missile!;
     // Aimed at the block but told to chase the shooter: without fuel it cannot turn away.
     const m = spawnMissile(w, ship, def, vec2(0, 0), vec2(1, 0), vec2(175, 0), ship.id);
     m.fuel = 0;
@@ -156,11 +156,11 @@ describe("M5 missiles", () => {
     expect(hp(t)).toBeLessThan(hp(w.addShip(block, cat, { position: vec2(0, 3000), team: 1 })));
   });
 
-  it("a coasting missile is removed once it leaves the arena, or after MISSILE.maxCoastTime", () => {
+  it("a coasting missile is removed once it leaves the arena, or after MISSILE.selfDestructAfter", () => {
     const w = new World({ seed: 1 });
     w.arena = { width: 2000, height: 2000 };
     const ship = w.addShip(shooter, cat, { position: vec2(-500, 0) });
-    const def = cat.get("core:weapon.missile.launcher.s").def.weapon!.missile!;
+    const def = cat.get("core:magazine.missile.s").def.magazine!.missile!;
     spawnMissile(w, ship, def, vec2(0, 0), vec2(1, 0), vec2(175, 0), ship.id).fuel = 0;
     // 200 m/s: past the edge (1000 m) plus the margin after about 7.5 s.
     for (let i = 0; i < 60 * 7; i++) stepMissiles(w, SIM_DT);
@@ -172,7 +172,7 @@ describe("M5 missiles", () => {
     const s2 = w2.addShip(shooter, cat, { position: vec2(-500, 0) });
     const m2 = spawnMissile(w2, s2, def, vec2(0, 0), vec2(1, 0), vec2(175, 0), s2.id);
     m2.fuel = 0;
-    m2.age = def.fuel + MISSILE.maxCoastTime - 0.5;
+    m2.age = def.fuel + MISSILE.selfDestructAfter - 0.5;
     for (let i = 0; i < 20; i++) stepMissiles(w2, SIM_DT);
     expect(w2.combat.missiles).toHaveLength(1);
     for (let i = 0; i < 20; i++) stepMissiles(w2, SIM_DT);
@@ -186,7 +186,7 @@ describe("M5 missiles", () => {
     // Distance from the burst to the nearest hull edge (block spans x ∈ [−2.75, 2.75] around its origin).
     const local = sub(ev.pos, w.physics.getBodyState(b.id).position);
     const gap = Math.max(Math.abs(local.x) - 2.75, Math.abs(local.y) - 1, 0);
-    const fuse = cat.get("core:weapon.missile.launcher.s").def.weapon!.missile!.proximityFuse;
+    const fuse = cat.get("core:magazine.missile.s").def.magazine!.missile!.proximityFuse;
     expect(gap).toBeLessThanOrEqual(fuse + 1e-6);
     expect(gap).toBeGreaterThan(fuse - 12); // within one tick of travel at closing speed
   });
@@ -216,7 +216,7 @@ describe("M5 missiles", () => {
   it("5.6 one round with damage ≥ HP destroys a missile", () => {
     const w = new World({ seed: 1 });
     const ship = w.addShip(shooter, cat);
-    const def = cat.get("core:weapon.missile.launcher.s").def.weapon!.missile!;
+    const def = cat.get("core:magazine.missile.s").def.magazine!.missile!;
     const m = spawnMissile(w, ship, def, vec2(100, 0), vec2(1, 0), vec2(0, 0), ship.id);
     w.combat.projectiles = [
       {
@@ -267,7 +267,7 @@ describe("M5 point defense", () => {
     const w = new World({ seed: 7 });
     const a = w.addShip(shooter, cat, { position: vec2(-2000, 0) });
     const b = w.addShip(picket, cat, { team: 1 });
-    const def = cat.get("core:weapon.missile.launcher.s").def.weapon!.missile!;
+    const def = cat.get("core:magazine.missile.s").def.magazine!.missile!;
     for (let i = 0; i < 10; i++)
       spawnMissile(w, a, def, vec2(-1990, (i - 4.5) * 8), vec2(1, 0), vec2(0, 0), b.id);
     for (let i = 0; i < 60 * 20 && w.combat.missiles.length; i++) w.step();
@@ -282,7 +282,7 @@ describe("M5 point defense", () => {
   it("5.10 a flak burst damages every missile within its burst radius, and nothing outside it", () => {
     const w = new World({ seed: 1 });
     const ship = w.addShip(shooter, cat, { position: vec2(-500, 0) });
-    const def = cat.get("core:weapon.missile.launcher.s").def.weapon!.missile!;
+    const def = cat.get("core:magazine.missile.s").def.magazine!.missile!;
     const near = [vec2(100, 5), vec2(105, -10), vec2(95, 15)].map((p) =>
       spawnMissile(w, ship, def, p, vec2(1, 0), vec2(0, 0), ship.id),
     );
@@ -361,7 +361,7 @@ describe("M5 point defense", () => {
     ship.weaponCommand = { trigger: true, aimPoint: vec2(1000, 0), selected: new Set([1]), targetId: null };
     w.step();
     expect(ship.isCommanded("pd")).toBe(false);
-    const def = cat.get("core:weapon.missile.launcher.s").def.weapon!.missile!;
+    const def = cat.get("core:magazine.missile.s").def.magazine!.missile!;
     spawnMissile(w, enemy, def, vec2(700, 0), vec2(-1, 0), vec2(-300, 0), ship.id);
     w.run(90);
     expect(w.combat.stats.shots).toBeGreaterThan(0); // the PD
@@ -400,10 +400,39 @@ describe("M5 point defense", () => {
 });
 
 describe("M5 drones", () => {
+  // Readying a drone takes power (catalogue v0-8): the battery covers what the command module cannot.
   const carrier = D("carrier", [
     ["cmd", "command.s", 0, 0],
     ["hg", "hangar.attack.m", 0, 1.5],
+    ["bat", "battery.s", 0, -1.25],
   ]);
+
+  it("readying a drone takes power: without enough of it the hangar is slower", () => {
+    const w = new World({ seed: 1 });
+    w.registerDesign(design("drone-attack"));
+    // Two hangars on the command module's small reactor alone: more than it can supply.
+    const weak = D("weak-carrier", [
+      ["cmd", "command.s", 0, 0],
+      ["hg", "hangar.attack.m", 0, 1.5],
+      ["hg2", "hangar.attack.m", 0, -1.5, 180],
+    ]);
+    const c = w.addShip(weak, cat);
+    c.requestDroneLaunch();
+    const launched: number[] = [];
+    for (let i = 0; i < 60 * 16; i++) {
+      const before = w.allShips().length;
+      w.step();
+      if (w.allShips().length > before) launched.push(w.tick - 1);
+    }
+    const h = cat.get("core:hangar.attack.m").def.hangar!;
+    expect(h.powerDraw).toBeGreaterThan(0);
+    // The command module's reactor covers only part of the hangar's draw.
+    expect(c.power.groups.hangar.factor).toBeLessThan(1);
+    // The first drone leaves at once; the next ones are readied at the reduced rate.
+    expect(launched[0]).toBe(0);
+    expect(launched.length).toBeGreaterThanOrEqual(2);
+    expect(launched[1]).toBeGreaterThan(h.launchInterval * 60 * 1.1);
+  });
 
   it("5.15 hangar: capacity 4, launch interval 10 s → 4 drones in about 30 s; a 5th launch is refused", () => {
     const w = new World({ seed: 1 });

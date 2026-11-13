@@ -46,7 +46,20 @@ export function partInfoRows(d: PartDef): [string, string][] {
     rows.push(["Discharge", fmt.watts(d.battery.maxDischarge)]);
   }
   if (d.fuelTank) rows.push(["Fuel", fmt.mass(d.fuelTank.capacity)]);
-  if (d.magazine) rows.push(["Ammo", `${d.magazine.capacity} × ${d.magazine.ammoType}`]);
+  if (d.magazine) {
+    const ms = d.magazine.missile;
+    rows.push(["Ammo", `${d.magazine.capacity} × ${ms?.name ?? d.magazine.ammoType}`]);
+    rows.push(["Ammo mass", fmt.mass(d.magazine.capacity * d.magazine.massPerRound)]);
+    if (ms) {
+      rows.push(["Damage", `${ms.damage} blast, ${ms.blastRadius} m`]);
+      rows.push([
+        "Guidance",
+        ms.guidance === "none" ? "none: flies straight" : "steers while its motor burns",
+      ]);
+      rows.push(["Motor", `${ms.fuel} s, ${(ms.thrust / ms.mass).toFixed(0)} m/s²`]);
+    }
+  }
+  if (d.engine?.ion) rows.push(["Ion engine", `${fmt.watts(d.engine.powerDraw)} at full thrust`]);
   if (d.radiator) {
     rows.push(["Dissipation", `${fmt.watts(d.radiator.dissipation)} extended`]);
     rows.push(["Retracted", `${Math.round(d.radiator.retractedFactor * 100)} %`]);
@@ -61,7 +74,8 @@ export function partInfoRows(d: PartDef): [string, string][] {
     }
     if (w.projectile) rows.push(["Damage", `${w.projectile.damage} per round`]);
     if (w.beam) rows.push(["Damage", `${w.beam.dps} per second`]);
-    if (w.missile) rows.push(["Damage", `${w.missile.damage} blast`]);
+    if (w.kind === "missile") rows.push(["Fires", "what its missile magazines hold"]);
+    if (w.powerPerShot) rows.push(["Reload", `${fmt.watts(w.powerPerShot / w.fireInterval)} while loading`]);
     rows.push(["Fire rate", `${(1 / w.fireInterval).toFixed(w.fireInterval < 1 ? 0 : 2)} /s`]);
     rows.push(["Range", `${w.range} m`]);
     if (w.ammoType) rows.push(["Ammo", w.ammoType]);
@@ -69,7 +83,10 @@ export function partInfoRows(d: PartDef): [string, string][] {
     const heat = (w.heatWhileFiring ?? 0) + (w.heatPerShot ?? 0) / w.fireInterval;
     if (heat > 0) rows.push(["Heat firing", fmt.watts(heat)]);
   }
-  if (d.hangar) rows.push(["Hangar", `${d.hangar.capacity} × ${d.hangar.droneType}`]);
+  if (d.hangar) {
+    rows.push(["Hangar", `${d.hangar.capacity} × ${d.hangar.droneType}`]);
+    if (d.hangar.powerDraw) rows.push(["Readying", `${fmt.watts(d.hangar.powerDraw)} per drone`]);
+  }
   return rows;
 }
 

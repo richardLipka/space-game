@@ -11,6 +11,7 @@ import { COMBAT, MISSILE } from "./constants";
 import { beamFalloff, collisionDamage, damageAlongRay } from "./damage";
 import type { Missile } from "./missiles";
 import { spawnMissile } from "./missiles";
+import { intercept } from "./lead";
 import {
   closestApproach,
   firstEngageable,
@@ -312,7 +313,7 @@ function gunDps(s: Ship): number {
     if (w.part.hp <= 0 || w.def.kind === "pd") continue;
     if (w.def.projectile) dps += w.def.projectile.damage / w.def.fireInterval;
     else if (w.def.beam) dps += w.def.beam.dps;
-    else if (w.def.missile) dps += w.def.missile.damage / w.def.fireInterval;
+    else if (w.def.kind === "missile") dps += (s.nextMissile(w.uid)?.damage ?? 0) / w.def.fireInterval;
   }
   return dps;
 }
@@ -433,6 +434,10 @@ export function fireWeapons(world: World, dt: number): void {
         isCommanded: (uid) => ship.isCommanded(uid),
         powerFactor: (uid) => ship.powerFactorOf(uid),
         drawRounds: (uid, n) => ship.drawRounds(uid, n),
+        nextMissile: (uid) => ship.nextMissile(uid),
+        drawMissile: (uid) => ship.drawMissile(uid),
+        rocketAligned: (muzzle, mountAngle, targetId) =>
+          rocketAligned(world, ship, muzzle, mountAngle, targetId),
         addHeat: (j) => ship.addHeat(j),
         setBeamActive: (uid, on) => (on ? ship.activeWeapons.add(uid) : ship.activeWeapons.delete(uid)),
       },
@@ -449,23 +454,37 @@ export function fireWeapons(world: World, dt: number): void {
   }
 }
 
+/**
+ * Does a launcher point at where a rocket fired now would meet the target? (The AI holds rockets until then;
+ * with no target there is nothing to wait for.) A rocket's average speed over its flight is taken as 300 m/s.
+ */
+function rocketAligned(
+  world: World,
+  ship: Ship,
+  muzzle: Vec2,
+  mountAngle: number,
+  targetId: string | null,
+): boolean {
+  if (!targetId || !world.hasShip(targetId)) return true;
+  const tp = world.physics.getWorldCenter(targetId);
+  const tv = world.physics.getBodyState(targetId).linearVelocity;
+  const sol = intercept(muzzle, world.physics.velocityAt(ship.id, muzzle), tp, tv, 300);
+  const to = sub(sol?.aimPoint ?? tp, muzzle);
+  let d = (Math.atan2(to.y, to.x) - mountAngle) % (2 * Math.PI);
+  if (d > Math.PI) d -= 2 * Math.PI;
+  if (d < -Math.PI) d += 2 * Math.PI;
+  return Math.abs(d) <= MISSILE.rocketAlign;
+}
+
 function resolveOrder(world: World, ship: Ship, o: FireOrder, dt: number): void {
   const def = o.weapon.def;
-  if (o.kind === "missile" && def.missile && o.targetId) {
-    if (!world.hasShip(o.targetId)) return;
-    spawnMissile(
-      world,
-      ship,
-      def.missile,
-      o.muzzle,
-      o.dir,
-      o.muzzleVelocity,
-      o.targetId,
-      o.weapon.part.def.id,
-    );
+  if (o.kind === "missile" && o.missile) {
+    const targetId = o.targetId && world.hasShip(o.targetId) ? o.targetId : null;
+    if (!targetId && o.missile.guidance !== "none") return;
+    spawnMissile(world, ship, o.missile, o.muzzle, o.dir, o.muzzleVelocity, targetId, o.weapon.part.def.id);
     world.physics.applyImpulse(
       ship.id,
-      scale(o.dir, -def.missile.mass * MISSILE.launchSpeed * COMBAT.momentumTransfer),
+      scale(o.dir, -o.missile.mass * MISSILE.launchSpeed * COMBAT.momentumTransfer),
       o.muzzle,
     );
     pushEvent(world, "launch", o.muzzle, 1);

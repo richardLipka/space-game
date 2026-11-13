@@ -25,7 +25,10 @@ export type UiCommand =
   | "pd-ships"
   | "order-follow"
   | "order-attack"
-  | "order-hold";
+  | "order-hold"
+  | "missile-type"
+  | "drone-type"
+  | "drive-mode";
 
 /**
  * Layout-independent key name: letters, digits and the time-scale keys by their physical position
@@ -185,6 +188,15 @@ export class InputController {
           break;
         case "g":
           this.commands.push("cycle-group-mode");
+          break;
+        case "z":
+          this.commands.push("missile-type");
+          break;
+        case "u":
+          this.commands.push("drone-type");
+          break;
+        case "i":
+          this.commands.push("drive-mode");
           break;
         default:
           // Group keys 1–9: the row above the letters (any layout) or the numpad.

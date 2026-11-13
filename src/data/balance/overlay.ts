@@ -85,6 +85,12 @@ export function applyOverlay(cat: Catalogue, o: BalanceOverlay): Catalogue {
         Math.round(((p.magazine.capacity * p.magazine.massPerRound) / capacity) * 1e4) / 1e4;
       p.magazine = { ...p.magazine, capacity, massPerRound };
     }
+    // Missile warheads follow the global damage factor (the missile is the magazine's).
+    if (p.magazine?.missile && f(g.damage) !== 1)
+      p.magazine = {
+        ...p.magazine,
+        missile: { ...p.magazine.missile, damage: nice(p.magazine.missile.damage * f(g.damage)) },
+      };
     const w = p.weapon;
     if (w) {
       const wk = o.weapons?.[p.id] ?? {};
@@ -97,7 +103,6 @@ export function applyOverlay(cat: Catalogue, o: BalanceOverlay): Catalogue {
             w.projectile.burstDamage = nice(w.projectile.burstDamage * dmg);
         }
         if (w.beam) w.beam.dps = nice(w.beam.dps * dmg);
-        if (w.missile) w.missile.damage = nice(w.missile.damage * dmg);
       }
       if (f(wk.fireInterval) !== 1) w.fireInterval = nice(w.fireInterval * f(wk.fireInterval));
       if (f(wk.powerDraw) !== 1) {

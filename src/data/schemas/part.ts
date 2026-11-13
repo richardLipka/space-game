@@ -27,6 +27,8 @@ const ProjectileDef = Type.Object(
 
 export const MissileDef = Type.Object(
   {
+    /** Shown in the HUD and the editor ("Smart missile", "Rocket"). */
+    name: Type.Optional(Type.String()),
     mass: PositiveNumber,
     thrust: PositiveNumber,
     fuel: PositiveNumber,
@@ -35,8 +37,11 @@ export const MissileDef = Type.Object(
     damage: NonNegativeNumber,
     proximityFuse: PositiveNumber,
     blastRadius: PositiveNumber,
-    guidance: Type.Union([Type.Literal("pn"), Type.Literal("pursuit")]),
+    /** "none": a rocket, it flies straight where the launcher points. */
+    guidance: Type.Union([Type.Literal("pn"), Type.Literal("pursuit"), Type.Literal("none")]),
     navConstant: Type.Optional(PositiveNumber),
+    /** Launcher reload time as a multiple of the launcher's own interval (default 1). */
+    reload: Type.Optional(PositiveNumber),
   },
   strict,
 );
@@ -89,6 +94,22 @@ export const PartDef = Type.Object(
     cost: NonNegativeNumber,
     armor: Type.Optional(NonNegativeNumber),
     conducts: Type.Optional(Type.Boolean()),
+    /**
+     * Per-part multipliers on what the balance model (data/balance/model.ts) derives from the part's volume:
+     * mass, hit points, its main output (reactor power, thrust, tank or magazine capacity, dissipation) and
+     * the share of a game's rounds a gun holds itself.
+     */
+    balance: Type.Optional(
+      Type.Object(
+        {
+          mass: Type.Optional(PositiveNumber),
+          hp: Type.Optional(PositiveNumber),
+          output: Type.Optional(PositiveNumber),
+          internalShare: Type.Optional(PositiveNumber),
+        },
+        strict,
+      ),
+    ),
 
     command: Type.Optional(Type.Object({ gyroTorque: PositiveNumber, powerDraw: NonNegativeNumber }, strict)),
     gyro: Type.Optional(
@@ -103,6 +124,8 @@ export const PartDef = Type.Object(
           nozzleEdge: Type.Integer({ minimum: 0 }),
           powerDraw: NonNegativeNumber,
           heatAtMax: NonNegativeNumber,
+          /** Ion engine: little thrust for almost no fuel, paid for in power. */
+          ion: Type.Optional(Type.Boolean()),
         },
         strict,
       ),
@@ -138,7 +161,13 @@ export const PartDef = Type.Object(
     fuelTank: Type.Optional(Type.Object({ capacity: PositiveNumber }, strict)),
     magazine: Type.Optional(
       Type.Object(
-        { ammoType: Type.String(), capacity: Type.Integer({ minimum: 1 }), massPerRound: PositiveNumber },
+        {
+          ammoType: Type.String(),
+          capacity: Type.Integer({ minimum: 1 }),
+          massPerRound: PositiveNumber,
+          /** Missile magazines: the missile they hold. Launchers fire whatever their magazines hold. */
+          missile: Type.Optional(MissileDef),
+        },
         strict,
       ),
     ),
@@ -158,7 +187,13 @@ export const PartDef = Type.Object(
     decoy: Type.Optional(Type.Object({ strength: Fraction, lifetime: PositiveNumber }, strict)),
     hangar: Type.Optional(
       Type.Object(
-        { droneType: Type.String(), capacity: Type.Integer({ minimum: 1 }), launchInterval: PositiveNumber },
+        {
+          droneType: Type.String(),
+          capacity: Type.Integer({ minimum: 1 }),
+          launchInterval: PositiveNumber,
+          /** Power drawn while the next drone is readied (W). */
+          powerDraw: Type.Optional(NonNegativeNumber),
+        },
         strict,
       ),
     ),

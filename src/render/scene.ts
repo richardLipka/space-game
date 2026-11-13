@@ -4,6 +4,7 @@ import type { Ship } from "../sim/ship/ship-entity";
 import { partCentroid, toShipDir } from "../sim/ship/ship";
 import { type Vec2, add, length, rotate, scale } from "../sim/core/vec2";
 import type { Camera } from "./camera";
+import { COURSE, predictCourse } from "./course";
 import type { DrawStyle, ThemeResolver } from "./theme";
 
 interface Pose {
@@ -48,12 +49,8 @@ function polyStyled(g: Graphics, pts: readonly Vec2[], s: DrawStyle, zoom: numbe
   strokeStyled(g, s, zoom);
 }
 
-/** Projected course: how far ahead (s), the spacing of the time dots (s) and the line resolution (s). */
-export const COURSE_HORIZON = 10;
+/** Projected course: a dot every this many seconds. */
 const COURSE_DOT_EVERY = 1;
-const COURSE_STEP = 0.25;
-/** Smoothing of the measured acceleration per tick (thrusters pulse, so the raw value jitters). */
-const COURSE_ACCEL_SMOOTHING = 0.1;
 
 /** Heat level at which radiators glow at full strength. */
 const RADIATOR_GLOW_FULL = 0.8;
@@ -81,8 +78,6 @@ export class Scene {
   targetId: string | null = null;
   /** Ships whose projected course is drawn (the pilot's ship and its target). */
   courseIds: readonly string[] = [];
-  /** Per tracked ship: last centre velocity and the smoothed measured acceleration. */
-  private readonly motion = new Map<string, { v: Vec2; a: Vec2 }>();
   /** Eject mode (decision log: Ejection): the pilot's ship and the part under the cursor. */
   eject: { shipId: string; hoverUid: string | null } | null = null;
   private readonly debrisViews = new Map<string, { g: Graphics; zoomKey: number; themeVersion: number }>();
@@ -109,37 +104,6 @@ export class Scene {
     this.curr = new Map();
     for (const b of world.physics.getState())
       this.curr.set(b.id, { x: b.position.x, y: b.position.y, angle: b.angle });
-    this.trackMotion(world);
-  }
-
-  /** Measures each course ship's acceleration from its velocity change over the last tick (thrust and gravity). */
-  private trackMotion(world: World): void {
-    const dt = 1 / 60;
-    for (const id of this.motion.keys())
-      if (!this.courseIds.includes(id) || !world.hasShip(id)) this.motion.delete(id);
-    for (const id of this.courseIds) {
-      if (!world.hasShip(id)) continue;
-      const v = world.physics.velocityAt(id, world.physics.getWorldCenter(id));
-      const m = this.motion.get(id);
-      if (!m) {
-        this.motion.set(id, { v, a: { x: 0, y: 0 } });
-        continue;
-      }
-      const k = COURSE_ACCEL_SMOOTHING;
-      m.a = {
-        x: m.a.x + ((v.x - m.v.x) / dt - m.a.x) * k,
-        y: m.a.y + ((v.y - m.v.y) / dt - m.a.y) * k,
-      };
-      m.v = v;
-    }
-  }
-
-  /** Where a course ship will be after t seconds at its current velocity and acceleration (null if untracked). */
-  projectedPosition(id: string, world: World, t: number, from?: Vec2): Vec2 | null {
-    const m = this.motion.get(id);
-    if (!m || !world.hasShip(id)) return null;
-    const p = from ?? world.physics.getWorldCenter(id);
-    return { x: p.x + m.v.x * t + 0.5 * m.a.x * t * t, y: p.y + m.v.y * t + 0.5 * m.a.y * t * t };
   }
 
   private pose(id: string, world: World, alpha: number): Pose {
@@ -195,29 +159,28 @@ export class Scene {
   }
 
   /**
-   * Projected course of the pilot's ship and its target: where each will be over the next seconds if it keeps
-   * its current velocity and acceleration, as a thin line with a dot every second.
+   * Projected course of the pilot's ship and its target (render/course.ts): where each will be over the
+   * next seconds if its controls stay as they are, as a thin line with a dot every second.
    */
   private drawCourses(world: World, camera: Camera, alpha: number): void {
     const g = this.fxG;
     const z = camera.zoom;
     for (const id of this.courseIds) {
-      const ship = world.allShips().find((s) => s.id === id);
-      if (!ship || !this.motion.has(id)) continue;
+      if (!world.hasShip(id)) continue;
+      const ship = world.getShip(id);
+      const pts = predictCourse(world, ship);
+      // Start the line at the drawn (interpolated) position.
       const start = this.shipCenter(ship, world, alpha);
+      const dx = start.x - pts[0]!.x;
+      const dy = start.y - pts[0]!.y;
       const style = this.theme.resolve(`overlay-course${id === this.targetId ? " target" : ""}`);
-      const steps = Math.round(COURSE_HORIZON / COURSE_STEP);
       g.moveTo(start.x, start.y);
-      for (let i = 1; i <= steps; i++) {
-        const p = this.projectedPosition(id, world, i * COURSE_STEP, start)!;
-        g.lineTo(p.x, p.y);
-      }
+      for (let i = 1; i < pts.length; i++) g.lineTo(pts[i]!.x + dx, pts[i]!.y + dy);
       strokeStyled(g, style, z);
       const r = Math.max(style.minSize, 1.5) / z;
-      for (let t = COURSE_DOT_EVERY; t <= COURSE_HORIZON + 1e-9; t += COURSE_DOT_EVERY) {
-        const p = this.projectedPosition(id, world, t, start)!;
-        g.circle(p.x, p.y, t === COURSE_HORIZON ? r * 1.6 : r);
-      }
+      const every = Math.round(COURSE_DOT_EVERY / COURSE.step);
+      for (let i = every; i < pts.length; i += every)
+        g.circle(pts[i]!.x + dx, pts[i]!.y + dy, i === pts.length - 1 ? r * 1.6 : r);
       g.fill({ color: style.stroke, alpha: style.strokeAlpha });
     }
   }

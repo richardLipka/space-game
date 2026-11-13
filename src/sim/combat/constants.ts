@@ -63,11 +63,13 @@ export const MISSILE = {
   /** Hit radius for rounds and beams (m). */
   radius: 0.8,
   /**
-   * A burnt-out missile no longer steers: it flies straight on (gravity still bends it) with its fuse live,
-   * until it leaves the arena by this margin (m) or has coasted for maxCoastTime (s).
+   * A burnt-out missile no longer steers: it flies straight on (gravity still bends it) with its fuse live.
+   * It destroys itself after coasting for selfDestructAfter (s), or when it leaves the arena by this margin (m).
    */
   arenaMargin: 500,
-  maxCoastTime: 60,
+  selfDestructAfter: 10,
+  /** The AI launches rockets only when the launcher points within this angle of the intercept (rad). */
+  rocketAlign: (6 * Math.PI) / 180,
   /** Launch speed relative to the launcher (m/s). */
   launchSpeed: 25,
   /** Enemy decoys closer than this get one chance to pull each missile off its target (m). */
@@ -97,4 +99,12 @@ export const DRONE = {
   gain: 0.6,
   /** Launch push out of the bay (m/s). */
   launchSpeed: 4,
+  /**
+   * Kamikaze: a drone with no working weapon or no ammunition flies into the nearest enemy and blows up
+   * within ramFuse (m) of its hull: blast of ramDamagePerKg × its mass over ramRadius (m).
+   */
+  ramSpeed: 120,
+  ramFuse: 2.5,
+  ramRadius: 4,
+  ramDamagePerKg: 6,
 } as const;

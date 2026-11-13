@@ -102,8 +102,10 @@ export function capabilityProfile(ship: Ship): CapabilityProfile {
     if (d.kind === "pd") continue;
     if (d.kind === "missile") {
       launchers++;
-      if (p.ammo >= 1) loaded++;
-      if (p.ammo >= 1 && w.cooldown <= 1e-9) ready++;
+      // Missiles live in magazines: a launcher "holds a round" while its magazines do.
+      const has = ship.nextMissile(p.uid) !== null;
+      if (has) loaded++;
+      if (has && w.cooldown <= 1e-9) ready++;
       missileRange = Math.max(missileRange, d.range);
       continue;
     }
@@ -140,13 +142,7 @@ export function capabilityProfile(ship: Ship): CapabilityProfile {
     maxRange = Math.max(maxRange, reach);
   }
   const gunDps = fixedDps + turretDps;
-  const launcherWeapons = ship.weapons.filter((w) => w.def.kind === "missile" && w.part.hp > 0);
-  const missileTypes = [
-    ...new Set(launcherWeapons.map((w) => w.def.ammoType).filter((t): t is string => !!t)),
-  ];
-  const missileStock =
-    launcherWeapons.reduce((n, w) => n + Math.floor(w.part.ammo), 0) +
-    missileTypes.reduce((n, t) => n + stockOf(t), 0);
+  const missileStock = launchers > 0 ? ship.missileStock().reduce((n, s) => n + s.count, 0) : 0;
   let stored = 0;
   let decoys = 0;
   for (const p of ship.parts) {

@@ -2,7 +2,7 @@ import type { Application } from "pixi.js";
 import { FixedStepLoop } from "../sim/core/loop";
 import { angleOf, sub } from "../sim/core/vec2";
 import { IDLE_INTENT } from "../sim/flight/controller";
-import type { Ship } from "../sim/ship/ship-entity";
+import { DRIVE_MODES, type Ship } from "../sim/ship/ship-entity";
 import type { World } from "../sim/world";
 import { Camera, CAMERA_MODES } from "../render/camera";
 import { Scene } from "../render/scene";
@@ -164,7 +164,13 @@ export class FlightScreen {
           name: same[0]!.part.def.def.name.replace(/ \(.*\)$/, ""),
           count: same.length,
           alive: alive.length,
-          ammo: usesAmmo ? `${loaded}/${cap}` : def.kind === "beam" ? "power" : "",
+          ammo: usesAmmo
+            ? `${loaded}/${cap}`
+            : def.kind === "beam"
+              ? "power"
+              : def.kind === "missile"
+                ? "magazine"
+                : "",
           state: alive.length === 0 ? "lost" : ready > 0 ? "ready" : `${wait.toFixed(1)} s`,
         };
       });
@@ -323,22 +329,24 @@ export class FlightScreen {
     const liveDrones = drones.filter((d) => !d.inert && !d.defeated);
     const pdAlive = pds.filter((w) => w.part.hp > 0).length;
     const hasTarget = !!this.targetId;
+    // Missiles are the magazines': what is left of each type, and which type the launchers load.
+    const stock = ship ? ship.missileStock() : [];
+    const chosen = stock.find((x) => x.type === ship?.missileType) ?? stock[0];
     const lRows = launchers.map((w) => {
       const lost = w.part.hp <= 0;
-      const loaded = lost ? 0 : Math.floor(w.part.ammo);
-      const interval = Math.max(1e-6, w.def.fireInterval);
+      const next = lost ? null : ship!.nextMissile(w.part.uid);
+      const interval = Math.max(1e-6, w.def.fireInterval * (next?.reload ?? 1));
       const state = lost
         ? "lost"
-        : loaded < 1
+        : !next
           ? "empty"
           : w.cooldown <= 1e-9
             ? "ready"
             : `${w.cooldown.toFixed(1)} s`;
       return {
-        loaded,
-        cap: w.def.internalMagazine,
+        loaded: next ? 1 : 0,
         state,
-        fill: lost || loaded < 1 ? 0 : 1 - w.cooldown / interval,
+        fill: lost || !next ? 0 : Math.max(0, 1 - w.cooldown / interval),
       };
     });
     const hRows = hangars.map((p) => {
@@ -360,19 +368,17 @@ export class FlightScreen {
         fill: lost || st.stored < 1 ? 0 : 1 - st.wait / Math.max(1e-6, h.launchInterval),
       };
     });
-    const left = lRows.reduce((n, r) => n + r.loaded, 0);
-    const ammoType = launchers[0]?.def.ammoType;
-    const magazine = ship.parts.reduce(
-      (n, p) =>
-        n + (p.hp > 0 && ammoType && p.def.def.magazine?.ammoType === ammoType ? Math.floor(p.ammo) : 0),
-      0,
-    );
+    const left = stock.reduce((n, x) => n + x.count, 0);
+    const droneStock = ship.droneStock();
     const readyL = lRows.filter((r) => r.state === "ready").length;
     const key = JSON.stringify([
       ship.id,
       lRows.map((r) => [r.state, r.loaded, Math.round(r.fill * 20)]),
       hRows.map((r) => [r.state, r.stored, Math.round(r.fill * 20)]),
-      magazine,
+      stock.map((x) => [x.type, x.count]),
+      chosen?.type,
+      droneStock,
+      ship.droneType,
       missilesOut,
       liveDrones.length,
       drones.length,
@@ -410,7 +416,7 @@ export class FlightScreen {
         "header",
         { class: "ck-head" },
         el("span", { class: "ck-head-title" }, "ORDNANCE"),
-        el("span", { class: "ck-head-info" }, "M missile · H drone"),
+        el("span", { class: "ck-head-info" }, "M missile · H drone · Z/U type"),
       ),
     );
     if (launchers.length || missilesOut) {
@@ -419,7 +425,7 @@ export class FlightScreen {
           "div",
           { class: "lp-head", "data-testid": "wb-missiles" },
           el("b", {}, "MISSILES"),
-          ` ${readyL}/${launchers.length} ready · ${left + magazine} left · out `,
+          ` ${readyL}/${launchers.length} ready · ${left} left · out `,
           el("span", { "data-testid": "missiles-out" }, String(missilesOut)),
           el(
             "span",
@@ -427,12 +433,39 @@ export class FlightScreen {
             readyL ? "ready" : waitOf(lRows),
           ),
         ),
-        ...(launchers.length && !hasTarget
+        ...(launchers.length && !hasTarget && chosen && chosen.def.guidance !== "none"
           ? [el("div", { class: "lp-hint" }, "right-click a target first")]
           : []),
-        ...lRows.map((r, i) =>
-          row(`wb-launcher-${i + 1}`, `Launcher ${i + 1}`, `${r.loaded}/${r.cap}`, r.state, r.fill),
-        ),
+        ...(stock.length
+          ? [
+              el(
+                "div",
+                {
+                  class: "lp-types",
+                  "data-testid": "missile-types",
+                  title: "Missile type to load (Z: next type)",
+                },
+                ...stock.map((x) => {
+                  const b = el(
+                    "button",
+                    {
+                      class: `ck-btn lp-type${x.type === chosen?.type ? " on" : ""}`,
+                      "data-testid": `missile-type-${x.type}`,
+                      "aria-pressed": String(x.type === chosen?.type),
+                      title: `${x.def.damage} damage · ${x.def.guidance === "none" ? "flies straight where the launcher points" : "steers while its motor burns"}`,
+                    },
+                    `${x.name} ×${x.count}`,
+                  );
+                  b.addEventListener("click", () => {
+                    ship.missileType = x.type;
+                    b.blur();
+                  });
+                  return b;
+                }),
+              ),
+            ]
+          : []),
+        ...lRows.map((r, i) => row(`wb-launcher-${i + 1}`, `Launcher ${i + 1}`, "", r.state, r.fill)),
       );
     }
     if (hangars.length || drones.length) {
@@ -453,6 +486,37 @@ export class FlightScreen {
             readyH ? "ready" : waitOf(hRows),
           ),
         ),
+        ...(droneStock.length > 1
+          ? [
+              el(
+                "div",
+                {
+                  class: "lp-types",
+                  "data-testid": "drone-types",
+                  title: "Drone type H launches (U: next type)",
+                },
+                ...[{ type: "", count: droneStock.reduce((n, x) => n + x.count, 0) }, ...droneStock].map(
+                  (x) => {
+                    const on = (ship.droneType ?? "") === x.type;
+                    const b = el(
+                      "button",
+                      {
+                        class: `ck-btn lp-type${on ? " on" : ""}`,
+                        "data-testid": `drone-type-${x.type || "any"}`,
+                        "aria-pressed": String(on),
+                      },
+                      `${x.type ? x.type.replace(/^drone-/, "") : "any"} ×${x.count}`,
+                    );
+                    b.addEventListener("click", () => {
+                      ship.droneType = x.type || null;
+                      b.blur();
+                    });
+                    return b;
+                  },
+                ),
+              ),
+            ]
+          : []),
         ...hRows.map((r, i) =>
           row(`wb-hangar-${i + 1}`, `Hangar ${r.kind}`, `${r.stored}/${r.cap}`, r.state, r.fill),
         ),
@@ -914,12 +978,43 @@ export class FlightScreen {
         case "launch-salvo":
           if (this.controlledShip) this.pendingLaunch = "salvo";
           break;
-        case "launch-drone":
-          this.controlledShip?.launchOneDrone();
+        case "launch-drone": {
+          const s = this.controlledShip;
+          s?.launchOneDrone((t) => !s.droneType || t === s.droneType);
           break;
-        case "launch-drones":
-          this.controlledShip?.requestDroneLaunch();
+        }
+        case "launch-drones": {
+          const s = this.controlledShip;
+          s?.requestDroneLaunch((t) => !s.droneType || t === s.droneType);
           break;
+        }
+        case "missile-type": {
+          // Z: next missile type the magazines hold.
+          const s = this.controlledShip;
+          const types = s?.missileStock().map((x) => x.type) ?? [];
+          if (s && types.length) {
+            const cur = types.indexOf(s.missileType ?? types[0]!);
+            s.missileType = types[(cur + 1) % types.length]!;
+          }
+          break;
+        }
+        case "drone-type": {
+          // U: next drone type, then back to "any".
+          const s = this.controlledShip;
+          const types = s?.droneStock().map((x) => x.type) ?? [];
+          if (s && types.length) {
+            const cur = s.droneType ? types.indexOf(s.droneType) : -1;
+            s.droneType = cur + 1 < types.length ? types[cur + 1]! : null;
+          }
+          break;
+        }
+        case "drive-mode": {
+          // I: all engines → ion only → chemical only (ships with ion engines).
+          const s = this.controlledShip;
+          if (s?.hasIonEngines)
+            s.driveMode = DRIVE_MODES[(DRIVE_MODES.indexOf(s.driveMode) + 1) % DRIVE_MODES.length]!;
+          break;
+        }
         case "pd-ships": {
           const ship = this.controlledShip;
           if (ship) ship.pdEngageShips = !ship.pdEngageShips;

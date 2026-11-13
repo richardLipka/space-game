@@ -45,6 +45,8 @@ const FUEL_COST = 1e-5;
  */
 /** Per-part availability from the resource systems (spec §7). */
 export interface PropulsionContext {
+  /** Main engines the pilot has switched off (drive mode); default: all on. */
+  engineOn?(part: PartInstance): boolean;
   /** Fuel reachable through the part's network. */
   hasFuel(uid: string): boolean;
   /** Output multiplier: power served × heat throttle (1 = full). */
@@ -79,7 +81,7 @@ export function buildPropulsion(
     const hasFuel = ctx.hasFuel(p.uid);
     const pos = partCentroid(p);
 
-    if (def.engine && p.def.engineThrustDir) {
+    if (def.engine && p.def.engineThrustDir && (ctx.engineOn?.(p) ?? true)) {
       const nominal = toShipDir(p, p.def.engineThrustDir);
       const toCom = sub(mp.center, pos);
       const dir = length(toCom) < 1e-9 ? nominal : normalize(toCom);
