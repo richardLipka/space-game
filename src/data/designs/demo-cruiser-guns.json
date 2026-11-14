@@ -2,6 +2,7 @@
   "formatVersion": 1,
   "id": "demo-cruiser-guns",
   "name": "Warden (gun cruiser)",
+  "section": "Experimental",
   "createdAt": "2026-11-09T00:00:00Z",
   "modifiedAt": "2026-11-09T00:00:00Z",
   "parts": [

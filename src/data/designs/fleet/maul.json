@@ -2,6 +2,7 @@
   "formatVersion": 1,
   "id": "fleet-maul",
   "name": "Maul (cannon gunboat)",
+  "section": "Playable",
   "createdAt": "2026-11-09T00:00:00Z",
   "modifiedAt": "2026-11-09T00:00:00Z",
   "parts": [
@@ -22,49 +23,49 @@
     {
       "uid": "tank",
       "partId": "core:tank.fuel.m",
-      "x": 0.0,
-      "y": 0.0,
+      "x": 0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "cmd",
       "partId": "core:command.s",
       "x": 1.75,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "rea",
       "partId": "core:reactor.s",
       "x": 3.25,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "mag-k",
       "partId": "core:magazine.kinetic.s",
       "x": 4.5,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "gun",
       "partId": "core:weapon.cannon.fixed.m",
       "x": 6.5,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "beam-t",
       "partId": "core:hull.rect.m",
-      "x": 2.0,
+      "x": 2,
       "y": 1.25,
       "angle": 0
     },
     {
       "uid": "beam-b",
       "partId": "core:hull.rect.m",
-      "x": 2.0,
+      "x": 2,
       "y": -1.25,
       "angle": 0
     },
@@ -72,7 +73,7 @@
       "uid": "ml-t",
       "partId": "core:weapon.missile.launcher.s",
       "x": 6.25,
-      "y": 1.0,
+      "y": 1,
       "angle": 0,
       "weaponGroup": 2
     },
@@ -80,7 +81,7 @@
       "uid": "ml-b",
       "partId": "core:weapon.missile.launcher.s",
       "x": 6.25,
-      "y": -1.0,
+      "y": -1,
       "angle": 0,
       "weaponGroup": 2
     },
@@ -88,27 +89,27 @@
       "uid": "mag-m-t",
       "partId": "core:magazine.missile.s",
       "x": 4.75,
-      "y": 1.0,
+      "y": 1,
       "angle": 0
     },
     {
       "uid": "mag-m-b",
       "partId": "core:magazine.missile.s",
       "x": 4.75,
-      "y": -1.0,
+      "y": -1,
       "angle": 0
     },
     {
       "uid": "gyro-t",
       "partId": "core:gyro.s",
-      "x": 0.0,
+      "x": 0,
       "y": 1.5,
       "angle": 0
     },
     {
       "uid": "gyro-b",
       "partId": "core:gyro.s",
-      "x": 0.0,
+      "x": 0,
       "y": -1.5,
       "angle": 0
     },
@@ -143,15 +144,15 @@
     {
       "uid": "rad-t",
       "partId": "core:radiator.s",
-      "x": 0.0,
-      "y": 3.0,
+      "x": 0,
+      "y": 3,
       "angle": 90
     },
     {
       "uid": "rad-b",
       "partId": "core:radiator.s",
-      "x": 0.0,
-      "y": -3.0,
+      "x": 0,
+      "y": -3,
       "angle": -90
     },
     {

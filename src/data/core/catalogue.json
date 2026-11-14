@@ -102,14 +102,14 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 304,
-      "hp": 4320,
+      "hp": 2220,
       "cost": 30,
       "command": {
         "gyroTorque": 6000,
         "powerDraw": 5000
       },
       "reactor": {
-        "maxOutput": 67500,
+        "maxOutput": 63900,
         "heatPerWatt": 1
       }
     },
@@ -127,7 +127,7 @@
       ],
       "edges": ["snap", "snap", "snap", "function"],
       "mass": 180,
-      "hp": 812,
+      "hp": 1180,
       "cost": 25,
       "engine": {
         "thrust": 40000,
@@ -135,7 +135,7 @@
         "gimbalMax": 15,
         "nozzleEdge": 3,
         "powerDraw": 0,
-        "heatAtMax": 66600
+        "heatAtMax": 39600
       },
       "balance": {
         "mass": 0.6
@@ -155,7 +155,7 @@
       ],
       "edges": ["snap", "snap", "snap", "function"],
       "mass": 1980,
-      "hp": 4870,
+      "hp": 7110,
       "cost": 120,
       "engine": {
         "thrust": 242000,
@@ -163,7 +163,7 @@
         "gimbalMax": 10,
         "nozzleEdge": 3,
         "powerDraw": 0,
-        "heatAtMax": 376000
+        "heatAtMax": 224000
       },
       "balance": {
         "mass": 1.65,
@@ -184,7 +184,7 @@
       ],
       "edges": ["snap", "snap", "snap", "function"],
       "mass": 390,
-      "hp": 650,
+      "hp": 948,
       "cost": 40,
       "engine": {
         "thrust": 6000,
@@ -192,7 +192,7 @@
         "gimbalMax": 15,
         "nozzleEdge": 3,
         "powerDraw": 180000,
-        "heatAtMax": 612,
+        "heatAtMax": 364,
         "ion": true
       }
     },
@@ -210,7 +210,7 @@
       ],
       "edges": ["snap", "snap", "snap", "function"],
       "mass": 1560,
-      "hp": 2600,
+      "hp": 3790,
       "cost": 150,
       "engine": {
         "thrust": 36400,
@@ -218,7 +218,7 @@
         "gimbalMax": 10,
         "nozzleEdge": 3,
         "powerDraw": 1090000,
-        "heatAtMax": 3710,
+        "heatAtMax": 2210,
         "ion": true
       }
     },
@@ -236,14 +236,14 @@
       ],
       "edges": ["function", "snap", "snap", "snap"],
       "mass": 15,
-      "hp": 135,
+      "hp": 197,
       "cost": 5,
       "thruster": {
         "thrust": 3000,
         "isp": 512,
         "direction": [0, 1],
         "powerDraw": 0,
-        "heatAtMax": 7170
+        "heatAtMax": 4270
       }
     },
     {
@@ -260,7 +260,7 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 30,
-      "hp": 324,
+      "hp": 473,
       "cost": 5,
       "fuelTank": {
         "capacity": 500
@@ -280,7 +280,7 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 120,
-      "hp": 1100,
+      "hp": 1610,
       "cost": 16,
       "fuelTank": {
         "capacity": 2000
@@ -303,7 +303,7 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 120,
-      "hp": 433,
+      "hp": 632,
       "cost": 18,
       "gyro": {
         "torque": 20000,
@@ -325,9 +325,9 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 160,
-      "hp": 1080,
+      "hp": 695,
       "cost": 10,
-      "armor": 20
+      "armor": 29.8
     },
     {
       "id": "core:armor.square.m",
@@ -343,9 +343,9 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 640,
-      "hp": 4320,
+      "hp": 2780,
       "cost": 36,
-      "armor": 30,
+      "armor": 44.7,
       "balance": {
         "armor": 1.5
       }
@@ -364,9 +364,9 @@
       ],
       "edges": ["hull", "hull", "hull", "snap"],
       "mass": 416,
-      "hp": 2490,
+      "hp": 1600,
       "cost": 24,
-      "armor": 25,
+      "armor": 37.3,
       "balance": {
         "mass": 1.3,
         "hp": 1.15,
@@ -386,9 +386,9 @@
       ],
       "edges": ["snap", "hull", "snap"],
       "mass": 80,
-      "hp": 541,
+      "hp": 347,
       "cost": 6,
-      "armor": 20
+      "armor": 29.8
     },
     {
       "id": "core:armor.strip.s",
@@ -404,9 +404,9 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 53.3,
-      "hp": 360,
+      "hp": 232,
       "cost": 4,
-      "armor": 20
+      "armor": 29.8
     },
     {
       "id": "core:armor.strip.m",
@@ -422,9 +422,9 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 213,
-      "hp": 1440,
+      "hp": 927,
       "cost": 12,
-      "armor": 30,
+      "armor": 44.7,
       "balance": {
         "armor": 1.5
       }
@@ -443,10 +443,10 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 608,
-      "hp": 1350,
+      "hp": 1970,
       "cost": 40,
       "reactor": {
-        "maxOutput": 450000,
+        "maxOutput": 426000,
         "heatPerWatt": 1
       }
     },
@@ -464,10 +464,10 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 2430,
-      "hp": 5400,
+      "hp": 7880,
       "cost": 140,
       "reactor": {
-        "maxOutput": 1800000,
+        "maxOutput": 1700000,
         "heatPerWatt": 1
       }
     },
@@ -485,7 +485,7 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 90,
-      "hp": 324,
+      "hp": 473,
       "cost": 8,
       "battery": {
         "capacity": 2000000,
@@ -507,10 +507,10 @@
       ],
       "edges": ["function", "snap", "function", "snap"],
       "mass": 60,
-      "hp": 216,
+      "hp": 315,
       "cost": 8,
       "radiator": {
-        "dissipation": 400000,
+        "dissipation": 377000,
         "retractedFactor": 0.3,
         "extendedDamageMult": 2
       }
@@ -529,7 +529,7 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 200,
-      "hp": 649,
+      "hp": 948,
       "cost": 10,
       "heatSink": {
         "capacity": 20000000
@@ -549,12 +549,12 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 40,
-      "hp": 433,
+      "hp": 632,
       "cost": 6,
       "magazine": {
         "ammoType": "kinetic-120",
-        "capacity": 60,
-        "massPerRound": 6
+        "capacity": 72,
+        "massPerRound": 5.01
       }
     },
     {
@@ -571,12 +571,12 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 40,
-      "hp": 433,
+      "hp": 632,
       "cost": 6,
       "magazine": {
         "ammoType": "autocannon-30",
-        "capacity": 1000,
-        "massPerRound": 0.36
+        "capacity": 1197,
+        "massPerRound": 0.301
       }
     },
     {
@@ -593,11 +593,11 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 81,
-      "hp": 552,
+      "hp": 806,
       "cost": 20,
       "magazine": {
         "ammoType": "missile-smart",
-        "capacity": 12,
+        "capacity": 14,
         "massPerRound": 90,
         "missile": {
           "name": "Smart missile",
@@ -605,8 +605,8 @@
           "thrust": 6000,
           "fuel": 8,
           "turnRate": 120,
-          "hp": 30,
-          "damage": 4000,
+          "hp": 189,
+          "damage": 5090,
           "proximityFuse": 6,
           "blastRadius": 5,
           "guidance": "pn",
@@ -633,11 +633,11 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 81,
-      "hp": 552,
+      "hp": 806,
       "cost": 12,
       "magazine": {
         "ammoType": "missile-rocket",
-        "capacity": 24,
+        "capacity": 29,
         "massPerRound": 45,
         "missile": {
           "name": "Rocket",
@@ -645,8 +645,8 @@
           "thrust": 5400,
           "fuel": 4,
           "turnRate": 1,
-          "hp": 20,
-          "damage": 2400,
+          "hp": 126,
+          "damage": 3060,
           "proximityFuse": 5,
           "blastRadius": 4,
           "guidance": "none",
@@ -672,12 +672,12 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 40,
-      "hp": 433,
+      "hp": 632,
       "cost": 6,
       "magazine": {
         "ammoType": "flak-40",
-        "capacity": 480,
-        "massPerRound": 0.75
+        "capacity": 574,
+        "massPerRound": 0.627
       }
     },
     {
@@ -694,12 +694,12 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 30,
-      "hp": 433,
+      "hp": 632,
       "cost": 5,
       "magazine": {
         "ammoType": "pd-20",
-        "capacity": 4000,
-        "massPerRound": 0.09
+        "capacity": 4786,
+        "massPerRound": 0.0752
       },
       "balance": {
         "mass": 0.75
@@ -719,22 +719,22 @@
       ],
       "edges": ["snap", "function", "snap", "snap"],
       "mass": 893,
-      "hp": 1620,
+      "hp": 3600,
       "cost": 60,
       "weapon": {
         "kind": "projectile",
         "mount": "fixed",
         "muzzle": [1.5, 0],
         "ammoType": "kinetic-120",
-        "internalMagazine": 6,
+        "internalMagazine": 7,
         "fireInterval": 2,
-        "heatPerShot": 232000,
+        "heatPerShot": 133000,
         "range": 3000,
         "spread": 0.15,
         "projectile": {
           "speed": 2200,
           "mass": 8,
-          "damage": 400,
+          "damage": 700.9,
           "lifetime": 2
         }
       },
@@ -761,7 +761,7 @@
       ],
       "edges": ["hull", "hull", "hull", "hull", "snap", "hull", "hull", "hull"],
       "mass": 270,
-      "hp": 859,
+      "hp": 1910,
       "cost": 35,
       "weapon": {
         "kind": "projectile",
@@ -770,15 +770,15 @@
         "traverseRate": 120,
         "muzzle": [0, 0],
         "ammoType": "autocannon-30",
-        "internalMagazine": 100,
+        "internalMagazine": 120,
         "fireInterval": 0.12,
-        "heatPerShot": 7060,
+        "heatPerShot": 4040,
         "range": 1500,
         "spread": 0.6,
         "projectile": {
           "speed": 1400,
           "mass": 0.6,
-          "damage": 22.83,
+          "damage": 50.35,
           "lifetime": 1.6
         }
       }
@@ -801,7 +801,7 @@
       ],
       "edges": ["hull", "hull", "hull", "hull", "snap", "hull", "hull", "hull"],
       "mass": 145,
-      "hp": 462,
+      "hp": 1030,
       "cost": 22,
       "weapon": {
         "kind": "projectile",
@@ -810,15 +810,15 @@
         "traverseRate": 240,
         "muzzle": [0, 0],
         "ammoType": "autocannon-30",
-        "internalMagazine": 120,
+        "internalMagazine": 144,
         "fireInterval": 0.1,
-        "heatPerShot": 7060,
+        "heatPerShot": 4040,
         "range": 1200,
         "spread": 0.9,
         "projectile": {
           "speed": 1400,
           "mass": 0.6,
-          "damage": 15,
+          "damage": 35.79,
           "lifetime": 1.4
         }
       },
@@ -844,7 +844,7 @@
       ],
       "edges": ["hull", "hull", "hull", "hull", "snap", "hull", "hull", "hull"],
       "mass": 1510,
-      "hp": 2400,
+      "hp": 5340,
       "cost": 85,
       "weapon": {
         "kind": "projectile",
@@ -853,15 +853,15 @@
         "traverseRate": 45,
         "muzzle": [0, 0],
         "ammoType": "kinetic-120",
-        "internalMagazine": 7,
+        "internalMagazine": 8,
         "fireInterval": 1.8,
-        "heatPerShot": 232000,
+        "heatPerShot": 133000,
         "range": 3000,
         "spread": 0.2,
         "projectile": {
           "speed": 2200,
           "mass": 8,
-          "damage": 600,
+          "damage": 1048,
           "lifetime": 2
         }
       },
@@ -889,7 +889,7 @@
       ],
       "edges": ["hull", "hull", "hull", "hull", "snap", "hull", "hull", "hull"],
       "mass": 270,
-      "hp": 859,
+      "hp": 1910,
       "cost": 45,
       "weapon": {
         "kind": "beam",
@@ -904,7 +904,7 @@
         "range": 1200,
         "spread": 0.05,
         "beam": {
-          "dps": 89,
+          "dps": 114.6,
           "falloffStart": 600
         }
       }
@@ -923,7 +923,7 @@
       ],
       "edges": ["snap", "function", "snap", "snap"],
       "mass": 638,
-      "hp": 1380,
+      "hp": 3060,
       "cost": 70,
       "weapon": {
         "kind": "beam",
@@ -936,7 +936,7 @@
         "range": 2200,
         "spread": 0.02,
         "beam": {
-          "dps": 373,
+          "dps": 373.1,
           "falloffStart": 1400
         }
       },
@@ -961,7 +961,7 @@
       ],
       "edges": ["snap", "function", "snap", "snap"],
       "mass": 217,
-      "hp": 648,
+      "hp": 1440,
       "cost": 55,
       "weapon": {
         "kind": "missile",
@@ -998,7 +998,7 @@
       ],
       "edges": ["hull", "hull", "hull", "hull", "snap", "hull", "hull", "hull"],
       "mass": 120,
-      "hp": 439,
+      "hp": 975,
       "cost": 25,
       "weapon": {
         "kind": "pd",
@@ -1007,15 +1007,15 @@
         "traverseRate": 360,
         "muzzle": [0, 0],
         "ammoType": "pd-20",
-        "internalMagazine": 400,
+        "internalMagazine": 479,
         "fireInterval": 0.03,
-        "heatPerShot": 2300,
+        "heatPerShot": 1320,
         "range": 600,
         "spread": 0.8,
         "projectile": {
           "speed": 1600,
           "mass": 0.15,
-          "damage": 6,
+          "damage": 39.68,
           "lifetime": 0.5
         }
       },
@@ -1041,7 +1041,7 @@
       ],
       "edges": ["hull", "hull", "hull", "hull", "snap", "hull", "hull", "hull"],
       "mass": 173,
-      "hp": 550,
+      "hp": 1220,
       "cost": 30,
       "weapon": {
         "kind": "pd",
@@ -1050,19 +1050,19 @@
         "traverseRate": 200,
         "muzzle": [0, 0],
         "ammoType": "flak-40",
-        "internalMagazine": 48,
+        "internalMagazine": 57,
         "fireInterval": 0.25,
-        "heatPerShot": 7290,
+        "heatPerShot": 4170,
         "range": 900,
         "spread": 1.5,
         "projectile": {
           "speed": 900,
           "mass": 1.5,
-          "damage": 10,
+          "damage": 60.33,
           "lifetime": 1.2,
           "proximityFuse": 8,
           "burstRadius": 25,
-          "burstDamage": 18
+          "burstDamage": 108.6
         }
       },
       "balance": {
@@ -1084,14 +1084,14 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 60.8,
-      "hp": 672,
+      "hp": 346,
       "cost": 8,
       "command": {
         "gyroTorque": 600,
         "powerDraw": 500
       },
       "reactor": {
-        "maxOutput": 30000,
+        "maxOutput": 28400,
         "heatPerWatt": 1
       },
       "balance": {
@@ -1113,7 +1113,7 @@
       ],
       "edges": ["snap", "snap", "snap", "function"],
       "mass": 20,
-      "hp": 162,
+      "hp": 237,
       "cost": 4,
       "engine": {
         "thrust": 2530,
@@ -1121,7 +1121,7 @@
         "gimbalMax": 10,
         "nozzleEdge": 3,
         "powerDraw": 0,
-        "heatAtMax": 4610
+        "heatAtMax": 2740
       },
       "balance": {
         "mass": 0.4,
@@ -1143,7 +1143,7 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 4.88,
-      "hp": 109,
+      "hp": 160,
       "cost": 1,
       "fuelTank": {
         "capacity": 25
@@ -1168,22 +1168,22 @@
       ],
       "edges": ["snap", "function", "snap", "snap"],
       "mass": 38.3,
-      "hp": 216,
+      "hp": 480,
       "cost": 6,
       "weapon": {
         "kind": "projectile",
         "mount": "fixed",
         "muzzle": [0.5, 0],
         "ammoType": "autocannon-30",
-        "internalMagazine": 800,
+        "internalMagazine": 957,
         "fireInterval": 0.15,
-        "heatPerShot": 3040,
+        "heatPerShot": 1740,
         "range": 900,
         "spread": 0.6,
         "projectile": {
           "speed": 1300,
           "mass": 0.3,
-          "damage": 16,
+          "damage": 43.66,
           "lifetime": 0.9
         }
       },
@@ -1208,7 +1208,7 @@
       ],
       "edges": ["snap", "snap", "snap", "snap"],
       "mass": 10,
-      "hp": 108,
+      "hp": 158,
       "cost": 3,
       "decoy": {
         "strength": 0.8,
@@ -1229,7 +1229,7 @@
       ],
       "edges": ["snap", "function", "snap", "snap"],
       "mass": 300,
-      "hp": 1080,
+      "hp": 1580,
       "cost": 120,
       "hangar": {
         "droneType": "drone-attack",
@@ -1252,7 +1252,7 @@
       ],
       "edges": ["snap", "function", "snap", "snap"],
       "mass": 300,
-      "hp": 1080,
+      "hp": 1580,
       "cost": 110,
       "hangar": {
         "droneType": "drone-pd",
@@ -1275,7 +1275,7 @@
       ],
       "edges": ["snap", "function", "snap", "snap"],
       "mass": 120,
-      "hp": 540,
+      "hp": 788,
       "cost": 60,
       "hangar": {
         "droneType": "drone-decoy",

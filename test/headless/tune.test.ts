@@ -56,7 +56,7 @@ describe("balance overlay", () => {
     expect(byId(t, command.id).hp).toBe(Math.round(command.hp * 3));
     expect(byId(t, magazine.id).magazine!.capacity).toBe(Math.round(magazine.magazine!.capacity * 1.5));
     expect(byId(t, gun.id).weapon!.internalMagazine).toBe(Math.round(gun.weapon!.internalMagazine * 1.5));
-    expect(byId(t, gun.id).weapon!.projectile!.damage).toBeCloseTo(gun.weapon!.projectile!.damage * 0.5, 1);
+    expect(byId(t, gun.id).weapon!.projectile!.damage / gun.weapon!.projectile!.damage).toBeCloseTo(0.5, 2);
     const pd = beam.weapon!.powerDraw ?? beam.weapon!.powerPerShot!;
     const pt = byId(t, beam.id).weapon!.powerDraw ?? byId(t, beam.id).weapon!.powerPerShot!;
     expect(pt).toBeCloseTo(pd * 0.8, 0);
@@ -189,6 +189,7 @@ describe("battle jobs", () => {
 
   it("records battle metrics; halving HP makes the duel shorter", () => {
     const [a, b] = jobs.slice(0, 2).map(runJob);
+    if (a!.kind === "test" || b!.kind === "test") throw new Error("skirmish jobs expected");
     const m = a!.result.metrics;
     // Engagement runs from the first hull hit; a single shell that sets off a store can end it at once.
     expect(m.engagement).toBeGreaterThanOrEqual(0);

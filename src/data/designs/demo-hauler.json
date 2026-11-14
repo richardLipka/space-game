@@ -6,15 +6,70 @@
   "powerPriority": ["gyro", "propulsion", "weapons", "pointDefense", "hangar"],
   "id": "demo-hauler",
   "name": "Mule (asymmetric hauler)",
+  "section": "Experimental",
   "parts": [
-    { "uid": "cmd", "partId": "core:command.s", "x": 0, "y": 0, "angle": 0 },
-    { "uid": "tank", "partId": "core:tank.fuel.m", "x": -1.75, "y": 0.25, "angle": 0 },
-    { "uid": "eng", "partId": "core:engine.main.s", "x": -3.25, "y": 0.4, "angle": 0 },
-    { "uid": "pod", "partId": "core:hull.square.m", "x": 0.25, "y": 1.75, "angle": 0 },
-    { "uid": "pod2", "partId": "core:hull.square.m", "x": -1.75, "y": 2.25, "angle": 0 },
-    { "uid": "beam", "partId": "core:hull.rect.m", "x": 1.75, "y": 0, "angle": 0 },
-    { "uid": "rcs-a", "partId": "core:rcs.s", "x": 1.25, "y": 3, "angle": 180 },
-    { "uid": "rcs-b", "partId": "core:rcs.s", "x": 1.5, "y": -0.75, "angle": 0 },
-    { "uid": "rcs-c", "partId": "core:rcs.s", "x": 3, "y": 0, "angle": 90 }
+    {
+      "uid": "cmd",
+      "partId": "core:command.s",
+      "x": 0,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "tank",
+      "partId": "core:tank.fuel.m",
+      "x": -1.75,
+      "y": 0.25,
+      "angle": 0
+    },
+    {
+      "uid": "eng",
+      "partId": "core:engine.main.s",
+      "x": -3.25,
+      "y": 0.4,
+      "angle": 0
+    },
+    {
+      "uid": "pod",
+      "partId": "core:hull.square.m",
+      "x": 0.25,
+      "y": 1.75,
+      "angle": 0
+    },
+    {
+      "uid": "pod2",
+      "partId": "core:hull.square.m",
+      "x": -1.75,
+      "y": 2.25,
+      "angle": 0
+    },
+    {
+      "uid": "beam",
+      "partId": "core:hull.rect.m",
+      "x": 1.75,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "rcs-a",
+      "partId": "core:rcs.s",
+      "x": 1.25,
+      "y": 3,
+      "angle": 180
+    },
+    {
+      "uid": "rcs-b",
+      "partId": "core:rcs.s",
+      "x": 1.5,
+      "y": -0.75,
+      "angle": 0
+    },
+    {
+      "uid": "rcs-c",
+      "partId": "core:rcs.s",
+      "x": 3,
+      "y": 0,
+      "angle": 90
+    }
   ]
 }

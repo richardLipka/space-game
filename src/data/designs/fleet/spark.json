@@ -2,6 +2,7 @@
   "formatVersion": 1,
   "id": "fleet-spark",
   "name": "Spark (laser fighter)",
+  "section": "Playable",
   "createdAt": "2026-11-09T00:00:00Z",
   "modifiedAt": "2026-11-09T00:00:00Z",
   "parts": [
@@ -9,35 +10,35 @@
       "uid": "eng",
       "partId": "core:engine.main.s",
       "x": -2.25,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "tank",
       "partId": "core:tank.fuel.s",
       "x": -1.25,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "cmd",
       "partId": "core:command.s",
-      "x": 0.0,
-      "y": 0.0,
+      "x": 0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "rea",
       "partId": "core:reactor.s",
       "x": 1.5,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "nose",
       "partId": "core:hull.wedge.m",
       "x": 3.25,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
@@ -57,7 +58,7 @@
     {
       "uid": "las-t",
       "partId": "core:weapon.laser.turret.s",
-      "x": 1.0,
+      "x": 1,
       "y": 2.4429,
       "angle": 90,
       "weaponGroup": 1
@@ -65,7 +66,7 @@
     {
       "uid": "las-b",
       "partId": "core:weapon.laser.turret.s",
-      "x": 1.0,
+      "x": 1,
       "y": -2.4429,
       "angle": -90,
       "weaponGroup": 1
@@ -87,28 +88,28 @@
     {
       "uid": "rad-t",
       "partId": "core:radiator.s",
-      "x": -1.0,
+      "x": -1,
       "y": 2.75,
       "angle": 90
     },
     {
       "uid": "rad-b",
       "partId": "core:radiator.s",
-      "x": -1.0,
+      "x": -1,
       "y": -2.75,
       "angle": -90
     },
     {
       "uid": "rcs-f-t",
       "partId": "core:rcs.s",
-      "x": 2.0,
+      "x": 2,
       "y": 1.25,
       "angle": 90
     },
     {
       "uid": "rcs-f-b",
       "partId": "core:rcs.s",
-      "x": 2.0,
+      "x": 2,
       "y": -1.25,
       "angle": 90
     },
@@ -116,14 +117,14 @@
       "uid": "rcs-t",
       "partId": "core:rcs.s",
       "x": -2.5,
-      "y": 1.0,
+      "y": 1,
       "angle": 180
     },
     {
       "uid": "rcs-b",
       "partId": "core:rcs.s",
       "x": -2.5,
-      "y": -1.0,
+      "y": -1,
       "angle": 0
     }
   ],

@@ -3,7 +3,7 @@
   "name": "Mirror: destroyers",
   "description": "Two destroyers each: kinetic Rapier and missile-laser Viper. Same ships on both sides.",
   "order": 11,
-  "budget": 1900,
+  "budget": 2100,
   "maxPlayerShips": 2,
   "arena": {
     "width": 10000,

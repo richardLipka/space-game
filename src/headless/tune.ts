@@ -131,6 +131,7 @@ export function measure(
   const reasons: Record<string, number> = {};
   const draws: string[] = [];
   for (const r of results) {
+    if (r.kind === "test") continue;
     const m = r.result.metrics;
     all.push(m);
     reasons[m.reason] = (reasons[m.reason] ?? 0) + 1;

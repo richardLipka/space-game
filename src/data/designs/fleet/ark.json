@@ -2,168 +2,169 @@
   "formatVersion": 1,
   "id": "fleet-ark",
   "name": "Ark (drone carrier)",
+  "section": "Playable",
   "createdAt": "2026-11-09T00:00:00Z",
   "modifiedAt": "2026-11-09T00:00:00Z",
   "parts": [
     {
       "uid": "eng",
       "partId": "core:engine.main.l",
-      "x": -7.0,
-      "y": 0.0,
+      "x": -7,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "tank",
       "partId": "core:tank.fuel.m",
-      "x": -5.0,
-      "y": 0.0,
+      "x": -5,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "tank2",
       "partId": "core:tank.fuel.m",
-      "x": -3.0,
-      "y": 0.0,
+      "x": -3,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "gyro1",
       "partId": "core:gyro.s",
       "x": -1.5,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "gyro2",
       "partId": "core:gyro.s",
       "x": -0.5,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "rea",
       "partId": "core:reactor.s",
       "x": 0.75,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "cmd",
       "partId": "core:command.s",
       "x": 2.25,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "mag-pd",
       "partId": "core:magazine.pd.s",
       "x": 3.5,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "hull1",
       "partId": "core:hull.square.m",
-      "x": 5.0,
-      "y": 0.0,
+      "x": 5,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "hull2",
       "partId": "core:hull.square.m",
-      "x": 7.0,
-      "y": 0.0,
+      "x": 7,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "nose",
       "partId": "core:hull.wedge.m",
-      "x": 9.0,
-      "y": 0.0,
+      "x": 9,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "r2mm5-t",
       "partId": "core:hull.square.m",
-      "x": -5.0,
-      "y": 2.0,
+      "x": -5,
+      "y": 2,
       "angle": 0
     },
     {
       "uid": "r2mm5-b",
       "partId": "core:hull.square.m",
-      "x": -5.0,
-      "y": -2.0,
+      "x": -5,
+      "y": -2,
       "angle": 0
     },
     {
       "uid": "r2mm3-t",
       "partId": "core:hull.square.m",
-      "x": -3.0,
-      "y": 2.0,
+      "x": -3,
+      "y": 2,
       "angle": 0
     },
     {
       "uid": "r2mm3-b",
       "partId": "core:hull.square.m",
-      "x": -3.0,
-      "y": -2.0,
+      "x": -3,
+      "y": -2,
       "angle": 0
     },
     {
       "uid": "r2m1-t",
       "partId": "core:hull.square.m",
-      "x": 1.0,
-      "y": 2.0,
+      "x": 1,
+      "y": 2,
       "angle": 0
     },
     {
       "uid": "r2m1-b",
       "partId": "core:hull.square.m",
-      "x": 1.0,
-      "y": -2.0,
+      "x": 1,
+      "y": -2,
       "angle": 0
     },
     {
       "uid": "r2m3-t",
       "partId": "core:hull.square.m",
-      "x": 3.0,
-      "y": 2.0,
+      "x": 3,
+      "y": 2,
       "angle": 0
     },
     {
       "uid": "r2m3-b",
       "partId": "core:hull.square.m",
-      "x": 3.0,
-      "y": -2.0,
+      "x": 3,
+      "y": -2,
       "angle": 0
     },
     {
       "uid": "r2m5-t",
       "partId": "core:hull.square.m",
-      "x": 5.0,
-      "y": 2.0,
+      "x": 5,
+      "y": 2,
       "angle": 0
     },
     {
       "uid": "r2m5-b",
       "partId": "core:hull.square.m",
-      "x": 5.0,
-      "y": -2.0,
+      "x": 5,
+      "y": -2,
       "angle": 0
     },
     {
       "uid": "r2m7-t",
       "partId": "core:hull.square.m",
-      "x": 7.0,
-      "y": 2.0,
+      "x": 7,
+      "y": 2,
       "angle": 0
     },
     {
       "uid": "r2m7-b",
       "partId": "core:hull.square.m",
-      "x": 7.0,
-      "y": -2.0,
+      "x": 7,
+      "y": -2,
       "angle": 0
     },
     {
@@ -197,127 +198,127 @@
     {
       "uid": "r4mm5-t",
       "partId": "core:hull.square.m",
-      "x": -5.0,
-      "y": 4.0,
+      "x": -5,
+      "y": 4,
       "angle": 0
     },
     {
       "uid": "r4mm5-b",
       "partId": "core:hull.square.m",
-      "x": -5.0,
-      "y": -4.0,
+      "x": -5,
+      "y": -4,
       "angle": 0
     },
     {
       "uid": "r4mm3-t",
       "partId": "core:hull.square.m",
-      "x": -3.0,
-      "y": 4.0,
+      "x": -3,
+      "y": 4,
       "angle": 0
     },
     {
       "uid": "r4mm3-b",
       "partId": "core:hull.square.m",
-      "x": -3.0,
-      "y": -4.0,
+      "x": -3,
+      "y": -4,
       "angle": 0
     },
     {
       "uid": "r4mm1-t",
       "partId": "core:hull.square.m",
-      "x": -1.0,
-      "y": 4.0,
+      "x": -1,
+      "y": 4,
       "angle": 0
     },
     {
       "uid": "r4mm1-b",
       "partId": "core:hull.square.m",
-      "x": -1.0,
-      "y": -4.0,
+      "x": -1,
+      "y": -4,
       "angle": 0
     },
     {
       "uid": "r4m1-t",
       "partId": "core:hull.square.m",
-      "x": 1.0,
-      "y": 4.0,
+      "x": 1,
+      "y": 4,
       "angle": 0
     },
     {
       "uid": "r4m1-b",
       "partId": "core:hull.square.m",
-      "x": 1.0,
-      "y": -4.0,
+      "x": 1,
+      "y": -4,
       "angle": 0
     },
     {
       "uid": "r4m3-t",
       "partId": "core:hull.square.m",
-      "x": 3.0,
-      "y": 4.0,
+      "x": 3,
+      "y": 4,
       "angle": 0
     },
     {
       "uid": "r4m3-b",
       "partId": "core:hull.square.m",
-      "x": 3.0,
-      "y": -4.0,
+      "x": 3,
+      "y": -4,
       "angle": 0
     },
     {
       "uid": "r4m5-t",
       "partId": "core:hull.square.m",
-      "x": 5.0,
-      "y": 4.0,
+      "x": 5,
+      "y": 4,
       "angle": 0
     },
     {
       "uid": "r4m5-b",
       "partId": "core:hull.square.m",
-      "x": 5.0,
-      "y": -4.0,
+      "x": 5,
+      "y": -4,
       "angle": 0
     },
     {
       "uid": "rad-t",
       "partId": "core:radiator.s",
       "x": -5.75,
-      "y": 6.0,
+      "y": 6,
       "angle": 90
     },
     {
       "uid": "rad-b",
       "partId": "core:radiator.s",
       "x": -5.75,
-      "y": -6.0,
+      "y": -6,
       "angle": -90
     },
     {
       "uid": "hg-a1-t",
       "partId": "core:hangar.attack.m",
       "x": -3.5,
-      "y": 6.0,
+      "y": 6,
       "angle": 90
     },
     {
       "uid": "hg-a1-b",
       "partId": "core:hangar.attack.m",
       "x": -3.5,
-      "y": -6.0,
+      "y": -6,
       "angle": -90
     },
     {
       "uid": "hg-pd-t",
       "partId": "core:hangar.pd.m",
-      "x": -1.0,
-      "y": 6.0,
+      "x": -1,
+      "y": 6,
       "angle": 90
     },
     {
       "uid": "hg-pd-b",
       "partId": "core:hangar.pd.m",
-      "x": -1.0,
-      "y": -6.0,
+      "x": -1,
+      "y": -6,
       "angle": -90
     },
     {
@@ -338,14 +339,14 @@
       "uid": "hg-a2-t",
       "partId": "core:hangar.attack.m",
       "x": 3.5,
-      "y": 6.0,
+      "y": 6,
       "angle": 90
     },
     {
       "uid": "hg-a2-b",
       "partId": "core:hangar.attack.m",
       "x": 3.5,
-      "y": -6.0,
+      "y": -6,
       "angle": -90
     },
     {
@@ -366,55 +367,55 @@
       "uid": "flak-t",
       "partId": "core:weapon.pd.flak.s",
       "x": 6.5543,
-      "y": 4.0,
+      "y": 4,
       "angle": 0
     },
     {
       "uid": "flak-b",
       "partId": "core:weapon.pd.flak.s",
       "x": 6.5543,
-      "y": -4.0,
+      "y": -4,
       "angle": 0
     },
     {
       "uid": "pd-t",
       "partId": "core:weapon.pd.gatling.s",
       "x": 8.4619,
-      "y": 2.0,
+      "y": 2,
       "angle": 0
     },
     {
       "uid": "pd-b",
       "partId": "core:weapon.pd.gatling.s",
       "x": 8.4619,
-      "y": -2.0,
+      "y": -2,
       "angle": 0
     },
     {
       "uid": "pd-a-t",
       "partId": "core:weapon.pd.gatling.s",
       "x": -6.4619,
-      "y": 4.0,
+      "y": 4,
       "angle": 180
     },
     {
       "uid": "pd-a-b",
       "partId": "core:weapon.pd.gatling.s",
       "x": -6.4619,
-      "y": -4.0,
+      "y": -4,
       "angle": -180
     },
     {
       "uid": "rcs-t",
       "partId": "core:rcs.s",
-      "x": -7.0,
+      "x": -7,
       "y": 1.75,
       "angle": 180
     },
     {
       "uid": "rcs-b",
       "partId": "core:rcs.s",
-      "x": -7.0,
+      "x": -7,
       "y": -1.75,
       "angle": 0
     },
@@ -430,6 +431,34 @@
       "partId": "core:rcs.s",
       "x": 7.75,
       "y": -3.25,
+      "angle": 0
+    },
+    {
+      "uid": "fix-magazine-1",
+      "partId": "core:magazine.pd.s",
+      "x": -1,
+      "y": 2.5,
+      "angle": 0
+    },
+    {
+      "uid": "fix-magazine-2",
+      "partId": "core:magazine.pd.s",
+      "x": -1,
+      "y": -2.5,
+      "angle": 0
+    },
+    {
+      "uid": "fix-magazine-3",
+      "partId": "core:magazine.pd.s",
+      "x": -2.25,
+      "y": 5.5,
+      "angle": 0
+    },
+    {
+      "uid": "fix-magazine-4",
+      "partId": "core:magazine.pd.s",
+      "x": -2.25,
+      "y": -5.5,
       "angle": 0
     }
   ],

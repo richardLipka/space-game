@@ -30,26 +30,26 @@ npm run golden:update
 
 | Relation | Formula | Rates (current) |
 |---|---|---|
-| Hit points | `hp.structure` × class ratio × V; systems also × `hp.systems` | armor 3.34, command 5.93, weapon 1.67; systems 0.67 (radiator) to 2.0 (heat sink) |
-| Magazine | rounds = `fireTime` ÷ interval × V ÷ `volumePerGame` | 120 s: a 1 m³ magazine feeds one gun for one game |
+| Hit points | `hp.structure` × class ratio × V; systems also × `hp.systems` | armor 2.14, command 3.05, weapon 3.70; systems × 1.46, then 0.67 (radiator) to 2.0 (heat sink) |
+| Magazine | rounds = `fireTime` ÷ interval × V ÷ `volumePerGame` | 144 s: a 1 m³ magazine feeds one gun for one game |
 | Stowed ammunition | round mass = `ammoDensity` × `volumePerGame` ÷ rounds | 360 kg/m³ |
 | Rounds in the gun | `fireTime` ÷ own interval × `internalShare` | 0.1 |
-| Reactor | `turretsPerVolume` × turret draw × V | 1 turret per m³ (200 kW/m³); command modules × 0.15 |
+| Reactor | `turretsPerVolume` × turret draw × V | 0.95 turrets per m³ (189 kW/m³); command modules × 0.15 |
 | Energy is heat | reactor heat = output × `heatPerWatt` | 1 |
-| Radiator | `radiatorTurrets` × turret draw × V | 2 turrets per m³ |
-| Hull | `hullTurretsPerMetre` × turret draw per metre of exposed outline | 0.0125 (2.5 kW/m) |
+| Radiator | `radiatorTurrets` × turret draw × V | 1.89 turrets per m³ |
+| Hull | `hullTurretsPerMetre` × turret draw per metre of exposed outline | 0.00875 (1.75 kW/m) |
 | Beam power | turret draw × V ÷ turret volume × output factor | lance × 2.39 |
 | Engine | thrust = `thrustBase` × V^1.3; Isp = `ispBase` × V^0.05 | 23.6 kN, 720 s |
-| Engine heat | fuel flow × `perKgFuel` | 12 kJ/kg |
+| Engine heat | fuel flow × `perKgFuel` | 7.1 kJ/kg |
 | Ion engine | `thrustShare` of a chemical engine; power = thrust × `powerPerNewton` | 15 %, 30 W/N |
-| Gun heat | ½·m·v² × `muzzleShare` per shot | 1.2 % |
+| Gun heat | ½·m·v² × `muzzleShare` per shot | 0.69 % |
 | Loading | `loadEnergyPerKg` × mass | 2.5 kJ/kg |
-| **System volume** | weapon V + magazine for a game + power ÷ reactor per m³ + heat ÷ radiator per m³ | laser S 3.1 m³, autocannon S 2.7 m³ |
-| **Damage rate** | `hp.structure` ÷ `killTime` × family × (range ÷ 1500)^−`range.exponent` × (interval ÷ 0.12)^`calibre.exponent` × system volume × part factor | `killTime` 4.66 s; family kinetic 1, beam 0.41, missile 1.85, pd 1.52; exponents 0 |
+| **System volume** | weapon V + magazine for a game + power ÷ reactor per m³ + heat ÷ radiator per m³ | laser S 3.2 m³, autocannon S 2.7 m³ |
+| **Damage rate** | `hp.structure` ÷ `killTime` × family × (range ÷ 1500)^−`range.exponent` × (interval ÷ 0.12)^`calibre.exponent` × system volume × part factor | `killTime` 2.07 s; family kinetic 1, beam 0.21, missile 1.04, pd 3.23; range exponent 0.43, calibre 0.027 |
 | Damage per round | damage rate × fire interval; a burst is × the part's `burst` factor | |
-| **Armor rating** | `armor.stop` × `hp.structure` ÷ `killTime` × plate factor | 0.288 s → 20 per hit |
-| **Warhead** | missile system (launcher 1.5 m³ + magazine + loading reactor) × missile rate × reload interval × type factor | smart 4000, rocket 2400 |
-| Missile HP | `hp.structure` × `missilePerKg` × mass × type factor | smart 30, rocket 20 |
+| **Armor rating** | `armor.stop` × `hp.structure` ÷ `killTime` × plate factor | 0.19 s → 30 per hit |
+| **Warhead** | missile system (launcher 1.5 m³ + magazine + loading reactor) × missile rate × reload interval × type factor | smart 5090, rocket 3060 |
+| **Missile HP** | point-defense damage rate (at 600 m, 0.03 s) × `pdSecondsPerKg` × mass × type factor | 0.0029 s per kg: smart 189, rocket 126 |
 
 "Damage rate" means every round on target and no armor. **Kill time** sets the pace: the seconds one m³ of
 kinetic weapon system takes to destroy one m³ of structure. Armor ratings and warheads scale with it, so
@@ -103,10 +103,20 @@ Each part's mass, HP and output factors are unchanged from before.
 - **Fixed-value constants:** the minimum damage per hit (2), ramming damage per kg and collision damage are
   fixed values, not tied to `killTime`.
 
+## Current tuning (2026-11-14)
+
+The rates above come from a six-hour GA run (docs/tuning.md), with one change by hand: missiles were made
+tougher so that one point-defense gatling still cannot stop a 10-missile salvo (4 shot down, 6 through, as
+before). The GA had made point defense about seven times stronger per m³ of system (faster pace, a higher
+family rate and a damage bonus for its short range) while missile HP was tied to structure. Missile HP now
+follows point-defense fire instead, so the salvo result no longer moves with the pace or the point-defense
+rate.
+
+Missile HP and beam damage were then set by the balance rules (docs/design-rules.md): one gatling stops one
+missile but not always two, and the laser turret deals 0.87 of the autocannon turret's damage.
+
 ## Known consequences to tune next
 
-- **Cooling is cheap for gun ships:** fleet ships carry two to three times the cooling they need.
-- **Ammunition is tight** for ships with several guns on one magazine.
-- **Missiles are decisive:** two smart missiles strip a medium ship of its weapons.
-- **Beams are weak:** they deal 0.41 of a kinetic weapon's damage per m³ of system and have shorter range
-  (1200 m against 1500 m for the autocannon).
+- **Medium missile fights are erratic:** with missiles getting through again they end in seconds or run to
+  the time limit disarmed.
+- **Large fights run short:** the rapier and viper often end in 1.5–2.5 minutes instead of 3–5.

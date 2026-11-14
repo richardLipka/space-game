@@ -86,7 +86,7 @@ The DNA is each gene's position in its range, a number in [0, 1] (on a log scale
 | radiator, hullHeat | `heat.radiatorTurrets`, `heat.hullTurretsPerMetre` | 0.75–4, 0.004–0.04 | cooling |
 | fuelHeat, muzzleHeat | `heat.perKgFuel`, `heat.muzzleShare` | 3–80 kJ/kg, 0.3–8 % | heat from manoeuvring and firing |
 | fireTime | `game.fireTime` (s) | 60–480 | ammunition endurance |
-| missileHp | `hp.missilePerKg` | 0.0003–0.005 | how easily point defense stops missiles |
+| missileHp | `hp.missile.pdSecondsPerKg` (s of 1 m³ of point-defense fire per kg) | 0.0005–0.02 | how easily point defense stops missiles, whatever the pace |
 
 Custom configs can also use:
 
@@ -112,6 +112,23 @@ Each margin is compared with the same design today, capped at 1. A shortfall add
 set is refused without battles: its loss is `refusedLoss` (5) plus the shortfall. A refused set costs
 milliseconds instead of minutes, and the search learns to avoid it. `eval` prints every design's margins.
 These settings are in `viability` in the config.
+
+## Balance rules (tuning tests)
+
+Besides fight lengths, every parameter set is measured by the tuning tests: short battles between
+stationary test platforms, with rules such as "one gatling stops one missile, but of two the second has a
+chance to pass" and "the laser deals a little less than the autocannon" (docs/design-rules.md). Each rule
+gives a range; a value outside it adds `weight × miss²` to the loss. The miss is the distance outside the
+range divided by the range's width. The test runs go to the worker pool with the battles.
+
+```bash
+npm run tuning -- tests
+```
+
+This prints every test and rule for the current values (or `--set` / `--params`). `--runs 80` is the
+default, since the salvo rules need about 80 seeded runs to resolve 10 % steps. `--write dir` also writes
+the test scenarios as JSON. The config's `rules` sets `weight` (2; 0 turns the rules off) and `runs` per
+salvo test (20).
 
 ## Step mode
 

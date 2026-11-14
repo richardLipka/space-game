@@ -2,120 +2,121 @@
   "formatVersion": 1,
   "id": "fleet-rapier",
   "name": "Rapier (kinetic destroyer)",
+  "section": "Playable",
   "createdAt": "2026-11-09T00:00:00Z",
   "modifiedAt": "2026-11-09T00:00:00Z",
   "parts": [
     {
       "uid": "eng",
       "partId": "core:engine.main.l",
-      "x": -5.0,
-      "y": 0.0,
+      "x": -5,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "tank",
       "partId": "core:tank.fuel.m",
-      "x": -3.0,
-      "y": 0.0,
+      "x": -3,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "gyro1",
       "partId": "core:gyro.s",
       "x": -1.5,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "gyro2",
       "partId": "core:gyro.s",
       "x": -0.5,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "rea",
       "partId": "core:reactor.s",
       "x": 0.75,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "cmd",
       "partId": "core:command.s",
       "x": 2.25,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "mag-k",
       "partId": "core:magazine.kinetic.s",
       "x": 3.5,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "mag-k2",
       "partId": "core:magazine.kinetic.s",
       "x": 4.5,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "hull",
       "partId": "core:hull.square.m",
-      "x": 6.0,
-      "y": 0.0,
+      "x": 6,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "hv",
       "partId": "core:weapon.cannon.turret.m",
       "x": 8.0163,
-      "y": 0.0,
+      "y": 0,
       "angle": 0,
       "weaponGroup": 1
     },
     {
       "uid": "r2mm3-t",
       "partId": "core:hull.square.m",
-      "x": -3.0,
-      "y": 2.0,
+      "x": -3,
+      "y": 2,
       "angle": 0
     },
     {
       "uid": "r2mm3-b",
       "partId": "core:hull.square.m",
-      "x": -3.0,
-      "y": -2.0,
+      "x": -3,
+      "y": -2,
       "angle": 0
     },
     {
       "uid": "r2m3-t",
       "partId": "core:hull.square.m",
-      "x": 3.0,
-      "y": 2.0,
+      "x": 3,
+      "y": 2,
       "angle": 0
     },
     {
       "uid": "r2m3-b",
       "partId": "core:hull.square.m",
-      "x": 3.0,
-      "y": -2.0,
+      "x": 3,
+      "y": -2,
       "angle": 0
     },
     {
       "uid": "r2m5-t",
       "partId": "core:hull.square.m",
-      "x": 5.0,
-      "y": 2.0,
+      "x": 5,
+      "y": 2,
       "angle": 0
     },
     {
       "uid": "r2m5-b",
       "partId": "core:hull.square.m",
-      "x": 5.0,
-      "y": -2.0,
+      "x": 5,
+      "y": -2,
       "angle": 0
     },
     {
@@ -206,7 +207,7 @@
       "uid": "gun-t",
       "partId": "core:weapon.cannon.fixed.m",
       "x": 7.5,
-      "y": 2.0,
+      "y": 2,
       "angle": 0,
       "weaponGroup": 1
     },
@@ -214,7 +215,7 @@
       "uid": "gun-b",
       "partId": "core:weapon.cannon.fixed.m",
       "x": 7.5,
-      "y": -2.0,
+      "y": -2,
       "angle": 0,
       "weaponGroup": 1
     },
@@ -268,41 +269,41 @@
       "uid": "rad-t",
       "partId": "core:radiator.s",
       "x": -3.75,
-      "y": 4.0,
+      "y": 4,
       "angle": 90
     },
     {
       "uid": "rad-b",
       "partId": "core:radiator.s",
       "x": -3.75,
-      "y": -4.0,
+      "y": -4,
       "angle": -90
     },
     {
       "uid": "rad2-t",
       "partId": "core:radiator.s",
       "x": 5.75,
-      "y": 4.0,
+      "y": 4,
       "angle": 90
     },
     {
       "uid": "rad2-b",
       "partId": "core:radiator.s",
       "x": 5.75,
-      "y": -4.0,
+      "y": -4,
       "angle": -90
     },
     {
       "uid": "rcs-t",
       "partId": "core:rcs.s",
-      "x": -5.0,
+      "x": -5,
       "y": 1.75,
       "angle": 180
     },
     {
       "uid": "rcs-b",
       "partId": "core:rcs.s",
-      "x": -5.0,
+      "x": -5,
       "y": -1.75,
       "angle": 0
     },
@@ -318,6 +319,34 @@
       "partId": "core:rcs.s",
       "x": 8.5,
       "y": -2.75,
+      "angle": 0
+    },
+    {
+      "uid": "fix-magazine-1",
+      "partId": "core:magazine.kinetic.s",
+      "x": 0.5,
+      "y": 2.5,
+      "angle": 0
+    },
+    {
+      "uid": "fix-magazine-2",
+      "partId": "core:magazine.kinetic.s",
+      "x": 0.5,
+      "y": -2.5,
+      "angle": 0
+    },
+    {
+      "uid": "fix-magazine-3",
+      "partId": "core:magazine.autocannon.s",
+      "x": 1.5,
+      "y": 2.5,
+      "angle": 0
+    },
+    {
+      "uid": "fix-magazine-4",
+      "partId": "core:magazine.autocannon.s",
+      "x": 1.5,
+      "y": -2.5,
       "angle": 0
     }
   ],

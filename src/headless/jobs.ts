@@ -6,13 +6,16 @@ import { setRuntimeBalance } from "../sim/systems/heat";
 import { AI_PROFILES, aiProfile } from "../data/ai/index";
 import { BUNDLED_DESIGNS, CORE_DRONES } from "../data/designs/index";
 import { SCENARIOS } from "../data/scenarios/index";
-import type { Scenario } from "../data/schemas/scenario";
 import { PartCatalogue } from "../sim/ship/catalogue";
 import { runMatch, type MatchResult } from "./balance";
 import { runScenario, type ScenarioRun } from "./scenario-runs";
 import { BattleObserver, type BattleMetrics } from "./observe";
 import { applySkirmishOrders, skirmishBattle, type SkirmishSetup } from "../sim/scenario/skirmish";
 import { startBattle, updateBattle } from "../sim/scenario/battle";
+import { jitterSpawns } from "./jitter";
+import { runTest, TUNING_TESTS } from "./tuning/tests";
+
+export { jitterSpawns };
 
 /**
  * One battle for the balance tools, described by plain data so it can run in a worker thread:
@@ -51,6 +54,15 @@ export type Job =
       readonly stopWhenDisarmed?: boolean;
     }
   | {
+      /** One run of a tuning test (src/headless/tuning/tests.ts): its measured value. */
+      readonly kind: "test";
+      readonly label: string;
+      readonly test: string;
+      readonly seed: number;
+      readonly overlay: BalanceOverlay;
+      readonly balance?: Balance;
+    }
+  | {
       readonly kind: "scenario";
       readonly scenario: string;
       readonly seed: number;
@@ -64,7 +76,8 @@ export type Job =
 export type JobResult =
   | { kind: "match"; job: Job; result: MatchResult }
   | { kind: "scenario"; job: Job; result: ScenarioRun }
-  | { kind: "skirmish"; job: Job; result: SkirmishRun };
+  | { kind: "skirmish"; job: Job; result: SkirmishRun }
+  | { kind: "test"; job: Job; result: { label: string; test: string; seed: number; value: number } };
 
 export interface SkirmishRun {
   readonly label: string;
@@ -96,30 +109,6 @@ export function catalogueFor(overlay: BalanceOverlay, balance?: Balance): PartCa
   return c;
 }
 
-/** Spawn points and headings moved by a seeded random amount (the same job always moves them the same). */
-export function jitterSpawns(
-  sc: Scenario,
-  seed: number,
-  j: { readonly position: number; readonly angle: number },
-): Scenario {
-  let state = (seed * 2654435761) | 0;
-  const rnd = () => {
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), state | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return (((t ^ (t >>> 14)) >>> 0) / 4294967296) * 2 - 1;
-  };
-  const move = (t: { position: [number, number]; angle: number }) => ({
-    position: [t.position[0] + rnd() * j.position, t.position[1] + rnd() * j.position] as [number, number],
-    angle: t.angle + rnd() * j.angle,
-  });
-  return {
-    ...sc,
-    enemies: sc.enemies.map((e) => ({ ...e, spawn: move(e.spawn) })),
-    playerSpawns: sc.playerSpawns.map(move),
-  };
-}
-
 /** Runs a job with its balance parameters in force (catalogue and run-time values), then restores them. */
 export function runJob(job: Job): JobResult {
   setRuntimeBalance(job.balance ?? BALANCE);
@@ -132,6 +121,12 @@ export function runJob(job: Job): JobResult {
 
 function runJobWith(job: Job): JobResult {
   const cat = catalogueFor(job.overlay, job.balance);
+  if (job.kind === "test") {
+    const t = TUNING_TESTS.find((x) => x.scenario.id === job.test);
+    if (!t) throw new Error(`Unknown tuning test ${job.test}`);
+    const value = runTest(t, job.seed, cat, job.balance ?? BALANCE);
+    return { kind: "test", job, result: { label: job.label, test: job.test, seed: job.seed, value } };
+  }
   if (job.kind === "skirmish") {
     const sc = job.arenaFrom ? SCENARIOS.find((x) => x.id === job.arenaFrom) : undefined;
     const arena = sc?.arena ?? { width: 14000, height: 10000, asteroids: [], gravityWells: [] };

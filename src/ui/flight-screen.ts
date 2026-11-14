@@ -844,9 +844,11 @@ export class FlightScreen {
     this.weaponBar.hidden = true;
     this.launchPanel.hidden = true;
     if (setup.spectate) {
-      // Keep AI that the battle already set up (skirmish types and guard orders).
+      // Keep AI that the battle already set up (skirmish types and guard orders). Ships the battle spawned
+      // without a pilot (scenario AI "none": test platforms) stay that way.
+      const scripted = new Set([...(setup.battle?.allyShips ?? []), ...(setup.battle?.enemyShips ?? [])]);
       for (const s of setup.playerShips)
-        if (!setup.world.ai.has(s.id)) setup.world.setAi(s.id, this.allyProfile);
+        if (!setup.world.ai.has(s.id) && !scripted.has(s)) setup.world.setAi(s.id, this.allyProfile);
     } else this.assignAllies();
     this.input.enabled = true;
     this.input.takeCommands();

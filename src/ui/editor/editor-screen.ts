@@ -19,7 +19,7 @@ import {
   type Contact,
   type Hint,
 } from "../../editor/guide";
-import type { PlacedEdge } from "../../sim/ship/layout";
+import { radiatorZones, type PlacedEdge } from "../../sim/ship/layout";
 import type { PartCatalogue, RuntimePartDef } from "../../sim/ship/catalogue";
 import { type Vec2, degToRad, radToDeg, sub, add, rotate } from "../../sim/core/vec2";
 import { Camera } from "../../render/camera";
@@ -61,6 +61,8 @@ export interface EditorServices {
   bundledDesign(id: string): ShipDesign | undefined;
   cycleTheme(): void;
   toast(message: string, kind?: "info" | "error"): void;
+  /** Opens the scenario editor (ships, asteroids and black holes placed on a map). */
+  openScenarioEditor(): void;
 }
 
 type Mode =
@@ -316,6 +318,12 @@ export class EditorScreen {
       this.button("Test flight", "btn-test-flight", () => this.testFlight()),
       this.button("Scenarios", "btn-scenarios", () => this.scenarioDialog.open(), "Pick a scenario to fight"),
       this.button("Sandbox", "btn-sandbox", () => this.services.openSandbox()),
+      this.button(
+        "Scenario editor",
+        "btn-scenario-editor",
+        () => this.services.openScenarioEditor(),
+        "Place ships, asteroids and black holes on a map",
+      ),
       this.button(
         "Skirmish",
         "btn-skirmish",
@@ -1402,7 +1410,30 @@ export class EditorScreen {
       overlays: this.overlays,
       disconnected: this.disconnectedParts(),
       guide: this.mode.kind === "idle" ? null : this.guide,
+      radiatorZones: this.radiatorZones(),
     });
+  }
+
+  /**
+   * Radiator keep-clear zones to draw: every radiator's while placing or dragging (where nothing else may
+   * go), the placed radiator's own while it is the ghost, and a selected radiator's.
+   */
+  private radiatorZones(): Vec2[][] {
+    const layout = this.model.layout;
+    const busy = this.mode.kind !== "idle";
+    const zones = layout.parts
+      .filter((p) => busy || this.selected.has(p.uid))
+      .flatMap((p) => radiatorZones(p));
+    if (this.mode.kind === "placing" && this.ghost)
+      zones.push(
+        ...radiatorZones({
+          uid: "ghost",
+          def: this.ghost.def,
+          position: this.ghost.position,
+          angle: this.ghost.angle,
+        }),
+      );
+    return zones;
   }
 
   // ---------- test helpers ----------

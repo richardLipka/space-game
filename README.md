@@ -35,26 +35,30 @@ npm run tune                   # archetype duels → suggested overlay (balance-
 npm run ai:study               # AI types against each other on the mirror scenarios, parameter sweeps → balance-report/ai-study
 npm run balance:derive         # regenerate the core catalogue from the balance model (src/data/balance/model.ts)
 npm run tuning -- eval         # mirror fights vs fight-length targets; also sensitivity, ga (hours, resumable), apply → docs/tuning.md
+npm run tuning -- tests        # balance rules on the test platforms (PD vs missile salvos, laser vs autocannon)
+npm run designs:audit          # every ship against the design rules (power, cooling, ammunition); --fix adds parts
 ```
 
 ## Ships
 
-Besides the demo ships, the library is seeded with a symmetric fleet (`src/data/designs/fleet/`). Costs use catalogue v0-7.
+The library is grouped into sections: **Playable** (the symmetric fleet, `src/data/designs/fleet/`), **Experimental** (demo ships and balance archetypes), **Test platforms** (stationary ships with one weapon each, plus targets) and **Drones**. Designs can be moved to any section, including new ones, from the library. Playable ships and test platforms follow the design rules ([docs/design-rules.md](docs/design-rules.md)): power, cooling and a magazine per gun.
 
 | Class      | Ship      | Cost | Role                                                                                   |
 | ---------- | --------- | ---- | -------------------------------------------------------------------------------------- |
-| Fighter    | Wasp      | 150  | Two light autocannon turrets                                                           |
+| Fighter    | Wasp      | 162  | Two light autocannon turrets                                                           |
 | Fighter    | Spark     | 254  | Two laser turrets, own reactor and radiators                                           |
 | Gunboat    | Maul      | 498  | Forward heavy cannon, forward missile pair, PD                                         |
 | Gunboat    | Needle    | 584  | Forward laser lance (three reactors, radiators), forward missile pair, PD              |
-| Destroyer  | Rapier    | 901  | Kinetic: bow heavy turret, two forward cannons, autocannons, PD, heat sinks            |
-| Destroyer  | Viper     | 984  | Four forward launchers, four laser turrets, radiators, PD                              |
-| Cruiser    | Anvil     | 1521 | Forward kinetic fire: three heavy turrets, two fixed cannons, autocannons, PD          |
-| Cruiser    | Squall    | 1391 | Missile broadsides (eight launchers), PD and flak                                      |
-| Battleship | Leviathan | 3235 | Broadsides of eight heavy turrets and twelve launchers, radiator fins between them, PD |
-| Carrier    | Ark       | 1701 | Attack, PD and decoy drone hangars on both flanks, PD and flak                         |
+| Destroyer  | Rapier    | 925  | Kinetic: bow heavy turret, two forward cannons, autocannons, PD, heat sinks            |
+| Destroyer  | Viper     | 1104 | Four forward launchers, four laser turrets, radiators, PD                              |
+| Cruiser    | Anvil     | 1567 | Forward kinetic fire: three heavy turrets, two fixed cannons, autocannons, PD          |
+| Cruiser    | Squall    | 1493 | Missile broadsides (eight launchers), PD and flak                                      |
+| Battleship | Leviathan | 3567 | Broadsides of eight heavy turrets and twelve launchers, radiator fins between them, PD |
+| Carrier    | Ark       | 1721 | Attack, PD and decoy drone hangars on both flanks, PD and flak                         |
 
 ## Controls
+
+**Scenario editor:** Scenario editor (toolbar) → place ships (design, team, AI or "No AI" to stay put), asteroids, black holes and player spawns on the map; drag to move, Q/E rotate, Delete removes, wheel zooms. Watch or Play (with the ship open in the editor), Save in the browser, Export as JSON, or Open bundled scenarios, the tuning tests, saved ones, or every scenario (and ship design) in a GitHub folder.
 
 **Scenarios:** Scenarios (toolbar) → choose one → add designs to the fleet (or take the suggested fleet) within the budget → Start battle → results → back to the editor. **Watch AI battle** lets the AI fly the fleet (or the suggested one) while you watch: Tab follows the next ship, +/− change the time scale up to ×8. Scenarios 11–15 are mirror matches: the same fleet on both sides, the enemy flown by a mix of AI types.
 

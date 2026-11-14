@@ -2,63 +2,64 @@
   "formatVersion": 1,
   "id": "fleet-viper",
   "name": "Viper (missile-laser destroyer)",
+  "section": "Playable",
   "createdAt": "2026-11-09T00:00:00Z",
   "modifiedAt": "2026-11-09T00:00:00Z",
   "parts": [
     {
       "uid": "eng",
       "partId": "core:engine.main.l",
-      "x": -5.0,
-      "y": 0.0,
+      "x": -5,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "tank",
       "partId": "core:tank.fuel.m",
-      "x": -3.0,
-      "y": 0.0,
+      "x": -3,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "gyro",
       "partId": "core:gyro.s",
       "x": -1.5,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "bat",
       "partId": "core:battery.s",
       "x": -0.5,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "rea",
       "partId": "core:reactor.s",
       "x": 0.75,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "cmd",
       "partId": "core:command.s",
       "x": 2.25,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "rea2",
       "partId": "core:reactor.s",
       "x": 3.75,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "hull",
       "partId": "core:hull.square.m",
       "x": 5.5,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
@@ -80,71 +81,71 @@
     {
       "uid": "r2mm3-t",
       "partId": "core:hull.square.m",
-      "x": -3.0,
-      "y": 2.0,
+      "x": -3,
+      "y": 2,
       "angle": 0
     },
     {
       "uid": "r2mm3-b",
       "partId": "core:hull.square.m",
-      "x": -3.0,
-      "y": -2.0,
+      "x": -3,
+      "y": -2,
       "angle": 0
     },
     {
       "uid": "r2mm1-t",
       "partId": "core:hull.square.m",
-      "x": -1.0,
-      "y": 2.0,
+      "x": -1,
+      "y": 2,
       "angle": 0
     },
     {
       "uid": "r2mm1-b",
       "partId": "core:hull.square.m",
-      "x": -1.0,
-      "y": -2.0,
+      "x": -1,
+      "y": -2,
       "angle": 0
     },
     {
       "uid": "r2m1-t",
       "partId": "core:hull.square.m",
-      "x": 1.0,
-      "y": 2.0,
+      "x": 1,
+      "y": 2,
       "angle": 0
     },
     {
       "uid": "r2m1-b",
       "partId": "core:hull.square.m",
-      "x": 1.0,
-      "y": -2.0,
+      "x": 1,
+      "y": -2,
       "angle": 0
     },
     {
       "uid": "r2m3-t",
       "partId": "core:hull.square.m",
-      "x": 3.0,
-      "y": 2.0,
+      "x": 3,
+      "y": 2,
       "angle": 0
     },
     {
       "uid": "r2m3-b",
       "partId": "core:hull.square.m",
-      "x": 3.0,
-      "y": -2.0,
+      "x": 3,
+      "y": -2,
       "angle": 0
     },
     {
       "uid": "r2m5-t",
       "partId": "core:hull.square.m",
-      "x": 5.0,
-      "y": 2.0,
+      "x": 5,
+      "y": 2,
       "angle": 0
     },
     {
       "uid": "r2m5-b",
       "partId": "core:hull.square.m",
-      "x": 5.0,
-      "y": -2.0,
+      "x": 5,
+      "y": -2,
       "angle": 0
     },
     {
@@ -181,14 +182,14 @@
       "uid": "rad-t",
       "partId": "core:radiator.s",
       "x": -3.75,
-      "y": 4.0,
+      "y": 4,
       "angle": 90
     },
     {
       "uid": "rad-b",
       "partId": "core:radiator.s",
       "x": -3.75,
-      "y": -4.0,
+      "y": -4,
       "angle": -90
     },
     {
@@ -255,14 +256,14 @@
       "uid": "rad2-t",
       "partId": "core:radiator.s",
       "x": 5.75,
-      "y": 4.0,
+      "y": 4,
       "angle": 90
     },
     {
       "uid": "rad2-b",
       "partId": "core:radiator.s",
       "x": 5.75,
-      "y": -4.0,
+      "y": -4,
       "angle": -90
     },
     {
@@ -292,6 +293,34 @@
       "x": -4.25,
       "y": -1.75,
       "angle": 0
+    },
+    {
+      "uid": "fix-reactor-1",
+      "partId": "core:reactor.s",
+      "x": -5.8,
+      "y": 4.25,
+      "angle": 0
+    },
+    {
+      "uid": "fix-reactor-2",
+      "partId": "core:reactor.s",
+      "x": -5.8,
+      "y": -4.25,
+      "angle": 0
+    },
+    {
+      "uid": "fix-magazine-1",
+      "partId": "core:magazine.missile.s",
+      "x": -7.05,
+      "y": 4.25,
+      "angle": 90
+    },
+    {
+      "uid": "fix-magazine-2",
+      "partId": "core:magazine.missile.s",
+      "x": -7.05,
+      "y": -4.25,
+      "angle": -90
     }
   ],
   "weaponGroupModes": {

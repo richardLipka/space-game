@@ -73,6 +73,16 @@ export interface TuningConfig {
   readonly timeLimit: number;
   readonly loss: LossWeights;
   readonly viability: Viability;
+  /** Balance rules measured by the tuning tests (src/headless/tuning/tests.ts). */
+  readonly rules: RulesWeight;
+}
+
+/** How the tuning tests count in the loss. */
+export interface RulesWeight {
+  /** Loss per squared miss of a rule (its distance outside the range ÷ the range's width); 0 turns them off. */
+  readonly weight: number;
+  /** Runs of each salvo test per parameter set (duels run at most 3). */
+  readonly runs: number;
 }
 
 /**
@@ -109,7 +119,13 @@ export const DEFAULT_GENES: readonly Gene[] = [
   g("fuelHeat", "heat.perKgFuel", 3000, 80_000, "engine heat per kg of fuel (J)"),
   g("muzzleHeat", "heat.muzzleShare", 0.003, 0.08, "gun heat as a share of muzzle energy"),
   g("fireTime", "game.fireTime", 60, 480, "s of fire one magazine gives one weapon"),
-  g("missileHp", "hp.missilePerKg", 0.0003, 0.005, "missile HP per kg ÷ structure HP per m³"),
+  g(
+    "missileHp",
+    "hp.missile.pdSecondsPerKg",
+    0.0005,
+    0.02,
+    "s of 1 m³ of point-defense fire one kg of missile withstands",
+  ),
 ];
 const mirror = (designs: readonly string[]): readonly [readonly string[], readonly string[]] => [
   designs,
@@ -157,6 +173,7 @@ export const DEFAULT_CONFIG: TuningConfig = {
     drift: 0.05,
   },
   viability: { refuseBelow: 0.6, weight: 1, refusedLoss: 5 },
+  rules: { weight: 2, runs: 20 },
 };
 
 /** A config from JSON over the default (genes and matchups replace the default lists when given). */
@@ -167,5 +184,6 @@ export function configFrom(json: Partial<TuningConfig> | undefined): TuningConfi
     ...json,
     loss: { ...DEFAULT_CONFIG.loss, ...(json.loss ?? {}) },
     viability: { ...DEFAULT_CONFIG.viability, ...(json.viability ?? {}) },
+    rules: { ...DEFAULT_CONFIG.rules, ...(json.rules ?? {}) },
   };
 }

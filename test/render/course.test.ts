@@ -94,7 +94,8 @@ describe("projected course (movement predictor)", () => {
 
   it("newtonian, speed kill: predicts the stop, not a reversal", () => {
     const w = new World({ seed: 1 });
-    const s = w.addShip(rapier, cat, { velocity: vec2(60, 0) });
+    // 50 m/s: the Rapier (with a magazine per gun since the design rules) stops well within the horizon.
+    const s = w.addShip(rapier, cat, { velocity: vec2(50, 0) });
     w.setIntent(s.id, { thrust: vec2(0, 0), rotate: 0, speedKill: "keep" });
     w.run(30);
     const predicted = predictCourse(w, s);

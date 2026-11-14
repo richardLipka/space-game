@@ -6,20 +6,105 @@
   "powerPriority": ["gyro", "propulsion", "weapons", "pointDefense", "hangar"],
   "id": "demo-fighter",
   "name": "Kestrel (symmetric fighter)",
+  "section": "Experimental",
   "parts": [
-    { "uid": "cmd", "partId": "core:command.s", "x": 0, "y": 0, "angle": 0 },
-    { "uid": "nose", "partId": "core:hull.wedge.m", "x": 1.75, "y": 0, "angle": 0 },
-    { "uid": "tank", "partId": "core:tank.fuel.s", "x": -1.25, "y": 0, "angle": 0 },
-    { "uid": "eng", "partId": "core:engine.main.s", "x": -2.25, "y": 0, "angle": 0 },
-    { "uid": "wl", "partId": "core:hull.square.s", "x": 0, "y": 1.25, "angle": 0 },
-    { "uid": "wr", "partId": "core:hull.square.s", "x": 0, "y": -1.25, "angle": 0 },
-    { "uid": "wlt", "partId": "core:hull.tri.s", "x": -1, "y": 1.25, "angle": 0 },
-    { "uid": "wrt", "partId": "core:hull.tri.s", "x": -1, "y": -1.25, "angle": 90 },
-    { "uid": "rcs-l", "partId": "core:rcs.s", "x": 0, "y": 2, "angle": 180 },
-    { "uid": "rcs-r", "partId": "core:rcs.s", "x": 0, "y": -2, "angle": 0 },
-    { "uid": "rcs-lf", "partId": "core:rcs.s", "x": 0.75, "y": 1.25, "angle": 90 },
-    { "uid": "rcs-rf", "partId": "core:rcs.s", "x": 0.75, "y": -1.25, "angle": 90 },
-    { "uid": "rcs-lb", "partId": "core:rcs.s", "x": -2, "y": 1, "angle": -90 },
-    { "uid": "rcs-rb", "partId": "core:rcs.s", "x": -2, "y": -1, "angle": -90 }
+    {
+      "uid": "cmd",
+      "partId": "core:command.s",
+      "x": 0,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "nose",
+      "partId": "core:hull.wedge.m",
+      "x": 1.75,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "tank",
+      "partId": "core:tank.fuel.s",
+      "x": -1.25,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "eng",
+      "partId": "core:engine.main.s",
+      "x": -2.25,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "wl",
+      "partId": "core:hull.square.s",
+      "x": 0,
+      "y": 1.25,
+      "angle": 0
+    },
+    {
+      "uid": "wr",
+      "partId": "core:hull.square.s",
+      "x": 0,
+      "y": -1.25,
+      "angle": 0
+    },
+    {
+      "uid": "wlt",
+      "partId": "core:hull.tri.s",
+      "x": -1,
+      "y": 1.25,
+      "angle": 0
+    },
+    {
+      "uid": "wrt",
+      "partId": "core:hull.tri.s",
+      "x": -1,
+      "y": -1.25,
+      "angle": 90
+    },
+    {
+      "uid": "rcs-l",
+      "partId": "core:rcs.s",
+      "x": 0,
+      "y": 2,
+      "angle": 180
+    },
+    {
+      "uid": "rcs-r",
+      "partId": "core:rcs.s",
+      "x": 0,
+      "y": -2,
+      "angle": 0
+    },
+    {
+      "uid": "rcs-lf",
+      "partId": "core:rcs.s",
+      "x": 0.75,
+      "y": 1.25,
+      "angle": 90
+    },
+    {
+      "uid": "rcs-rf",
+      "partId": "core:rcs.s",
+      "x": 0.75,
+      "y": -1.25,
+      "angle": 90
+    },
+    {
+      "uid": "rcs-lb",
+      "partId": "core:rcs.s",
+      "x": -2,
+      "y": 1,
+      "angle": -90
+    },
+    {
+      "uid": "rcs-rb",
+      "partId": "core:rcs.s",
+      "x": -2,
+      "y": -1,
+      "angle": -90
+    }
   ]
 }

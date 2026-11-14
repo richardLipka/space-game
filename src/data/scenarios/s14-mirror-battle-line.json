@@ -3,7 +3,7 @@
   "name": "Mirror: battle line",
   "description": "Leviathan battleship, Squall missile cruiser and two Spark fighters per side.",
   "order": 14,
-  "budget": 5150,
+  "budget": 5600,
   "maxPlayerShips": 4,
   "arena": {
     "width": 10000,

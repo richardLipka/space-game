@@ -55,6 +55,8 @@ export const ShipDesign = Type.Object(
     author: Type.Optional(Type.String({ maxLength: 80 })),
     description: Type.Optional(Type.String({ maxLength: 2000 })),
     drone: Type.Optional(Type.Boolean()),
+    /** Library section the design is listed under ("Playable", "Experimental", or any name). */
+    section: Type.Optional(Type.String({ minLength: 1, maxLength: 40 })),
     createdAt: IsoDate,
     modifiedAt: IsoDate,
     parts: Type.Array(PartPlacement, { minItems: 1 }),

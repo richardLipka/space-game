@@ -327,9 +327,21 @@ body {
 .lib-item .dim {
   grid-column: 1;
 }
-.lib-item button {
+.lib-item button,
+.lib-item select {
   grid-row: 1 / span 2;
   align-self: center;
+}
+.lib-item:has(select) {
+  grid-template-columns: 1fr auto auto auto;
+}
+.lib-section > summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 6px 0 2px;
+}
+.lib-section[open] > summary {
+  border-bottom: 1px solid var(--panel-border);
 }
 .toasts {
   position: fixed;
@@ -1579,4 +1591,144 @@ body {
 }
 .lp-type {
   text-transform: none;
+}
+
+/* ---- Scenario editor ---- */
+.sc-root {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg, #0b0f17);
+  color: var(--panel-fg);
+  z-index: 5;
+}
+.sc-root[hidden] {
+  display: none;
+}
+.sc-root .sc-toolbar {
+  position: static;
+}
+.sc-name {
+  width: 16em;
+}
+.sc-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+.sc-palette,
+.sc-side {
+  width: 220px;
+  overflow-y: auto;
+  padding: 8px 10px;
+  background: var(--panel-bg);
+  border-right: 1px solid var(--panel-border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sc-side {
+  width: 250px;
+  border-right: none;
+  border-left: 1px solid var(--panel-border);
+}
+.sc-palette h3,
+.sc-side h3 {
+  margin: 8px 0 2px;
+  font-size: 0.9em;
+}
+.sc-palette button.active {
+  outline: 2px solid var(--accent);
+}
+.sc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.85em;
+  color: var(--panel-dim);
+}
+.sc-field input[type="number"],
+.sc-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+.sc-map {
+  flex: 1;
+  min-width: 0;
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+}
+.sc-arena {
+  fill: none;
+  stroke: var(--panel-dim);
+  stroke-dasharray: 8 6;
+  vector-effect: non-scaling-stroke;
+}
+.sc-asteroid {
+  fill: #8a7a66;
+  fill-opacity: 0.55;
+  stroke: #c9b79c;
+}
+.sc-well {
+  fill: #000;
+  stroke: #b06bff;
+}
+.sc-well-reach {
+  fill: #b06bff;
+  fill-opacity: 0.06;
+  stroke: #b06bff;
+  stroke-opacity: 0.4;
+  stroke-dasharray: 10 8;
+}
+.sc-spawn {
+  fill: none;
+  stroke: #3ba4ff;
+  stroke-dasharray: 4 3;
+}
+.sc-asteroid.selected,
+.sc-well.selected,
+.sc-spawn.selected {
+  stroke: #fff;
+}
+.sc-label {
+  fill: var(--panel-dim);
+  font-size: 11px;
+  pointer-events: none;
+}
+.sc-status {
+  padding: 4px 10px;
+  font-size: 0.85em;
+  background: var(--panel-bg);
+  border-top: 1px solid var(--panel-border);
+  color: var(--panel-dim);
+}
+.sc-problem {
+  color: var(--danger);
+  font-size: 0.85em;
+  margin: 0;
+}
+.sc-github-row {
+  display: flex;
+  gap: 6px;
+}
+.sc-github {
+  flex: 1;
+}
+@media (max-width: 760px) {
+  .sc-body {
+    flex-direction: column;
+  }
+  .sc-palette,
+  .sc-side {
+    width: auto;
+    max-height: 30vh;
+    border: none;
+  }
+  .sc-map {
+    flex: none;
+    height: 50vh;
+    min-height: 240px;
+  }
 }

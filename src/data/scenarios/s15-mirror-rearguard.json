@@ -3,7 +3,7 @@
   "name": "Mirror: rearguard",
   "description": "A Squall missile cruiser covered by a Rapier destroyer on each side. Theirs is pulling out.",
   "order": 15,
-  "budget": 2300,
+  "budget": 2450,
   "maxPlayerShips": 2,
   "arena": {
     "width": 10000,

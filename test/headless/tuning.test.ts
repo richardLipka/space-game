@@ -335,7 +335,7 @@ describe("tuning apply", () => {
     };
     const r = applyParams(genes, p, modelSrc, catalogue);
     expect(r.missing).toEqual([]);
-    expect(r.changes.join("\n")).toMatch(/heat\.perKgFuel: 12000 → 25000/);
+    expect(r.changes.join("\n")).toMatch(/heat\.perKgFuel: [\d.]+ → 25000/);
     // Every default gene's path can be written.
     const mid = Object.fromEntries(genes.map((g) => [g.id, Number(((g.min + g.max) / 2).toPrecision(4))]));
     const all = applyParams(genes, mid, modelSrc, catalogue);

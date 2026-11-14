@@ -1,0 +1,57 @@
+{
+  "formatVersion": 1,
+  "id": "platform-launcher",
+  "name": "Missile launcher platform",
+  "section": "Test platforms",
+  "description": "One launcher with smart missiles for a whole game.",
+  "createdAt": "2026-11-14T00:00:00Z",
+  "modifiedAt": "2026-11-14T00:00:00Z",
+  "parts": [
+    {
+      "uid": "cmd",
+      "partId": "core:command.s",
+      "x": 0,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "mag",
+      "partId": "core:magazine.missile.s",
+      "x": 0,
+      "y": 1.25,
+      "angle": 0
+    },
+    {
+      "uid": "mag-2",
+      "partId": "core:magazine.missile.s",
+      "x": 0,
+      "y": -1.25,
+      "angle": 0
+    },
+    {
+      "uid": "gun",
+      "partId": "core:weapon.missile.launcher.s",
+      "x": 1.5,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "tank",
+      "partId": "core:tank.fuel.s",
+      "x": -1.25,
+      "y": 0,
+      "angle": 0
+    },
+    {
+      "uid": "eng",
+      "partId": "core:engine.main.s",
+      "x": -2.25,
+      "y": 0,
+      "angle": 0
+    }
+  ],
+  "weaponGroupModes": {
+    "1": "ai"
+  },
+  "powerPriority": ["gyro", "pointDefense", "weapons", "propulsion", "hangar"]
+}

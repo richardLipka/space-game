@@ -42,6 +42,8 @@ export interface EditorViewState {
     readonly ghostEdges: readonly PlacedEdge[];
     readonly contacts: readonly Contact[];
   } | null;
+  /** Radiator keep-clear zones (nothing of the ship may be placed inside). */
+  readonly radiatorZones?: readonly (readonly Vec2[])[];
 }
 
 function stroke(g: Graphics, s: DrawStyle, z: number): void {
@@ -311,6 +313,10 @@ export class EditorView {
   private drawGhost(state: EditorViewState, z: number): void {
     const g = this.ghostG;
     g.clear();
+    if (state.radiatorZones?.length) {
+      const zs = this.theme.resolve("radiator-zone");
+      for (const zone of state.radiatorZones) poly(g, zone, zs, z);
+    }
     const guide = state.guide;
     if (guide) {
       // Where things can (green) and cannot (red) attach on the ship.

@@ -557,3 +557,12 @@
 .overlay-course.target {
   --stroke: #ff6b6b;
 }
+
+/* Radiator keep-clear zone: nothing of the ship may sit here. */
+.radiator-zone {
+  --stroke: #ffb347;
+  --stroke-width: 1.5;
+  --stroke-alpha: 0.75;
+  --fill: #ffb347;
+  --fill-alpha: 0.12;
+}

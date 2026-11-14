@@ -36,7 +36,7 @@ export const BALANCE = {
   depth: 1,
   game: {
     /** Seconds of continuous fire one weapon gets from one magazine of its ammunition's volumePerGame. */
-    fireTime: 120,
+    fireTime: 143.585,
   },
   /** Dry mass per volume (kg/m³) by component class. */
   density: {
@@ -63,10 +63,10 @@ export const BALANCE = {
    */
   hp: {
     structure: 324,
-    armor: 3.33642,
-    command: 5.92593,
-    weapon: 1.66667,
-    systems: 1,
+    armor: 2.14474,
+    command: 3.04976,
+    weapon: 3.70292,
+    systems: 1.46017,
     system: {
       engine: 1.66976,
       ionEngine: 1.33642,
@@ -81,12 +81,20 @@ export const BALANCE = {
       hangar: 1.11111,
       decoy: 1.33333,
     },
-    /** A missile's HP per kg of its mass, as a multiple of structure HP per m³. */
-    missilePerKg: 0.00102881,
+    /**
+     * Missile HP follows point-defense fire, not structure: one kg of missile withstands `pdSecondsPerKg`
+     * seconds of fire from one m³ of point-defense system at the reference range and fire interval. A faster
+     * pace or stronger point defense therefore leaves missiles exactly as hard to stop.
+     */
+    missile: {
+      pdSecondsPerKg: 0.0029,
+      pdRange: 600,
+      pdInterval: 0.03,
+    },
   },
   power: {
     /** Reactor output per volume, in reference energy turrets per m³. */
-    turretsPerVolume: 1,
+    turretsPerVolume: 0.946424,
     /** Heat made per watt generated (1 = all generated energy ends up as heat on board). */
     heatPerWatt: 1,
     /** A command module's built-in reactor, as a share of a reactor of its volume. */
@@ -108,15 +116,15 @@ export const BALANCE = {
   },
   heat: {
     /** Energy turrets whose heat one m³ of radiator sheds. */
-    radiatorTurrets: 2,
+    radiatorTurrets: 1.88621,
     /** Energy turrets' heat each metre of exposed hull outline sheds by itself: small ships need no radiators. */
-    hullTurretsPerMetre: 0.0125,
+    hullTurretsPerMetre: 0.00875109,
     /** Heat a heat sink stores per volume (J/m³). */
     sinkPerVolume: 20_000_000,
     /** Heat from burning one kilogram of fuel in an engine or thruster (J/kg). */
-    perKgFuel: 12_000,
+    perKgFuel: 7141.84,
     /** Share of a round's muzzle energy (½·m·v²) left in the gun as heat. */
-    muzzleShare: 0.012,
+    muzzleShare: 0.00686347,
     /** Extra heat of a beam weapon as a share of its power draw (its power is already heat at the reactor). */
     beamExtra: 0,
   },
@@ -169,30 +177,30 @@ export const BALANCE = {
     /** Rounds a gun holds itself, as a share of what it fires in a game. */
     internalShare: 0.1,
     /** Seconds one m³ of kinetic weapon system takes to destroy one m³ of structure: the pace of fights. */
-    killTime: 4.6629,
+    killTime: 2.06948,
     /** Damage rate per m³ of weapon system by family, as a multiple of kinetic weapons. */
     family: {
       kinetic: 1,
-      beam: 0.41439,
-      missile: 1.84954,
-      pd: 1.51601,
+      beam: 0.21,
+      missile: 1.04246,
+      pd: 3.23015,
     },
     /** Damage rate × (range ÷ reference)^−exponent: a positive exponent makes long range cost damage. */
     range: {
       reference: 1500,
-      exponent: 0,
+      exponent: 0.43494,
     },
     /** Damage rate × (fire interval ÷ reference)^exponent: a positive exponent favours slow, heavy hits. */
     calibre: {
       referenceInterval: 0.12,
-      exponent: 0,
+      exponent: 0.0273402,
     },
     /** Volume of the launcher a missile's system volume counts (m³). */
     launcherVolume: 1.5,
   },
   armor: {
     /** Seconds of a 1 m³ kinetic weapon system's damage one armor plate stops from every hit. */
-    stop: 0.287833,
+    stop: 0.190504,
   },
   ordnance: {
     /** Energy to load one missile into a launcher or ready one drone in a hangar, per kg (J/kg). */
@@ -393,6 +401,12 @@ export function damageRate(
 export const armorRating = (factor: number, B: Balance = BALANCE): number =>
   B.armor.stop * kineticRate(B) * factor;
 
+/** A missile's HP per kg: the reference point-defense system's damage over `pdSecondsPerKg` seconds. */
+export function missileHpPerKg(B: Balance = BALANCE): number {
+  const m = B.hp.missile;
+  return damageRate("pd", m.pdRange, m.pdInterval, B) * m.pdSecondsPerKg;
+}
+
 /**
  * The missiles a magazine can hold, by ammunition id. Smart missiles steer for as long as their motor
  * burns; rockets fly straight where the launcher points, are half the size and reload twice as fast.
@@ -406,7 +420,7 @@ export function missileDef(ammoType: string, B: Balance = BALANCE): MissileDef |
   const load = loadEnergy(B.ordnance.refMissileMass, B) / a.interval;
   const vSys = B.weapons.launcherVolume + a.volumePerGame + load / reactorOutput(1, B);
   const damage = nice4(kineticRate(B) * B.weapons.family.missile * vSys * a.interval * (a.warhead ?? 1));
-  const hp = nice(B.hp.structure * B.hp.missilePerKg * mass * (a.hp ?? 1));
+  const hp = nice(missileHpPerKg(B) * mass * (a.hp ?? 1));
   const reload = a.interval / B.ammo["missile-smart"]!.interval;
   if (ammoType === "missile-smart")
     return {

@@ -7,6 +7,7 @@
  *   npm run tuning -- history
  *   npm run tuning -- ga          [--run name] [--hours 6] [--generations 200] [--population 16] [--seeds 3]
  *                                 [--patience 15] [--seed 1] [--params start.json] [--resume]
+ *   npm run tuning -- tests       [--runs 80] [--set …] [--params …] [--write dir]   (balance rules only)
  *   npm run tuning -- report      --run name
  *   npm run tuning -- apply       --params file.json            (or --run name: the run's best)
  *
@@ -16,13 +17,23 @@
  * values); every eval is logged to steps.jsonl. ga runs unattended for hours, saving its state after every
  * generation (Ctrl+C stops after the current one; --resume continues).
  */
-import { existsSync, mkdirSync, readFileSync, renameSync, appendFileSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { execSync } from "node:child_process";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateCatalogue } from "../data/validate";
 import { configFrom, type TuningConfig } from "./tuning/config";
-import { evaluateMany, seedsFor, type Evaluation } from "./tuning/fitness";
+import { evaluateMany, rulesOf, seedsFor, testJobsFor, type Evaluation } from "./tuning/fitness";
+import { TUNING_TESTS } from "./tuning/tests";
 import { changes, checkGenes, currentValue, startParams, toUnit, type Params } from "./tuning/genome";
 import {
   breed,
@@ -134,6 +145,10 @@ function table(cfg: TuningConfig, e: Evaluation): string {
     );
   }
   if (e.refused.length) rows.push(`REFUSED without battles: ${e.refused.join("; ")}`);
+  for (const r of e.rules ?? [])
+    rows.push(
+      `rule ${r.ok ? "ok  " : "MISS"} ${r.rule.text.padEnd(40)} ${r.value.toFixed(2)} (${r.rule.min}–${r.rule.max})`,
+    );
   rows.push(
     `design margins (power, cooling; today's = 1 or better): ${e.margins
       .map((m) => `${m.design.replace("fleet-", "")} ${m.power.toFixed(2)}/${m.cooling.toFixed(2)}`)
@@ -253,7 +268,25 @@ const runDir = () => join(out, "runs", arg("run", "ga"));
 
 function saveJson(path: string, data: unknown) {
   writeFileSync(path + ".tmp", JSON.stringify(data, null, 2));
-  renameSync(path + ".tmp", path);
+  // On Windows a virus scanner or indexer can hold the target open for a moment (EPERM/EBUSY): retry, then
+  // fall back to a plain copy, so an hours-long run does not die on a save.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      renameSync(path + ".tmp", path);
+      return;
+    } catch (e) {
+      const code = (e as NodeJS.ErrnoException).code;
+      if ((code !== "EPERM" && code !== "EBUSY" && code !== "EACCES") || attempt >= 20) {
+        if (attempt >= 20) {
+          copyFileSync(path + ".tmp", path);
+          rmSync(path + ".tmp", { force: true });
+          return;
+        }
+        throw e;
+      }
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
+    }
+  }
 }
 
 async function cmdGa() {
@@ -410,7 +443,40 @@ function cmdApply() {
   );
 }
 
+/** Tuning tests only: every test's mean value and the rules (`--write dir` also writes the test scenarios). */
+async function cmdTests() {
+  const cfg = loadConfig();
+  const p = loadParams(cfg);
+  const write = arg("write", "");
+  if (write) {
+    mkdirSync(write, { recursive: true });
+    for (const t of TUNING_TESTS)
+      writeFileSync(join(write, `${t.scenario.id}.json`), `${JSON.stringify(t.scenario, null, 2)}\n`);
+    console.log(`wrote ${TUNING_TESTS.length} scenarios to ${write}`);
+  }
+  const runs = Number(arg("runs", "80"));
+  const results = await runner("tests")(testJobsFor({ ...cfg, rules: { weight: 1, runs } }, p, "tests"));
+  const sums = new Map<string, number[]>();
+  for (const r of results)
+    if (r.kind === "test") sums.set(r.result.test, [...(sums.get(r.result.test) ?? []), r.result.value]);
+  for (const t of TUNING_TESTS) {
+    const v = sums.get(t.scenario.id) ?? [];
+    console.log(
+      `${t.scenario.name.padEnd(36)} ${(v.reduce((a, b) => a + b, 0) / (v.length || 1)).toFixed(2).padStart(9)}  ${t.note} (${v.length} runs)`,
+    );
+  }
+  let miss = 0;
+  for (const r of rulesOf(results)) {
+    if (!r.ok) miss++;
+    console.log(
+      `${r.ok ? "ok  " : "MISS"} ${r.rule.text.padEnd(40)} ${r.value.toFixed(2)} (${r.rule.min}–${r.rule.max})`,
+    );
+  }
+  process.exitCode = miss ? 1 : 0;
+}
+
 const commands: Record<string, () => unknown> = {
+  tests: cmdTests,
   eval: cmdEval,
   sensitivity: cmdSensitivity,
   history: cmdHistory,

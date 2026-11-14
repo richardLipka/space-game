@@ -19,7 +19,7 @@ import { IdbLibrary } from "./data/share/idb-library";
 import { MemoryLibrary, type Library } from "./data/share/library";
 import { degToRad, vec2 } from "./sim/core/vec2";
 import { aiProfile, AI_PROFILES } from "./data/ai/index";
-import { BUNDLED_DESIGNS, FLEET } from "./data/designs/index";
+import { BUNDLED_DESIGNS, FLEET, PLATFORMS } from "./data/designs/index";
 import { safeStorage } from "./ui/storage";
 import {
   applySkirmishOrders,
@@ -37,6 +37,7 @@ import { FlightScreen } from "./ui/flight-screen";
 import { InputController } from "./ui/input";
 import { EditorScreen, type EditorServices } from "./ui/editor/editor-screen";
 import { el } from "./ui/editor/dom";
+import { ScenarioEditor } from "./ui/scenario-editor";
 
 function must<T>(r: ValidationResult<T>, what: string): T {
   if (!r.ok) throw new Error(`Invalid ${what}:\n${r.errors.join("\n")}`);
@@ -44,7 +45,7 @@ function must<T>(r: ValidationResult<T>, what: string): T {
 }
 
 const LAST_DESIGN_KEY = "space-game.lastDesignId";
-const SEEDED_KEY = "space-game.seeded.v5";
+const SEEDED_KEY = "space-game.seeded.v6";
 
 function randomId(): string {
   const b = new Uint8Array(8);
@@ -81,7 +82,17 @@ async function main(): Promise<void> {
   }
   // Seeding only adds designs that are missing, so a new key brings new ships without touching edits.
   if (!safeStorage.get(SEEDED_KEY)) {
-    for (const d of [fighter, hauler, gunboat, frigate, picket, ...coreDrones, ...newClasses, ...FLEET])
+    for (const d of [
+      fighter,
+      hauler,
+      gunboat,
+      frigate,
+      picket,
+      ...coreDrones,
+      ...newClasses,
+      ...FLEET,
+      ...PLATFORMS,
+    ])
       if (!(await library.getDesign(d.id))) await library.putDesign(d);
     safeStorage.set(SEEDED_KEY, "1");
   }
@@ -116,9 +127,16 @@ async function main(): Promise<void> {
   const flight = new FlightScreen(app, theme, hudEl, input);
   flight.themeName = () => THEMES[themeIndex]!;
 
-  let mode: "editor" | "flight" = "editor";
+  let mode: "editor" | "flight" | "scenario" = "editor";
+  /** Where Exit from a flight returns to: the scenario editor when the battle was started there. */
+  let returnTo: "editor" | "scenario" = "editor";
   const toEditor = () => {
     flight.stop();
+    if (returnTo === "scenario") {
+      mode = "scenario";
+      void scenarioEditor.show();
+      return;
+    }
     mode = "editor";
     editor.show();
   };
@@ -162,6 +180,7 @@ async function main(): Promise<void> {
   /** Scenario battle (spec §12): enemies from bundled and library designs, results saved locally. */
   const startScenario = (scenario: Scenario, fleet: ShipDesign[], spectate = false) => {
     void library.listDesigns().then((saved) => {
+      scenarioEditor.hide();
       const designs = new Map(BUNDLED_DESIGNS);
       for (const d of saved) if (!designs.has(d.id)) designs.set(d.id, d);
       const battle = startBattle(scenario, fleet, catalogue, {
@@ -173,7 +192,9 @@ async function main(): Promise<void> {
       mode = "flight";
       flight.start({
         world: battle.world,
-        playerShips: battle.playerShips,
+        // Watching without a fleet (scenario editor): follow the AI ships instead.
+        playerShips:
+          battle.playerShips.length > 0 ? battle.playerShips : [...battle.allyShips, ...battle.enemyShips],
         title: `${spectate ? "Watching" : "Scenario"} ${scenario.order ?? ""}: ${scenario.name}`,
         battle,
         spectate,
@@ -255,13 +276,53 @@ async function main(): Promise<void> {
       return [...designs.values()];
     },
     startSkirmish: (setup) => startSkirmish(setup),
-    startScenario: (s, f) => startScenario(s, f),
-    watchScenario: (s, f) => startScenario(s, f, true),
+    startScenario: (s, f) => {
+      returnTo = "editor";
+      startScenario(s, f);
+    },
+    watchScenario: (s, f) => {
+      returnTo = "editor";
+      startScenario(s, f, true);
+    },
     results,
     bundledDesign: (id) => BUNDLED_DESIGNS.get(id),
     cycleTheme,
     toast,
+    openScenarioEditor: () => {
+      editor.hide();
+      mode = "scenario";
+      void scenarioEditor.show();
+    },
   };
+
+  const allDesigns = async () => {
+    const designs = new Map(BUNDLED_DESIGNS);
+    for (const d of await library.listDesigns()) designs.set(d.id, d);
+    return designs;
+  };
+  const scenarioEditor = new ScenarioEditor({
+    designs: allDesigns,
+    importDesigns: async (ds) => {
+      for (const d of ds) await library.putDesign({ ...d, section: d.section ?? "Imported" });
+    },
+    profiles: [...AI_PROFILES.keys()],
+    catalogue: () => catalogue,
+    watch: (s) => {
+      returnTo = "scenario";
+      startScenario(s, [], true);
+    },
+    play: (s) => {
+      returnTo = "scenario";
+      startScenario(s, [structuredClone(editor.model.design)]);
+    },
+    back: () => {
+      scenarioEditor.hide();
+      returnTo = "editor";
+      mode = "editor";
+      editor.show();
+    },
+    toast,
+  });
 
   const lastId = safeStorage.get(LAST_DESIGN_KEY);
   const initial = (lastId && (await library.getDesign(lastId))) || fighter;
@@ -336,7 +397,7 @@ async function main(): Promise<void> {
         .filter((s) => s.team !== flight.controlledShip?.team && !s.drone)
         .map((s) => s.id) ?? [],
   };
-  Object.assign(window, { __game: debug, __editor: editor });
+  Object.assign(window, { __game: debug, __editor: editor, __scenarioEditor: scenarioEditor });
 
   let last = performance.now();
   const frame = (now: number): void => {
@@ -345,7 +406,7 @@ async function main(): Promise<void> {
     const dt = Math.min(0.25, (now - last) / 1000);
     last = now;
     if (mode === "editor") editor.frame(dt, app.screen.width, app.screen.height);
-    else flight.frame(dt);
+    else if (mode === "flight") flight.frame(dt);
   };
   requestAnimationFrame(frame);
 }

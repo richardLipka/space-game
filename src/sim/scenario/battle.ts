@@ -103,8 +103,10 @@ export function startBattle(
   for (const e of scenario.enemies) {
     const d = opts.designs.get(e.designId);
     if (!d) throw new Error(`Scenario ${scenario.id}: unknown design "${e.designId}"`);
-    const profile = opts.profiles.get(e.aiProfile);
-    if (!profile) throw new Error(`Scenario ${scenario.id}: unknown AI profile "${e.aiProfile}"`);
+    // "none": no pilot; the ship stays where it is placed (test platforms), its automatic weapons still fire.
+    const profile = e.aiProfile === "none" ? null : opts.profiles.get(e.aiProfile);
+    if (profile === undefined)
+      throw new Error(`Scenario ${scenario.id}: unknown AI profile "${e.aiProfile}"`);
     const s = world.addShip(d, catalogue, {
       position: vec2(e.spawn.position[0], e.spawn.position[1]),
       angle: degToRad(e.spawn.angle),
@@ -113,12 +115,12 @@ export function startBattle(
     spawned.push(s);
     if (e.team === 0) {
       allyShips.push(s);
-      world.setAi(s.id, profile, { kind: "hold", point: world.physics.getWorldCenter(s.id) });
+      if (profile) world.setAi(s.id, profile, { kind: "hold", point: world.physics.getWorldCenter(s.id) });
       if (scenario.objective.type === "protect" && e.designId === scenario.objective.designId && !protectId)
         protectId = s.id;
     } else {
       enemyShips.push(s);
-      world.setAi(s.id, profile);
+      if (profile) world.setAi(s.id, profile);
     }
   }
   // Guard orders once every ship exists (a guard may protect a ship listed after it).

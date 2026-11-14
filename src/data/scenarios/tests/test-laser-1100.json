@@ -1,0 +1,40 @@
+{
+  "id": "test-laser-1100",
+  "name": "Test: laser at 1100 m",
+  "description": "Test: laser at 1100 m: damage dealt in 20 s to an unarmed target block 1100 m away.",
+  "budget": 0,
+  "maxPlayerShips": 0,
+  "arena": {
+    "width": 8000,
+    "height": 4000,
+    "asteroids": [],
+    "gravityWells": []
+  },
+  "playerSpawns": [],
+  "enemies": [
+    {
+      "designId": "platform-laser",
+      "aiProfile": "none",
+      "team": 0,
+      "spawn": {
+        "position": [-550, 0],
+        "angle": 0
+      }
+    },
+    {
+      "designId": "platform-target",
+      "aiProfile": "none",
+      "team": 1,
+      "spawn": {
+        "position": [550, 0],
+        "angle": 180
+      }
+    }
+  ],
+  "objective": {
+    "type": "survive",
+    "seconds": 30
+  },
+  "seed": 1,
+  "order": 900
+}

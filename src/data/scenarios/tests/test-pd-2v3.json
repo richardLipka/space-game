@@ -1,0 +1,58 @@
+{
+  "id": "test-pd-2v3",
+  "name": "Test: 2 gatlings vs 3 missiles",
+  "description": "Of three missiles, the third should have a chance to pass.",
+  "budget": 0,
+  "maxPlayerShips": 0,
+  "arena": {
+    "width": 8000,
+    "height": 4000,
+    "asteroids": [],
+    "gravityWells": []
+  },
+  "playerSpawns": [],
+  "enemies": [
+    {
+      "designId": "platform-gatling-2",
+      "aiProfile": "none",
+      "team": 0,
+      "spawn": {
+        "position": [-1250, 0],
+        "angle": 0
+      }
+    },
+    {
+      "designId": "platform-launcher",
+      "aiProfile": "none",
+      "team": 1,
+      "spawn": {
+        "position": [1250, -50],
+        "angle": 180
+      }
+    },
+    {
+      "designId": "platform-launcher",
+      "aiProfile": "none",
+      "team": 1,
+      "spawn": {
+        "position": [1250, 0],
+        "angle": 180
+      }
+    },
+    {
+      "designId": "platform-launcher",
+      "aiProfile": "none",
+      "team": 1,
+      "spawn": {
+        "position": [1250, 50],
+        "angle": 180
+      }
+    }
+  ],
+  "objective": {
+    "type": "survive",
+    "seconds": 30
+  },
+  "seed": 1,
+  "order": 900
+}

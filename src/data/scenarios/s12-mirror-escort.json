@@ -3,7 +3,7 @@
   "name": "Mirror: escorted cruiser",
   "description": "An Anvil cruiser with two Wasp fighters guarding it, on both sides.",
   "order": 12,
-  "budget": 1850,
+  "budget": 1900,
   "maxPlayerShips": 3,
   "arena": {
     "width": 10000,

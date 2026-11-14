@@ -5,6 +5,7 @@ import { engagementOf, median } from "../tune";
 import { limitOf, type Matchup, type TuningConfig } from "./config";
 import { encode, startParams, type Params, variant } from "./genome";
 import { references, viability, type Margins, type ViabilityResult } from "./viability";
+import { checkRules, rulesLoss, runsOf, TUNING_TESTS, type RuleResult } from "./tests";
 
 /**
  * Measuring a parameter set: every matchup fought `seeds` times, the fight lengths compared with the
@@ -42,12 +43,14 @@ export interface MatchupStats {
 export interface Evaluation {
   readonly params: Params;
   readonly loss: number;
-  /** Loss parts: length error, timeouts, ammunition, spread, drift, viability. */
+  /** Loss parts: length error, timeouts, ammunition, spread, drift, viability, balance rules. */
   readonly parts: Readonly<Record<string, number>>;
   readonly matchups: readonly MatchupStats[];
   readonly inBand: number;
   /** Why the set was refused without battles (designs left without power or cooling); empty if fought. */
   readonly refused: readonly string[];
+  /** Balance rules from the tuning tests (empty when they did not run). */
+  readonly rules?: readonly RuleResult[];
   readonly margins: readonly Margins[];
 }
 
@@ -81,6 +84,36 @@ export function jobsFor(cfg: TuningConfig, p: Params, seeds: readonly number[], 
         stopWhenDisarmed: true,
       });
   return jobs;
+}
+
+/** Tuning-test runs for one parameter set (none when the rules' weight is 0). */
+export function testJobsFor(cfg: TuningConfig, p: Params, tag = "eval"): Job[] {
+  if (cfg.rules.weight <= 0) return [];
+  const v = variant(cfg.genes, p);
+  return TUNING_TESTS.flatMap((t) =>
+    Array.from({ length: runsOf(t, cfg.rules.runs) }, (_, k): Job => ({
+      kind: "test",
+      label: `${tag}|test|${t.scenario.id}`,
+      test: t.scenario.id,
+      seed: k + 1,
+      overlay: v.overlay,
+      balance: v.balance,
+    })),
+  );
+}
+
+/** The rules from a set's test results (empty when there are none). */
+export function rulesOf(results: readonly JobResult[]): RuleResult[] {
+  const sums = new Map<string, { s: number; n: number }>();
+  for (const r of results) {
+    if (r.kind !== "test") continue;
+    const e = sums.get(r.result.test) ?? { s: 0, n: 0 };
+    e.s += r.result.value;
+    e.n++;
+    sums.set(r.result.test, e);
+  }
+  if (sums.size === 0) return [];
+  return checkRules(new Map([...sums].map(([k, e]) => [k, e.s / e.n])));
 }
 
 const quantile = (s: readonly number[], q: number) => {
@@ -178,6 +211,7 @@ export function evaluate(
     (by.get(id) ?? by.set(id, []).get(id)!).push(r.result.metrics);
   }
   const matchups = cfg.matchups.map((m) => matchupStats(m, by.get(m.id) ?? [], cfg));
+  const rules = rulesOf(results);
   const wsum = cfg.matchups.reduce((s, m) => s + (m.weight ?? 1), 0) || 1;
   const sum = (f: (s: MatchupStats, m: Matchup) => number) =>
     matchups.reduce((a, s, i) => a + f(s, cfg.matchups[i]!), 0) / wsum;
@@ -194,6 +228,7 @@ export function evaluate(
     spread: sum((s, m) => (m.weight ?? 1) * cfg.loss.spread * Math.max(0, s.spread - cfg.loss.allowedSpread)),
     drift: cfg.loss.drift * drift(cfg, p),
     viability: via?.penalty ?? 0,
+    rules: cfg.rules.weight * rulesLoss(rules),
   };
   const loss = Object.values(parts).reduce((a, b) => a + b, 0);
   return {
@@ -204,6 +239,7 @@ export function evaluate(
     inBand: matchups.filter((m) => m.inBand).length,
     refused: [],
     margins: via?.margins ?? [],
+    rules,
   };
 }
 
@@ -238,7 +274,9 @@ export async function evaluateMany(
 ): Promise<Evaluation[]> {
   const ref = referenceMargins(cfg);
   const via = sets.map((p) => viability(cfg, p, ref));
-  const jobs = sets.flatMap((p, i) => (via[i]!.refused.length ? [] : jobsFor(cfg, p, seeds, `p${i}`)));
+  const jobs = sets.flatMap((p, i) =>
+    via[i]!.refused.length ? [] : [...jobsFor(cfg, p, seeds, `p${i}`), ...testJobsFor(cfg, p, `p${i}`)],
+  );
   const results = jobs.length ? await run(jobs) : [];
   return sets.map((p, i) =>
     via[i]!.refused.length
@@ -246,7 +284,9 @@ export async function evaluateMany(
       : evaluate(
           cfg,
           p,
-          results.filter((r) => r.kind === "skirmish" && r.result.label.startsWith(`p${i}|`)),
+          results.filter(
+            (r) => (r.kind === "skirmish" || r.kind === "test") && r.result.label.startsWith(`p${i}|`),
+          ),
           via[i],
         ),
   );

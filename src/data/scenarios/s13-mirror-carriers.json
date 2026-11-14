@@ -3,7 +3,7 @@
   "name": "Mirror: carrier groups",
   "description": "Ark carrier with a Maul and a Needle gunboat on each side.",
   "order": 13,
-  "budget": 2800,
+  "budget": 2850,
   "maxPlayerShips": 3,
   "arena": {
     "width": 10000,

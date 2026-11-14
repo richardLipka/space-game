@@ -2,6 +2,7 @@
   "formatVersion": 1,
   "id": "fleet-wasp",
   "name": "Wasp (autocannon fighter)",
+  "section": "Playable",
   "createdAt": "2026-11-09T00:00:00Z",
   "modifiedAt": "2026-11-09T00:00:00Z",
   "parts": [
@@ -9,48 +10,48 @@
       "uid": "eng",
       "partId": "core:engine.main.s",
       "x": -3.25,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "tank",
       "partId": "core:tank.fuel.s",
       "x": -2.25,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "mag-a",
       "partId": "core:magazine.autocannon.s",
       "x": -1.25,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "cmd",
       "partId": "core:command.s",
-      "x": 0.0,
-      "y": 0.0,
+      "x": 0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "nose",
       "partId": "core:hull.wedge.m",
       "x": 1.75,
-      "y": 0.0,
+      "y": 0,
       "angle": 0
     },
     {
       "uid": "wing-t",
       "partId": "core:hull.rect.m",
-      "x": 0.0,
+      "x": 0,
       "y": 1.25,
       "angle": 0
     },
     {
       "uid": "wing-b",
       "partId": "core:hull.rect.m",
-      "x": 0.0,
+      "x": 0,
       "y": -1.25,
       "angle": 0
     },
@@ -74,14 +75,14 @@
       "uid": "rcs-t",
       "partId": "core:rcs.s",
       "x": -0.75,
-      "y": 2.0,
+      "y": 2,
       "angle": 180
     },
     {
       "uid": "rcs-b",
       "partId": "core:rcs.s",
       "x": -0.75,
-      "y": -2.0,
+      "y": -2,
       "angle": 0
     },
     {
@@ -97,6 +98,20 @@
       "x": -1.25,
       "y": -1.25,
       "angle": -90
+    },
+    {
+      "uid": "fix-magazine-1",
+      "partId": "core:magazine.autocannon.s",
+      "x": -2.25,
+      "y": -1,
+      "angle": 0
+    },
+    {
+      "uid": "fix-magazine-2",
+      "partId": "core:magazine.autocannon.s",
+      "x": -2.25,
+      "y": 1,
+      "angle": 0
     }
   ],
   "weaponGroupModes": {

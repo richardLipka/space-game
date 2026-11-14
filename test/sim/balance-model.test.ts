@@ -16,7 +16,8 @@ import {
   type Balance,
   burnHeat,
   hpPerVolume,
-  kineticRate,
+  damageRate,
+  missileHpPerKg,
   systemVolume,
   weaponDps,
   weaponHeatRate,
@@ -89,24 +90,30 @@ describe("balance model: the catalogue follows the formulas", () => {
     expect(magazineCapacity("kinetic-120", 2)).toBe(2 * magazineCapacity("kinetic-120", 1));
   });
 
-  it("a reactor powers one energy turret per cubic metre, and all of it becomes heat", () => {
+  it("a reactor powers `turretsPerVolume` energy turrets per cubic metre, and all of it becomes heat", () => {
     const laser = part("weapon.laser.turret.s").weapon!;
     expect(laser.powerDraw).toBe(BALANCE.energyTurret.powerDraw);
     for (const id of ["reactor.s", "reactor.m"]) {
       const r = part(id);
-      expect(r.reactor!.maxOutput).toBeCloseTo(reactorOutput(partVolume(r)), -3);
-      expect(r.reactor!.maxOutput / laser.powerDraw!).toBeCloseTo(partVolume(r), 1);
+      expect(r.reactor!.maxOutput).toBe(nice3(reactorOutput(partVolume(r))));
+      expect(r.reactor!.maxOutput / laser.powerDraw! / partVolume(r)).toBeCloseTo(
+        BALANCE.power.turretsPerVolume,
+        2,
+      );
       expect(r.reactor!.heatPerWatt).toBe(1);
     }
     // A beam weapon's heat is the power it draws: none of its own on top.
     expect(laser.heatWhileFiring).toBe(0);
   });
 
-  it("a radiator cools two laser turrets, no more", () => {
+  it("a radiator cools `radiatorTurrets` laser turrets per cubic metre", () => {
     const rad = part("radiator.s");
     const laserHeat = part("weapon.laser.turret.s").weapon!.powerDraw! * BALANCE.power.heatPerWatt;
-    expect(rad.radiator!.dissipation).toBe(radiatorDissipation(partVolume(rad)));
-    expect(rad.radiator!.dissipation / laserHeat).toBeCloseTo(2, 6);
+    expect(rad.radiator!.dissipation).toBe(nice3(radiatorDissipation(partVolume(rad))));
+    expect(rad.radiator!.dissipation / laserHeat / partVolume(rad)).toBeCloseTo(
+      BALANCE.heat.radiatorTurrets,
+      2,
+    );
   });
 
   it("engines heat by the fuel they burn; guns by a share of the muzzle energy", () => {
@@ -134,8 +141,7 @@ describe("balance model: the catalogue follows the formulas", () => {
   });
 
   it("weapon damage follows the system volume: weapon, its magazine, and the reactor and radiator it needs", () => {
-    const kinetic = kineticRate();
-    // The reference weapons sit exactly on their family's rate.
+    // The reference weapons sit exactly on their family's rate (with its range and calibre terms).
     for (const [id, family] of [
       ["weapon.autocannon.turret.s", "kinetic"],
       ["weapon.laser.turret.s", "beam"],
@@ -144,12 +150,16 @@ describe("balance model: the catalogue follows the formulas", () => {
       const p = part(id);
       const w = p.weapon!;
       const vSys = systemVolume(partVolume(p), w, BALANCE.weapons.internalShare);
-      expect(weaponDps(w) / vSys, id).toBeCloseTo(kinetic * BALANCE.weapons.family[family], 1);
+      expect(weaponDps(w) / vSys / damageRate(family, w.range, w.fireInterval), id).toBeCloseTo(1, 2);
       expect(p.balance?.damage ?? 1, id).toBe(1);
     }
     const laser = part("weapon.laser.turret.s");
-    // A laser's system: itself, one m³ of reactor and half a m³ of radiator.
-    expect(systemVolume(partVolume(laser), laser.weapon!, 0.1)).toBeCloseTo(partVolume(laser) + 1 + 0.5, 6);
+    // A laser's system: itself plus the reactor and radiator one reference turret needs.
+    const turret = BALANCE.energyTurret.powerDraw / laser.weapon!.powerDraw!;
+    expect(systemVolume(partVolume(laser), laser.weapon!, 0.1)).toBeCloseTo(
+      partVolume(laser) + (1 / BALANCE.power.turretsPerVolume + 1 / BALANCE.heat.radiatorTurrets) / turret,
+      6,
+    );
     // Shared formulas: one number for damage rate, power demand and heat whoever asks.
     const ac = part("weapon.autocannon.turret.s").weapon!;
     expect(weaponDps(ac)).toBeCloseTo(ac.projectile!.damage / ac.fireInterval, 9);
@@ -168,13 +178,27 @@ describe("balance model: the catalogue follows the formulas", () => {
     );
   });
 
-  it("missile warheads and HP follow the missile system and the structure anchor", () => {
+  it("missile HP follows point-defense fire: pace and point-defense strength leave missiles as hard to stop", () => {
+    const smartHp = (B: Balance) =>
+      deriveCatalogue(raw, B).parts.find((p) => p.id === "core:magazine.missile.s")!.magazine!.missile!.hp;
+    const pdDps = (B: Balance) =>
+      weaponDps(deriveCatalogue(raw, B).parts.find((p) => p.id === "core:weapon.pd.gatling.s")!.weapon!);
+    const fast = structuredClone(BALANCE) as unknown as Balance;
+    (fast.weapons as { killTime: number }).killTime = BALANCE.weapons.killTime / 2;
+    (fast.weapons.family as { pd: number }).pd = BALANCE.weapons.family.pd * 1.5;
+    expect(smartHp(fast) / smartHp(BALANCE)).toBeCloseTo(3, 1);
+    // Seconds of gatling fire per missile stay the same (to rounding).
+    expect(smartHp(fast) / pdDps(fast) / (smartHp(BALANCE) / pdDps(BALANCE))).toBeCloseTo(1, 1);
+  });
+
+  it("missile warheads follow the missile system; HP follows point-defense fire", () => {
     const smart = part("magazine.missile.s").magazine!.missile!;
     const rocket = part("magazine.rocket.s").magazine!.missile!;
     const shell = part("weapon.cannon.fixed.m").weapon!.projectile!;
-    expect(smart.damage / shell.damage).toBeGreaterThanOrEqual(10);
+    // A smart missile is worth several heavy shells.
+    expect(smart.damage / shell.damage).toBeGreaterThanOrEqual(5);
     expect(rocket.damage).toBeLessThan(smart.damage);
-    expect(smart.hp).toBe(nice3(BALANCE.hp.structure * BALANCE.hp.missilePerKg * smart.mass));
+    expect(smart.hp).toBe(nice3(missileHpPerKg() * smart.mass));
     expect(smart.guidance).toBe("pn");
     expect(rocket.guidance).toBe("none");
     // Launchers hold nothing themselves and have no missile of their own.
@@ -207,7 +231,10 @@ describe("balance model: the catalogue follows the formulas", () => {
     const B2 = structuredClone(BALANCE) as unknown as { power: { turretsPerVolume: number } };
     B2.power.turretsPerVolume = 2;
     const rich = deriveCatalogue(raw, B2 as unknown as Balance);
-    expect(get(rich, "reactor.s").reactor!.maxOutput).toBe(2 * part("reactor.s").reactor!.maxOutput);
+    expect(get(rich, "reactor.s").reactor!.maxOutput / part("reactor.s").reactor!.maxOutput).toBeCloseTo(
+      2 / BALANCE.power.turretsPerVolume,
+      2,
+    );
     expect(get(rich, "weapon.laser.turret.s").weapon!.powerDraw).toBe(
       part("weapon.laser.turret.s").weapon!.powerDraw,
     );

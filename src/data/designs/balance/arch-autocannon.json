@@ -2,6 +2,7 @@
   "formatVersion": 1,
   "id": "arch-autocannon",
   "name": "Hornet (autocannon turrets)",
+  "section": "Experimental",
   "createdAt": "2026-11-08T00:00:00Z",
   "modifiedAt": "2026-11-08T00:00:00Z",
   "parts": [
@@ -78,14 +79,14 @@
     {
       "uid": "ar-t2",
       "partId": "core:hull.square.s",
-      "x": 1.0,
+      "x": 1,
       "y": 1.25,
       "angle": 0
     },
     {
       "uid": "ar-b2",
       "partId": "core:hull.square.s",
-      "x": 1.0,
+      "x": 1,
       "y": -1.25,
       "angle": 0
     }

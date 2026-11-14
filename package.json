@@ -24,7 +24,9 @@
     "tune": "tsx src/headless/tune-cli.ts",
     "balance:derive": "tsx src/headless/derive-cli.ts && prettier --write src/data/core/catalogue.json",
     "ai:study": "tsx src/headless/ai-study-cli.ts",
-    "tuning": "tsx src/headless/tuning-cli.ts"
+    "tuning": "tsx src/headless/tuning-cli.ts",
+    "designs:audit": "tsx src/headless/design-audit-cli.ts",
+    "designs:platforms": "tsx src/headless/platforms-cli.ts && prettier --write src/data/designs/platforms"
   },
   "type": "module",
   "dependencies": {
