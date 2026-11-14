@@ -30,6 +30,10 @@ export interface ScenarioEditorServices {
   watch(s: Scenario): void;
   /** Plays it with the design open in the ship editor. */
   play(s: Scenario): void;
+  /** Strategy mode: commands the team-0 ships with orders. */
+  command(s: Scenario): void;
+  /** Opens the help dialog on the scenario editor's page. */
+  showHelp(): void;
   back(): void;
   toast(message: string, kind?: "info" | "error"): void;
 }
@@ -148,6 +152,13 @@ export class ScenarioEditor {
       el("span", { class: "sc-sep" }),
       btn("Watch", "sc-watch", () => this.launch("watch"), "Watch the AI ships fight"),
       btn("Play", "sc-play", () => this.launch("play"), "Play it with the ship open in the ship editor"),
+      btn(
+        "Command",
+        "sc-command",
+        () => this.launch("command"),
+        "Strategy mode: command your (team 0) ships",
+      ),
+      btn("? Help", "sc-help", () => services.showHelp(), "Controls (F1 or ?)"),
       btn("Ship editor", "sc-back", () => services.back()),
     );
     this.openDialog = el("dialog", {
@@ -299,6 +310,11 @@ export class ScenarioEditor {
 
   private onKey(e: KeyboardEvent): void {
     if (!this.visible || (e.target as HTMLElement).closest("input, select, textarea")) return;
+    if (e.key === "F1" || e.key === "?") {
+      e.preventDefault();
+      this.services.showHelp();
+      return;
+    }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
       if (this.model.undo()) this.render();
       e.preventDefault();
@@ -892,13 +908,18 @@ export class ScenarioEditor {
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 
-  private launch(how: "watch" | "play"): void {
+  private launch(how: "watch" | "play" | "command"): void {
     const problems = this.model.problems(this.designs, new Set(this.services.profiles));
     if (problems.length) {
       this.services.toast(problems[0]!, "error");
       return;
     }
+    if (how === "command" && !this.model.scenario.enemies.some((e) => e.team === 0)) {
+      this.services.toast("Strategy mode commands team-0 ships: place some first.", "error");
+      return;
+    }
     if (how === "watch") this.services.watch(this.model.scenario);
+    else if (how === "command") this.services.command(this.model.scenario);
     else this.services.play(this.model.scenario);
   }
 

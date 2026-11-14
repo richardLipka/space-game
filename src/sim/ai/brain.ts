@@ -35,7 +35,11 @@ export type Order =
   | { readonly kind: "attack"; readonly target: string }
   | { readonly kind: "hold"; readonly point: Vec2 }
   /** Defensive AI: stay with `target` and engage enemies within `radius` of it. */
-  | { readonly kind: "guard"; readonly target: string; readonly radius: number };
+  | { readonly kind: "guard"; readonly target: string; readonly radius: number }
+  /** Strategy mode: fly to `point`, then hold there (engaging armed enemies near it). */
+  | { readonly kind: "move"; readonly point: Vec2 }
+  /** Strategy mode: fly round `points` in a loop, engaging armed enemies near the path. */
+  | { readonly kind: "patrol"; readonly points: readonly Vec2[] };
 
 export const AI_TUNING = {
   /** Seconds between behaviour and target evaluations. */
@@ -63,11 +67,17 @@ export const AI_TUNING = {
   engageRadius: 2000,
   /** Formation spacing behind the leader (m). */
   formationSpacing: 60,
+  /** A move order or patrol waypoint counts as reached within this distance (m), or 3 ship radii. */
+  arriveDistance: 120,
 } as const;
 
 export interface AiState {
   profile: AiProfile;
   order: Order | null;
+  /** Orders waiting after the current one (strategy mode, Shift+right click). */
+  queue: Order[];
+  /** Waypoint a patrol is flying to. */
+  patrolIndex: number;
   behaviour: Behaviour;
   scores: Partial<Record<Behaviour, number>>;
   targetId: string | null;
@@ -95,6 +105,8 @@ export function createAiState(ship: Ship, profile: AiProfile, order: Order | nul
   return {
     profile,
     order,
+    queue: [],
+    patrolIndex: 0,
     behaviour: "idle",
     scores: {},
     targetId: null,
@@ -198,8 +210,8 @@ function chooseTarget(world: World, ship: Ship, st: AiState, me: Pose): string |
   const anchor =
     order?.kind === "follow" && world.hasShip(order.leader)
       ? world.physics.getWorldCenter(order.leader)
-      : order?.kind === "hold"
-        ? order.point
+      : order?.kind === "hold" || order?.kind === "move" || order?.kind === "patrol"
+        ? orderPoint(st)
         : guarded
           ? world.physics.getWorldCenter(guarded.target)
           : null;
@@ -285,7 +297,10 @@ function scoreBehaviours(
     if (st.profile.stance === "retreating" && dist < R * AI_TUNING.withdrawReach)
       s.retreat = Math.max(s.retreat ?? 0, w.retreat * 3);
   } else if (st.order?.kind === "follow" || st.order?.kind === "guard") s.follow = 0.5;
-  else if (st.order?.kind === "hold") s.station = 0.5;
+  else if (st.order?.kind === "hold" || st.order?.kind === "move" || st.order?.kind === "patrol")
+    s.station = 0.5;
+  // A move order goes first: the ship flies there before it fights (it still fires on the way).
+  if (st.order?.kind === "move") s.station = 2;
   else s.idle = 0.1;
   if (incoming > 0) s.evade = w.evade * (0.9 + 0.2 * Math.min(incoming, 4));
   // Badly damaged: retreat outranks closing in (approach tops out at 1.5).
@@ -295,7 +310,42 @@ function scoreBehaviours(
 }
 
 /** One evaluation: target, cool-down latch, broadside heading and behaviour (with hysteresis). */
+/** Where a hold, move or patrol order is taking the ship, if it is one. */
+export function orderPoint(st: AiState): Vec2 | null {
+  const o = st.order;
+  if (o?.kind === "hold" || o?.kind === "move") return o.point;
+  if (o?.kind === "patrol" && o.points.length) return o.points[st.patrolIndex % o.points.length]!;
+  return null;
+}
+
+/** Starts the next queued order, or holds where the ship is when the queue is empty. */
+export function nextOrder(st: AiState, here: Vec2): void {
+  st.order = st.queue.shift() ?? { kind: "hold", point: here };
+  st.patrolIndex = 0;
+}
+
+/** Finished orders give way to the next in the queue (strategy mode); patrols move to their next waypoint. */
+function advanceOrders(world: World, ship: Ship, st: AiState, me: Pose): void {
+  const o = st.order;
+  if (!o) {
+    if (st.queue.length) nextOrder(st, me.pos);
+    return;
+  }
+  const arrive = Math.max(AI_TUNING.arriveDistance, ship.layout.boundingRadius * 3);
+  if (o.kind === "move" && length(sub(o.point, me.pos)) < arrive) {
+    if (st.queue.length) nextOrder(st, me.pos);
+    else st.order = { kind: "hold", point: o.point };
+  } else if (o.kind === "attack") {
+    const t = world.hasShip(o.target) ? world.getShip(o.target) : null;
+    if (!t || t.defeated || t.inert) nextOrder(st, me.pos);
+  } else if (o.kind === "patrol" && o.points.length) {
+    if (length(sub(orderPoint(st)!, me.pos)) < arrive)
+      st.patrolIndex = (st.patrolIndex + 1) % o.points.length;
+  } else if (o.kind === "hold" && st.queue.length) nextOrder(st, me.pos);
+}
+
 function evaluate(world: World, ship: Ship, st: AiState, me: Pose): void {
+  advanceOrders(world, ship, st, me);
   const caps = capabilityProfile(ship);
   st.caps = caps;
   if (caps.heat > AI_TUNING.coolEnter) st.cooling = true;
@@ -435,11 +485,16 @@ function behaviourSteering(
       return { desiredVel: seek(slot, l.vel), faceAngle: l.angle, mayBurn: true };
     }
     case "station": {
-      const o = st.order;
-      if (o?.kind !== "hold") break;
+      const point = orderPoint(st);
+      if (!point) break;
+      // Patrols keep moving: they aim through the waypoint at cruising speed instead of stopping on it.
+      const patrol = st.order?.kind === "patrol";
+      const off = sub(point, me.pos);
+      const desiredVel =
+        patrol && length(off) > 1e-6 ? scale(normalize(off), p.maxSpeed * 0.6) : seek(point, vec2(0, 0));
       return {
-        desiredVel: seek(o.point, vec2(0, 0)),
-        faceAngle: me.angle,
+        desiredVel,
+        faceAngle: length(off) > 50 ? angleOf(off) : me.angle,
         mayBurn: true,
       };
     }

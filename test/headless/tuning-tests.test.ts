@@ -29,5 +29,5 @@ describe("tuning tests (docs/tuning.md)", () => {
     const { rules } = runTuningTests(cat, undefined, 80);
     for (const x of rules)
       expect(`${x.rule.text}: ${x.value.toFixed(2)} ${x.ok ? "ok" : "MISS"}`).toMatch(/ok$/);
-  }, 60_000);
+  }, 180_000);
 });

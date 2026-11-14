@@ -63,6 +63,8 @@ export interface EditorServices {
   toast(message: string, kind?: "info" | "error"): void;
   /** Opens the scenario editor (ships, asteroids and black holes placed on a map). */
   openScenarioEditor(): void;
+  /** Opens the help dialog on the ship editor's page. */
+  showHelp(): void;
 }
 
 type Mode =
@@ -331,6 +333,7 @@ export class EditorScreen {
         "Your two ships against an AI squadron",
       ),
       this.button("Theme", "btn-theme", () => this.services.cycleTheme()),
+      this.button("? Help", "btn-help", () => this.services.showHelp(), "Controls (F1 or ?)"),
     );
     this.ui.palette = el("aside", { class: "ed-palette", "data-testid": "palette" });
     this.ui.stats = el("section", { class: "ed-stats", "data-testid": "stats" });
@@ -1226,6 +1229,11 @@ export class EditorScreen {
       return;
     }
     if (ctrl) return;
+    if (k === "f1" || e.key === "?") {
+      e.preventDefault();
+      this.services.showHelp();
+      return;
+    }
     switch (k) {
       case "escape":
         this.cancelMode();

@@ -58,6 +58,10 @@ The library is grouped into sections: **Playable** (the symmetric fleet, `src/da
 
 ## Controls
 
+**Help:** F1 or ?, or the Help button on every screen, opens the complete controls for the ship editor, the scenario editor, flight and strategy mode.
+
+**Strategy mode:** in the scenario editor, Command plays the scenario as a real-time strategy game: your team-0 ships take orders and fly themselves. The camera is free over the map (wheel zooms, right or middle drag pans, arrow keys scroll, Home fits). Click or drag a box to select; right click moves (on an enemy: attacks; on your ship: follows); Shift queues an order after the current ones; M move, A attack, P patrol (click waypoints, then Enter, or drag an area), H hold, S stop; Ctrl+1–9 stores a group, 1–9 recalls it. Orders and queues are drawn on the map; the panel changes the AI type of the selected ships.
+
 **Scenario editor:** Scenario editor (toolbar) → place ships (design, team, AI or "No AI" to stay put), asteroids, black holes and player spawns on the map; drag to move, Q/E rotate, Delete removes, wheel zooms. Watch or Play (with the ship open in the editor), Save in the browser, Export as JSON, or Open bundled scenarios, the tuning tests, saved ones, or every scenario (and ship design) in a GitHub folder.
 
 **Scenarios:** Scenarios (toolbar) → choose one → add designs to the fleet (or take the suggested fleet) within the budget → Start battle → results → back to the editor. **Watch AI battle** lets the AI fly the fleet (or the suggested one) while you watch: Tab follows the next ship, +/− change the time scale up to ×8. Scenarios 11–15 are mirror matches: the same fleet on both sides, the enemy flown by a mix of AI types.

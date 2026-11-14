@@ -1742,3 +1742,244 @@ body {
 .sc-github {
   flex: 1;
 }
+
+/* ---- Strategy mode (the map is the canvas underneath; orders are drawn in an SVG overlay) ---- */
+.st-root {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  font:
+    13px/1.4 ui-monospace,
+    "Cascadia Mono",
+    Consolas,
+    monospace;
+  color: var(--panel-fg);
+}
+.st-root[hidden] {
+  display: none;
+}
+.st-input {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  cursor: crosshair;
+  touch-action: none;
+}
+.st-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.st-bar,
+.st-panel,
+.st-status,
+.st-banner {
+  pointer-events: auto;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+}
+.st-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  flex-wrap: wrap;
+}
+.st-bar button.on {
+  outline: 2px solid var(--accent);
+}
+.st-title {
+  font-weight: 600;
+}
+.st-panel {
+  position: absolute;
+  right: 0;
+  top: 44px;
+  bottom: 28px;
+  width: 280px;
+  overflow-y: auto;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.st-panel h3 {
+  margin: 8px 0 2px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--panel-dim);
+}
+.st-orders {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.st-ship {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.st-ship.selected {
+  border-color: var(--accent);
+}
+.st-status {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 5px 10px;
+  color: var(--panel-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.st-banner {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translateX(-50%);
+  padding: 16px 28px;
+  text-align: center;
+}
+.st-ring {
+  fill: none;
+  stroke: #3ba4ff;
+  stroke-opacity: 0.45;
+  stroke-width: 1;
+}
+.st-ring.selected {
+  stroke: #7dffb0;
+  stroke-opacity: 1;
+  stroke-width: 2;
+}
+.st-order {
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+.st-order.move {
+  stroke: #7dffb0;
+}
+.st-order.patrol {
+  stroke: #5fb4ff;
+}
+.st-order.attack {
+  stroke: #ff5a5f;
+}
+.st-order.follow,
+.st-order.guard {
+  stroke: #9aa7b4;
+}
+.st-patrol {
+  fill: #5fb4ff;
+  fill-opacity: 0.06;
+  stroke: #5fb4ff;
+  stroke-width: 1.5;
+}
+.st-patrol.drafting {
+  fill: none;
+  stroke-dasharray: 4 3;
+}
+.st-point {
+  stroke-width: 1.5;
+}
+.st-point.move {
+  fill: #7dffb0;
+  stroke: #7dffb0;
+}
+.st-point.hold {
+  fill: none;
+  stroke: #ffb347;
+}
+.st-point.patrol {
+  fill: #5fb4ff;
+  stroke: #5fb4ff;
+}
+.st-order.faint,
+.st-patrol.faint,
+.st-point.faint {
+  opacity: 0.3;
+}
+.st-box {
+  fill: #7dffb0;
+  fill-opacity: 0.08;
+  stroke: #7dffb0;
+  stroke-dasharray: 4 3;
+}
+.st-box.patrol {
+  fill: #5fb4ff;
+  stroke: #5fb4ff;
+}
+
+/* ---- Help ---- */
+.flight-help-btn {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  font: inherit;
+  color: var(--hud-fg, var(--panel-fg));
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.flight-help-btn[hidden] {
+  display: none;
+}
+.help-dialog {
+  max-width: min(860px, 94vw);
+  max-height: 86vh;
+}
+.help-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.help-tabs button.on {
+  outline: 2px solid var(--accent);
+}
+.help-body {
+  max-height: 64vh;
+  overflow-y: auto;
+}
+.help-intro {
+  margin: 0 0 8px;
+}
+.help-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 6px;
+}
+.help-table th {
+  text-align: left;
+  white-space: nowrap;
+  padding: 2px 14px 2px 0;
+  vertical-align: top;
+  color: var(--accent);
+  font-weight: normal;
+}
+.help-table td {
+  padding: 2px 0;
+}
+@media (max-width: 760px) {
+  .st-panel {
+    width: auto;
+    left: 0;
+    top: auto;
+    max-height: 35vh;
+  }
+  .help-table th {
+    white-space: normal;
+  }
+}

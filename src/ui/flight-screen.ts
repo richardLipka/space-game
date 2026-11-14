@@ -72,6 +72,10 @@ export class FlightScreen {
   /** Selected weapon groups and RMB target (spec §9.2). */
   readonly selectedGroups = new Set<number>([1]);
   targetId: string | null = null;
+  /** Opens the help dialog on the flight page (set by the app; F1, ? and the Help button). */
+  openHelp: (() => void) | null = null;
+  /** Help button for the mouse, shown during flights. */
+  private readonly helpButton: HTMLButtonElement;
   /** Distance V keeps from the target (m); , and . change it. */
   keepDistance = 1000;
   /** A distance change waiting to reach an active V on the next tick. */
@@ -98,6 +102,18 @@ export class FlightScreen {
     private readonly hudEl: HTMLElement,
     private readonly input: InputController,
   ) {
+    this.helpButton = document.createElement("button");
+    this.helpButton.className = "flight-help-btn";
+    this.helpButton.textContent = "? Help";
+    this.helpButton.title = "Controls (F1 or ?)";
+    this.helpButton.dataset.testid = "flight-help-btn";
+    this.helpButton.hidden = true;
+    this.helpButton.addEventListener("click", () => {
+      this.helpButton.blur();
+      if (this.openHelp) this.openHelp();
+      else this.showHelp = !this.showHelp;
+    });
+    document.body.append(this.helpButton);
     this.hud = new Hud(hudEl, {
       target: (id) => {
         if (this.setup?.world.hasShip(id)) this.targetId = id;
@@ -895,6 +911,7 @@ export class FlightScreen {
     this.input.enabled = true;
     this.input.takeCommands();
     this.hudEl.hidden = false;
+    this.helpButton.hidden = false;
     this.loop = new FixedStepLoop(
       () => {
         const w = setup.world;
@@ -934,6 +951,7 @@ export class FlightScreen {
     this.loop = null;
     this.input.enabled = false;
     this.hudEl.hidden = true;
+    this.helpButton.hidden = true;
     this.powerPanel.hidden = true;
     this.resultsPanel.hidden = true;
     this.weaponBar.hidden = true;
@@ -994,7 +1012,8 @@ export class FlightScreen {
           scene.showOverlays = this.showOverlays;
           break;
         case "help":
-          this.showHelp = !this.showHelp;
+          if (this.openHelp) this.openHelp();
+          else this.showHelp = !this.showHelp;
           break;
         case "face-cursor":
           break;

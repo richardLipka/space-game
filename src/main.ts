@@ -38,6 +38,8 @@ import { InputController } from "./ui/input";
 import { EditorScreen, type EditorServices } from "./ui/editor/editor-screen";
 import { el } from "./ui/editor/dom";
 import { ScenarioEditor } from "./ui/scenario-editor";
+import { StrategyScreen } from "./ui/strategy-screen";
+import { HelpDialog } from "./ui/help";
 
 function must<T>(r: ValidationResult<T>, what: string): T {
   if (!r.ok) throw new Error(`Invalid ${what}:\n${r.errors.join("\n")}`);
@@ -124,10 +126,13 @@ async function main(): Promise<void> {
 
   const input = new InputController();
   input.attach(window, canvas);
+  const help = new HelpDialog();
   const flight = new FlightScreen(app, theme, hudEl, input);
+  flight.openHelp = () => help.show("flight");
+  const strategy = new StrategyScreen(app, theme, help);
   flight.themeName = () => THEMES[themeIndex]!;
 
-  let mode: "editor" | "flight" | "scenario" = "editor";
+  let mode: "editor" | "flight" | "scenario" | "strategy" = "editor";
   /** Where Exit from a flight returns to: the scenario editor when the battle was started there. */
   let returnTo: "editor" | "scenario" = "editor";
   const toEditor = () => {
@@ -293,6 +298,35 @@ async function main(): Promise<void> {
       mode = "scenario";
       void scenarioEditor.show();
     },
+    showHelp: () => help.show("ship-editor"),
+  };
+
+  /** Strategy mode (RTS): the scenario's team-0 ships take orders; back to the scenario editor at the end. */
+  const startStrategy = (scenario: Scenario) => {
+    void library.listDesigns().then((saved) => {
+      const designs = new Map(BUNDLED_DESIGNS);
+      for (const d of saved) if (!designs.has(d.id)) designs.set(d.id, d);
+      const battle = startBattle(scenario, [], catalogue, {
+        designs,
+        profiles: AI_PROFILES,
+        droneDesigns: [...droneDesigns.values()],
+      });
+      scenarioEditor.hide();
+      editor.hide();
+      flight.stop();
+      mode = "strategy";
+      strategy.start({
+        world: battle.world,
+        battle,
+        title: scenario.name,
+        exit: () => {
+          strategy.stop();
+          mode = "scenario";
+          void scenarioEditor.show();
+        },
+        retry: () => startStrategy(scenario),
+      });
+    });
   };
 
   const allDesigns = async () => {
@@ -315,6 +349,8 @@ async function main(): Promise<void> {
       returnTo = "scenario";
       startScenario(s, [structuredClone(editor.model.design)]);
     },
+    command: (s) => startStrategy(s),
+    showHelp: () => help.show("scenario-editor"),
     back: () => {
       scenarioEditor.hide();
       returnTo = "editor";
@@ -397,7 +433,13 @@ async function main(): Promise<void> {
         .filter((s) => s.team !== flight.controlledShip?.team && !s.drone)
         .map((s) => s.id) ?? [],
   };
-  Object.assign(window, { __game: debug, __editor: editor, __scenarioEditor: scenarioEditor });
+  Object.assign(window, {
+    __game: debug,
+    __editor: editor,
+    __scenarioEditor: scenarioEditor,
+    __strategy: strategy,
+    __help: help,
+  });
 
   let last = performance.now();
   const frame = (now: number): void => {
@@ -407,6 +449,7 @@ async function main(): Promise<void> {
     last = now;
     if (mode === "editor") editor.frame(dt, app.screen.width, app.screen.height);
     else if (mode === "flight") flight.frame(dt);
+    else if (mode === "strategy") strategy.frame(dt);
   };
   requestAnimationFrame(frame);
 }
