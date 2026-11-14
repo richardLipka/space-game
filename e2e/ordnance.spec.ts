@@ -42,8 +42,8 @@ test("missile types come from the magazines: pick one in the ordnance panel or w
   await expect(page.getByTestId("speed")).toBeVisible();
   const smart = page.getByTestId("missile-type-missile-smart");
   const rocket = page.getByTestId("missile-type-missile-rocket");
-  await expect(smart).toContainText("Smart missile ×12");
-  await expect(rocket).toContainText("Rocket ×24");
+  await expect(smart).toContainText("Smart missile ×14");
+  await expect(rocket).toContainText("Rocket ×29");
   await expect(smart).toHaveAttribute("aria-pressed", "true");
   // A smart missile needs a target: M does nothing yet.
   await page.locator("#view").click({ position: { x: 640, y: 200 }, button: "middle" });
@@ -54,8 +54,8 @@ test("missile types come from the magazines: pick one in the ordnance panel or w
   await expect(rocket).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("m");
   await expect(page.getByTestId("missiles-out")).toHaveText("1");
-  await expect(rocket).toContainText("Rocket ×23");
-  await expect(smart).toContainText("Smart missile ×12");
+  await expect(rocket).toContainText("Rocket ×28");
+  await expect(smart).toContainText("Smart missile ×14");
   // Clicking picks a type too.
   await smart.click();
   await expect(smart).toHaveAttribute("aria-pressed", "true");
