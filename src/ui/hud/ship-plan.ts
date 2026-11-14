@@ -151,3 +151,72 @@ export class ShipPlan {
     this.el.replaceChildren(this.group);
   }
 }
+
+export interface AmmoLine {
+  readonly label: string;
+  readonly left: number;
+  readonly capacity: number;
+  /** Guns only: seconds of fire left for every gun of this type, firing together. */
+  readonly seconds?: number;
+}
+
+const AMMO_NAMES: Record<string, string> = {
+  "kinetic-120": "Cannon shells",
+  "autocannon-30": "Autocannon rounds",
+  "pd-20": "PD rounds",
+  "flak-40": "Flak shells",
+};
+
+/**
+ * Munition supply of a ship: rounds per gun ammunition type (magazines plus what the guns hold, with the
+ * seconds of fire that leaves), missiles per type, and drones per hangar type. Destroyed stores count as
+ * empty.
+ */
+export function ammoSummary(ship: Ship): AmmoLine[] {
+  const guns = new Map<string, { left: number; cap: number; interval: number; weapons: number }>();
+  const missiles = new Map<string, { label: string; left: number; cap: number }>();
+  const drones = new Map<string, { left: number; cap: number }>();
+  for (const p of ship.parts) {
+    const d = p.def.def;
+    const left = p.hp > 0 ? Math.max(0, p.ammo) : 0;
+    if (d.magazine?.missile) {
+      const m = missiles.get(d.magazine.ammoType) ?? {
+        label: d.magazine.missile.name ?? d.magazine.ammoType,
+        left: 0,
+        cap: 0,
+      };
+      m.left += left;
+      m.cap += d.magazine.capacity;
+      missiles.set(d.magazine.ammoType, m);
+    } else if (d.magazine) {
+      const g = guns.get(d.magazine.ammoType) ?? { left: 0, cap: 0, interval: 0, weapons: 0 };
+      g.left += left;
+      g.cap += d.magazine.capacity;
+      guns.set(d.magazine.ammoType, g);
+    } else if (d.weapon?.ammoType && d.weapon.ammoType !== "missile") {
+      const g = guns.get(d.weapon.ammoType) ?? { left: 0, cap: 0, interval: 0, weapons: 0 };
+      g.left += left;
+      g.cap += d.weapon.internalMagazine;
+      if (p.hp > 0) {
+        g.weapons++;
+        g.interval = d.weapon.fireInterval;
+      }
+      guns.set(d.weapon.ammoType, g);
+    } else if (d.hangar) {
+      const h = drones.get(d.hangar.droneType) ?? { left: 0, cap: 0 };
+      h.left += left;
+      h.cap += d.hangar.capacity;
+      drones.set(d.hangar.droneType, h);
+    }
+  }
+  const out: AmmoLine[] = [];
+  for (const [type, g] of [...guns].sort()) {
+    if (g.cap === 0) continue;
+    const line: AmmoLine = { label: AMMO_NAMES[type] ?? type, left: g.left, capacity: g.cap };
+    out.push(g.weapons > 0 ? { ...line, seconds: (g.left * g.interval) / g.weapons } : line);
+  }
+  for (const [, m] of [...missiles].sort()) out.push({ label: `${m.label}s`, left: m.left, capacity: m.cap });
+  for (const [type, h] of [...drones].sort())
+    out.push({ label: `${type.replace(/^drone-/, "")} drones`, left: h.left, capacity: h.cap });
+  return out;
+}

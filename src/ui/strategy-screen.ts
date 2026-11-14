@@ -11,6 +11,8 @@ import type { Ship } from "../sim/ship/ship-entity";
 import type { World } from "../sim/world";
 import { el } from "./editor/dom";
 import { type HelpDialog } from "./help";
+import { ammoSummary, hullFraction, ShipPlan } from "./hud/ship-plan";
+import { partReadout, systemsHtml } from "./hud";
 
 const SVG = "http://www.w3.org/2000/svg";
 const TIME_SCALES = [0.25, 0.5, 1, 2, 4, 8] as const;
@@ -94,6 +96,11 @@ export class StrategyScreen {
   private readonly keys = new Set<string>();
   private panelKey = "";
   private bannerShown = false;
+  /** Details of the selected ship (schematic, systems, supply), kept across panel rebuilds. */
+  private readonly details: HTMLElement;
+  private readonly detailText: HTMLElement;
+  private readonly plan = new ShipPlan();
+  private detailsAge = 0;
 
   constructor(
     private readonly app: Application,
@@ -106,6 +113,13 @@ export class StrategyScreen {
     this.status = el("div", { class: "st-status", "data-testid": "strategy-status" });
     this.banner = el("div", { class: "st-banner", "data-testid": "strategy-banner", hidden: "" });
     this.bar = el("header", { class: "st-bar" });
+    this.detailText = el("div", { class: "st-detail-text" });
+    this.details = el(
+      "section",
+      { class: "st-details", "data-testid": "strategy-details", hidden: "" },
+      this.plan.el,
+      this.detailText,
+    );
     this.root = el(
       "div",
       { class: "st-root", "data-testid": "strategy", hidden: "" },
@@ -473,6 +487,7 @@ export class StrategyScreen {
     this.scene.render(setup.world, this.camera, alpha);
     this.renderOverlay();
     this.renderPanel();
+    this.updateDetails(dtReal);
     if (setup.battle.status !== "running" && !this.bannerShown) this.showBanner();
   }
 
@@ -599,6 +614,7 @@ export class StrategyScreen {
     this.panelKey = key;
     const out: (HTMLElement | string)[] = [];
     const live = this.mine.filter((s) => !s.defeated);
+    out.push(this.details);
     out.push(el("h3", {}, `Your ships (${live.length})`));
     if (!sel.length) out.push(el("p", { class: "dim" }, "Click a ship, drag a box, or Ctrl+A to select."));
     const orderBtn = (label: string, id: string, f: () => void, title: string) => {
@@ -672,6 +688,71 @@ export class StrategyScreen {
     const enemies = setup.battle.enemyShips.filter((s) => !s.defeated).length;
     out.push(el("p", { class: "dim" }, `Enemy ships left: ${enemies}`));
     this.panel.replaceChildren(...out);
+  }
+
+  /** The ship the details card shows: the selected one, or the first of several. */
+  private focus(): Ship | null {
+    const w = this.setup?.world;
+    if (!w) return null;
+    const id = [...this.selected].sort().find((x) => w.hasShip(x));
+    return id ? w.getShip(id) : null;
+  }
+
+  /**
+   * Overview of the focused ship, like the flight cockpit: damage schematic (turned as in the world; point at
+   * a part for its HP), systems, speed, fuel, heat, power, AI state and orders, and the munition supply.
+   * The schematic follows every frame; the numbers a few times a second.
+   */
+  private updateDetails(dt: number): void {
+    const w = this.setup!.world;
+    const s = this.focus();
+    this.details.hidden = !s;
+    if (!s) return;
+    this.plan.update(s, null, w.physics.getBodyState(s.id).angle);
+    this.detailsAge += dt;
+    if (this.detailsAge < 0.2 && this.detailText.dataset.ship === s.id && !this.plan.hoverUid) return;
+    this.detailsAge = 0;
+    this.detailText.dataset.ship = s.id;
+    const esc = (t: string) => t.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
+    const pct = (f: number) => `${Math.round(Math.max(0, Math.min(1, f)) * 100)}%`;
+    const cls = (f: number) => (f < 0.2 ? "alert" : f < 0.5 ? "warn" : "");
+    const kw = (x: number) => (x >= 1e6 ? `${(x / 1e6).toFixed(1)} MW` : `${(x / 1e3).toFixed(0)} kW`);
+    const st = w.ai.get(s.id);
+    const v = w.physics.getBodyState(s.id).linearVelocity;
+    const hull = hullFraction(s);
+    const fuel = s.fuelCapacity > 0 ? s.totalFuel / s.fuelCapacity : 0;
+    const heat = s.heatLevel;
+    const pw = s.power;
+    const short = s.powerPriority.filter((g) => pw.groups[g].demand > 0 && pw.groups[g].factor < 0.999);
+    const target = st?.targetId && w.hasShip(st.targetId) ? name(w.getShip(st.targetId)) : null;
+    const others =
+      this.selected.size > 1 ? ` <span class="dim">(1 of ${this.selected.size} selected)</span>` : "";
+    const queue = st?.queue.length
+      ? `<div class="dim">then: ${st.queue.map((o) => esc(describeOrder(o, w))).join(" → ")}</div>`
+      : "";
+    const ammo = ammoSummary(s)
+      .map((a) => {
+        const f = a.capacity > 0 ? a.left / a.capacity : 0;
+        const secs =
+          a.seconds !== undefined
+            ? ` · ${Math.floor(a.seconds / 60)}:${String(Math.floor(a.seconds % 60)).padStart(2, "0")} of fire`
+            : "";
+        return `<div class="st-ammo"><span>${esc(a.label)}</span><span class="st-bar-track"><span class="st-bar-fill ${cls(f)}" style="width:${pct(f)}"></span></span><b class="${cls(f)}">${Math.round(a.left)}</b><span class="dim">/${a.capacity}${secs}</span></div>`;
+      })
+      .join("");
+    this.detailText.innerHTML =
+      `<h3>${esc(s.design.name)}</h3>${others}` +
+      `<div>hull <b class="${cls(hull)}">${pct(hull)}</b> · ${st ? `${esc(st.profile.name)} · ${st.behaviour}${target ? ` → ${esc(target)}` : ""}` : "no AI"}</div>` +
+      `<div>${esc(describeOrder(st?.order ?? null, w))}</div>${queue}` +
+      `<div class="st-systems">${systemsHtml(s)}</div>` +
+      `<div class="st-readout">${partReadout(s, this.plan.hoverUid)}</div>` +
+      `<div class="st-gauges">` +
+      `<span><i>SPEED</i>${Math.hypot(v.x, v.y).toFixed(0)} m/s</span>` +
+      `<span><i>FUEL</i><b class="${cls(fuel)}">${pct(fuel)}</b> ${s.totalFuel.toFixed(0)} kg</span>` +
+      `<span><i>HEAT</i><b class="${heat > 1 ? "alert" : heat > 0.7 ? "warn" : ""}">${pct(heat)}</b></span>` +
+      `<span><i>POWER</i>${kw(pw.used)} / ${kw(pw.supply)}${short.length ? ` <b class="warn">short: ${short.join(", ")}</b>` : ""}</span>` +
+      `</div>` +
+      `<h3>Munitions</h3>${ammo || `<div class="dim">no ammunition stores</div>`}`;
   }
 
   private showBanner(): void {

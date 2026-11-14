@@ -198,6 +198,10 @@ export const HELP: Record<
           ["Ctrl+A", "select all your ships"],
           ["Ctrl+1–9 / 1–9", "store the selection as a group / recall it"],
           ["Click a ship in the panel", "select it"],
+          [
+            "Details card",
+            "the selected ship: damage schematic (point at a part), systems, fuel, heat, power, orders and munitions with time of fire left",
+          ],
           ["Esc", "cancel the order being given, then clear the selection"],
         ],
       ],

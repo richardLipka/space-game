@@ -783,7 +783,7 @@ export class Hud {
 }
 
 /** "ENG 2/2  WPN 3/4 …": working and fitted parts per system. */
-function systemsHtml(ship: Ship): string {
+export function systemsHtml(ship: Ship): string {
   return systemStatus(ship)
     .map(
       (x) =>
@@ -793,7 +793,7 @@ function systemsHtml(ship: Ship): string {
 }
 
 /** One line about the part under the pointer on a plan. */
-function partReadout(ship: Ship, uid: string | null): string {
+export function partReadout(ship: Ship, uid: string | null): string {
   const p = uid ? ship.parts.find((x) => x.uid === uid) : undefined;
   if (!p) return `<span class="dim">point at a part for its state</span>`;
   const max = p.def.def.hp;

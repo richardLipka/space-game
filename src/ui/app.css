@@ -1983,3 +1983,76 @@ body {
     white-space: normal;
   }
 }
+
+/* Strategy: details of the selected ship */
+.st-details {
+  border: 1px solid var(--panel-border);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.st-details[hidden] {
+  display: none;
+}
+.st-details {
+  /* The damage schematic's colours, as in the flight cockpit. */
+  --ck-ok: #3ccf7f;
+}
+.st-details .ck-plan {
+  height: 150px;
+}
+.st-detail-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+}
+.st-detail-text h3 {
+  margin: 4px 0 0;
+}
+.st-systems,
+.st-gauges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+.st-systems i,
+.st-gauges i {
+  font-style: normal;
+  color: var(--panel-dim);
+  margin-right: 4px;
+}
+.st-details .warn {
+  color: var(--warn, #ffb347);
+}
+.st-details .alert {
+  color: var(--danger, #ff4f7b);
+}
+.st-readout {
+  min-height: 1.4em;
+}
+.st-ammo {
+  display: grid;
+  grid-template-columns: 1fr 60px auto auto;
+  align-items: center;
+  gap: 6px;
+}
+.st-bar-track {
+  height: 6px;
+  background: var(--panel-border);
+  position: relative;
+}
+.st-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--accent);
+}
+.st-bar-fill.warn {
+  background: var(--warn, #ffb347);
+}
+.st-bar-fill.alert {
+  background: var(--danger, #ff4f7b);
+}
