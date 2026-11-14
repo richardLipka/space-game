@@ -91,6 +91,18 @@ Each part's mass, HP and output factors are unchanged from before.
   - Rocket: flies straight where the launcher points, half the mass, reloads in half the time, and can be
     fired without a target. The AI fires rockets only when the launcher points within 6° of the intercept.
 - **Missiles destroy themselves** 10 s after their motor burns out.
+- **Warheads:** 60 % of a warhead is a penetrating jet into the nearest ship, from the detonation towards
+  the ship's centre. Wrecks absorb half of what reaches them. Each intact part takes what is left after its
+  armor, and anything beyond its HP goes on to the next part, up to 10 m in. The other 40 % is a blast
+  measured to each part's outline, not its centre, so a missile that fuses off a corner or beside a big
+  part still delivers its warhead. Against a Wasp, the mean hull damage per smart missile rose from about
+  2400 to 4800, and against an Anvil from about 3700 to 6300.
+- **Point defense against ships:** gatling rounds and flak bursts deal only 15 % of their damage to ships
+  (`COMBAT.pdShipShare`); missiles and drones still take all of it.
+- **Turrets and missiles:** ordinary AI turrets turn on an incoming missile only in its last 1.5 s
+  (`COMBAT.turretMissileDefense`, was 4 s), as a last-ditch shot; point defense does the real work.
+- **Black holes:** ships may orbit them, but their core is not solid. Every ship part whose centre enters it
+  is destroyed and torn off; missiles, rounds, debris and loose asteroids that enter it are gone.
 - **Drones** with no working weapon or no ammunition ram the nearest enemy that is still fighting and blow
   up at its hull (damage 6 × their mass). With no fuel either, they destroy themselves.
 - **Drive mode** (I, ships with ion engines): all engines, ion only or chemical only.

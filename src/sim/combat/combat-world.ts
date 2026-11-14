@@ -1,6 +1,7 @@
+import { compareIds } from "../core/ids";
 import { type Vec2, add, dot, length, lengthSq, normalize, rotate, scale, sub } from "../core/vec2";
 import { weaponDps } from "../../data/balance/model";
-import { rayPolygon } from "../core/geometry";
+import { rayPolygon, segmentPolygonDistance } from "../core/geometry";
 import { gravityAccel } from "../physics/forces";
 import type { ContactImpulse } from "../physics/planck-adapter";
 import type { PartInstance } from "../ship/ship";
@@ -9,7 +10,7 @@ import { partCentroid } from "../ship/ship";
 import type { Ship } from "../ship/ship-entity";
 import type { World } from "../world";
 import { COMBAT, MISSILE } from "./constants";
-import { beamFalloff, collisionDamage, damageAlongRay } from "./damage";
+import { afterArmor, beamFalloff, collisionDamage, damageAlongRay } from "./damage";
 import type { Missile } from "./missiles";
 import { spawnMissile } from "./missiles";
 import { intercept } from "./lead";
@@ -267,7 +268,15 @@ export function blast(
   center: Vec2,
   radius: number,
   damage: number,
-  opts: { hostileTo?: number; missiles?: boolean; source?: DamageSource } = {},
+  opts: {
+    hostileTo?: number;
+    missiles?: boolean;
+    source?: DamageSource;
+    /** Share of the damage ships take (point-defense flak: COMBAT.pdShipShare; drones take it all). */
+    shipShare?: number;
+    /** Measure each part's distance to its outline instead of its centre (missile warheads). */
+    toOutline?: boolean;
+  } = {},
 ): void {
   for (const ship of world.allShips()) {
     if (opts.hostileTo !== undefined && ship.team === opts.hostileTo) continue;
@@ -275,8 +284,14 @@ export function blast(
     if (length(sub(p.position, center)) > ship.layout.boundingRadius + radius) continue;
     const local = rotate(sub(center, p.position), -p.angle);
     const before = hullHp(ship);
-    const destroyed = ship.applyBlast(local, radius, damage, undefined, (part, dist) =>
-      shelter(ship, local, part, dist),
+    const k = ship.drone ? 1 : (opts.shipShare ?? 1);
+    const destroyed = ship.applyBlast(
+      local,
+      radius,
+      damage * k,
+      undefined,
+      (part, dist) => shelter(ship, local, part, dist),
+      opts.toOutline,
     );
     for (const uid of destroyed) pushEvent(world, "destroyed", worldPartCenter(world, ship, uid), 2);
     // Friendly fire is not credited.
@@ -293,6 +308,61 @@ export function blast(
       if (length(sub(m.pos, center)) <= radius) damageMissile(world, m, damage);
     }
   }
+}
+
+/**
+ * Missile warhead: `MISSILE.directShare` of the damage is a penetrating jet into the nearest ship, from the
+ * detonation towards the ship's centre: wrecks absorb part of it, every intact part takes what is left
+ * after its armor, and what a part cannot take (more than its HP) goes on to the next, up to
+ * `MISSILE.jetReach` into the hull. The rest is a blast measured to every part's outline. A missile that
+ * fuses beside a corner or a big part still delivers its warhead.
+ */
+export function warhead(
+  world: World,
+  center: Vec2,
+  radius: number,
+  damage: number,
+  source?: DamageSource,
+): void {
+  let best: { ship: Ship; d: number } | null = null;
+  for (const ship of world.allShips()) {
+    const p = pose(world, ship.id);
+    if (length(sub(p.position, center)) > ship.layout.boundingRadius + radius) continue;
+    const local = rotate(sub(center, p.position), -p.angle);
+    for (const outline of ship.layout.outlines.values()) {
+      const d = segmentPolygonDistance(local, local, outline).dist;
+      if (!best || d < best.d || (d === best.d && compareIds(ship.id, best.ship.id) < 0)) best = { ship, d };
+    }
+  }
+  if (best && best.d <= radius) {
+    const ship = best.ship;
+    const p = pose(world, ship.id);
+    const local = rotate(sub(center, p.position), -p.angle);
+    const toCentre = sub(ship.massProps.center, local);
+    const dir = length(toCentre) > 1e-6 ? normalize(toCentre) : { x: 1, y: 0 };
+    const hits = ship.layout.raycastAll(local, dir, best.d + MISSILE.jetReach);
+    const before = hullHp(ship);
+    let remaining = damage * MISSILE.directShare;
+    for (const h of hits) {
+      if (remaining <= COMBAT.minDamage) break;
+      const part = ship.part(h.uid);
+      if (part.hp <= 0) {
+        ship.applyDamage(h.uid, remaining * COMBAT.wreckAbsorb);
+        remaining *= 1 - COMBAT.wreckAbsorb;
+        continue;
+      }
+      const dmg = afterArmor(remaining, part.def.def.armor ?? 0);
+      const hp = part.hp;
+      if (ship.applyDamage(h.uid, dmg)) pushEvent(world, "destroyed", worldPartCenter(world, ship, h.uid), 2);
+      remaining = Math.max(0, dmg - hp);
+    }
+    if (!source?.ship || !world.hasShip(source.ship) || world.getShip(source.ship).team !== ship.team)
+      recordDamage(world, source, before - hullHp(ship));
+  }
+  blast(world, center, radius, damage * (1 - MISSILE.directShare), {
+    ...(source ? { source } : {}),
+    toOutline: true,
+  });
 }
 
 /** Share of a blast that reaches `part`: halved by every wreck on the straight line from the blast. */
@@ -594,6 +664,7 @@ export function stepProjectiles(world: World, dt: number): void {
         blast(world, at, pr.fuse.radius, pr.fuse.damage, {
           hostileTo: pr.team,
           missiles: true,
+          shipShare: COMBAT.pdAmmo.includes(pr.kind) ? COMBAT.pdShipShare : 1,
           source: { ship: pr.owner, source: pr.source ?? pr.kind },
         });
         pushEvent(world, "burst", at, pr.fuse.radius);
@@ -612,7 +683,9 @@ export function stepProjectiles(world: World, dt: number): void {
             scale(sub(pr.vel, vTarget), pr.mass * COMBAT.momentumTransfer),
             at,
           );
-          damageShipAlongRay(world, hit, pr.damage, COMBAT.minDamage, {
+          // Point-defense rounds barely scratch ships (drones are their business).
+          const k = COMBAT.pdAmmo.includes(pr.kind) && !hit.ship.drone ? COMBAT.pdShipShare : 1;
+          damageShipAlongRay(world, hit, pr.damage * k, COMBAT.minDamage * k, {
             ship: pr.owner,
             source: pr.source ?? pr.kind,
           });

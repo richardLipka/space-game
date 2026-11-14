@@ -213,6 +213,10 @@ npm run tuning -- report --run night1
 
 ## Accepting a result
 
+Past runs and how their best sets compared with the game on fresh seeds are in
+[docs/tuning-history.md](tuning-history.md), with the settings for the next run.
+
+
 ```bash
 npm run tuning -- apply --run night1
 ```

@@ -16,7 +16,7 @@ import { segmentPolygonDistance } from "../core/geometry";
 import { gravityAccel } from "../physics/forces";
 import type { Ship } from "../ship/ship-entity";
 import type { World } from "../world";
-import { blast, pushEvent, raycastWorld } from "./combat-world";
+import { pushEvent, raycastWorld, warhead } from "./combat-world";
 import { MISSILE } from "./constants";
 
 /**
@@ -136,9 +136,7 @@ function fusePoint(world: World, m: Missile, from: Vec2, to: Vec2): Vec2 | null 
 }
 
 function detonate(world: World, m: Missile, at: Vec2): void {
-  blast(world, at, m.def.blastRadius, m.def.damage, {
-    source: { ship: m.owner, source: m.source ?? "missile" },
-  });
+  warhead(world, at, m.def.blastRadius, m.def.damage, { ship: m.owner, source: m.source ?? "missile" });
   pushEvent(world, "explosion", at, m.def.blastRadius * 0.4);
   world.combat.stats.missileHits++;
   m.hp = 0;

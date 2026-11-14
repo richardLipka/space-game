@@ -232,11 +232,48 @@ export class World {
     return add(tv, scale(d, closing / dist));
   }
 
+  /** Adds a black hole. Its core is not solid: what enters it is destroyed (see `swallowIntoCores`). */
   addGravityWell(well: GravityWellState): void {
     this.gravityWells.push(well);
-    const id = this.ids.next("well");
-    this.physics.createBody({ id, type: "static", position: well.position, angle: 0 });
-    this.physics.addCircle(id, ZERO, well.coreRadius, id);
+    this.ids.next("well"); // keeps id sequences as they were when cores were solid bodies
+  }
+
+  /**
+   * Black holes: ships may orbit them, but nothing crosses a core. Every ship part whose centre is inside a
+   * core is destroyed and torn off (the last one stays as a wreck); missiles, rounds, debris and loose
+   * asteroids inside a core are gone.
+   */
+  private swallowIntoCores(): void {
+    for (const w of this.gravityWells) {
+      const r = w.coreRadius;
+      const inside = (p: Vec2) => length(sub(p, w.position)) < r;
+      for (const ship of this.allShips()) {
+        const s = this.physics.getBodyState(ship.id);
+        if (length(sub(s.position, w.position)) > ship.layout.boundingRadius + r) continue;
+        const gone = ship.parts
+          .filter((p) => inside(add(s.position, rotate(partCentroid(p), s.angle))))
+          .map((p) => p.uid)
+          .sort(compareIds);
+        for (const uid of gone) {
+          if (!ship.parts.some((p) => p.uid === uid)) continue;
+          if (ship.part(uid).hp > 0) ship.destroyPart(uid);
+          if (ship.parts.length > 1) this.ejectPart(ship.id, uid, { vanish: true });
+        }
+      }
+      this.combat.missiles = this.combat.missiles.filter((m) => !inside(m.pos));
+      this.combat.projectiles = this.combat.projectiles.filter((pr) => !inside(pr.pos));
+      for (const d of [...this.debris])
+        if (inside(this.physics.getWorldCenter(d.id))) {
+          this.physics.destroyBody(d.id);
+          this.debris.splice(this.debris.indexOf(d), 1);
+        }
+      for (let i = this.asteroids.length - 1; i >= 0; i--) {
+        const a = this.asteroids[i]!;
+        if (!inside(this.physics.getWorldCenter(a.id))) continue;
+        this.physics.destroyBody(a.id);
+        this.asteroids.splice(i, 1);
+      }
+    }
   }
 
   getShip(id: string): Ship {
@@ -370,6 +407,7 @@ export class World {
     applyContactDamage(this, this.physics.takeContactImpulses());
     stepProjectiles(this, dt);
     stepMissiles(this, dt);
+    if (this.gravityWells.length) this.swallowIntoCores();
     processExplosions(this);
     // 11–12: heat, overheat damage, ammo refill.
     for (const ship of this.allShips()) ship.postStep(dt);

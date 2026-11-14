@@ -755,7 +755,13 @@ export class ScenarioEditor {
             "sc-prop-reach",
           ),
         );
-        out.push(el("p", { class: "dim" }, `Pull at 1 km: ${(wl.mu / 1e6).toFixed(0)} m/s².`));
+        out.push(
+          el(
+            "p",
+            { class: "dim" },
+            `Pull at 1 km: ${(wl.mu / 1e6).toFixed(0)} m/s². Ships may orbit it; whatever enters the core is destroyed.`,
+          ),
+        );
       } else if (r.kind === "asteroid") {
         const ast = s.arena.asteroids[r.index]!;
         out.push(

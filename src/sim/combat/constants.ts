@@ -27,8 +27,18 @@ export const COMBAT = {
    * the ship it hits (decision log: Beam heat). Beams cook ships as well as cutting parts.
    */
   beamHeatToTarget: 0.3,
-  /** AI-mode turrets turn on missiles homing on their ship when impact is this close (s). */
-  turretMissileDefense: 4,
+  /**
+   * AI-mode turrets turn on missiles homing on their ship when impact is this close (s): a last-ditch shot,
+   * so ordinary guns do not do the point defense's job.
+   */
+  turretMissileDefense: 1.5,
+  /**
+   * Share of a point-defense round's (gatling, flak) damage that reaches a ship's hull. Point defense is
+   * sized to shred missiles and drones; against ships it should hardly matter.
+   */
+  pdShipShare: 0.15,
+  /** Ammunition fired by point defense (its rounds and bursts deal `pdShipShare` to ships). */
+  pdAmmo: ["pd-20", "flak-40"] as readonly string[],
   /** Hit / effect events kept for rendering (s). */
   eventLifetime: 2,
 } as const;
@@ -68,6 +78,13 @@ export const MISSILE = {
    */
   arenaMargin: 500,
   selfDestructAfter: 10,
+  /**
+   * A warhead puts this share of its damage straight into the part nearest the detonation (after armor);
+   * the rest is blast, measured to every part's outline (so a corner hit or a big part still takes it).
+   */
+  directShare: 0.6,
+  /** How far the warhead's jet carries into the hull past the first part it meets (m). */
+  jetReach: 10,
   /** The AI launches rockets only when the launcher points within this angle of the intercept (rad). */
   rocketAlign: (6 * Math.PI) / 180,
   /** Launch speed relative to the launcher (m/s). */

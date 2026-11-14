@@ -3,8 +3,8 @@
   "name": "Mixed fleet",
   "description": "A full squadron: gunboat, missile frigate and PD picket.",
   "order": 8,
-  "budget": 650,
-  "maxPlayerShips": 3,
+  "budget": 800,
+  "maxPlayerShips": 4,
   "arena": {
     "width": 8000,
     "height": 5000,
@@ -245,7 +245,8 @@
   "seed": 57,
   "hints": [
     "Tab switches ships; the others follow under AI.",
-    "Concentrate fire: K sends your allies after your target."
+    "Concentrate fire: K sends your allies after your target.",
+    "The frigate's missiles hit hard: bring point defense, or kill the frigate first."
   ],
-  "referenceDesigns": ["arch-autocannon", "arch-heavy", "arch-laser"]
+  "referenceDesigns": ["arch-autocannon", "arch-heavy", "arch-laser", "arch-missile"]
 }

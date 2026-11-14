@@ -1,3 +1,4 @@
+import { segmentPolygonDistance } from "../core/geometry";
 import type { MissileDef } from "../../data/schemas/part";
 import { weaponHeatRate, weaponPowerDemand } from "../../data/balance/model";
 import { arcadeControl, type FlightModel } from "../flight/arcade";
@@ -766,6 +767,7 @@ export class Ship {
     damage: number,
     exceptUid?: string,
     factorOf?: (p: PartInstance, dist: number) => number,
+    toOutline = false,
   ): string[] {
     // Shares are worked out on the ship as it was when the blast began, so parts the blast destroys do
     // not shelter the parts behind them.
@@ -773,7 +775,10 @@ export class Ship {
     for (const p of [...this.parts].sort((a, b) => compareIds(a.uid, b.uid))) {
       if (p.uid === exceptUid) continue;
       const c = partCentroid(p);
-      const dist = Math.hypot(c.x - center.x, c.y - center.y);
+      const outline = toOutline ? this.layout.outlines.get(p.uid) : undefined;
+      const dist = outline
+        ? segmentPolygonDistance(center, center, outline).dist
+        : Math.hypot(c.x - center.x, c.y - center.y);
       if (dist >= radius) continue;
       const k = factorOf ? factorOf(p, dist) : 1;
       if (k <= 0) continue;
