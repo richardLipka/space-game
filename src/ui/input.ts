@@ -4,6 +4,8 @@ import type { Vec2 } from "../sim/core/vec2";
 /** Discrete UI commands raised by key presses (handled by the app, not the sim). */
 export type UiCommand =
   | "camera-mode"
+  | "distance-down"
+  | "distance-up"
   | "switch-ship"
   | "pause"
   | "time-faster"
@@ -56,6 +58,10 @@ export function keyName(e: Pick<KeyboardEvent, "code" | "key" | "shiftKey">): st
     case "NumpadSubtract":
     case "BracketLeft":
       return "-";
+    case "Comma":
+      return ",";
+    case "Period":
+      return ".";
   }
   // Synthetic events without a code, and keys not covered above.
   const k = e.key.toLowerCase();
@@ -79,6 +85,8 @@ export interface Click {
 export class InputController {
   private readonly held = new Set<string>();
   private pendingSpeedKill: "keep" | "flip" | "cancel" | undefined;
+  /** C: match the target's course and speed; V: also keep a distance; Shift+V: lock it. */
+  private pendingMatch: "velocity" | "distance" | "lock" | undefined;
   faceCursor = false;
   /** Mouse position in screen pixels. */
   mouse: Vec2 = { x: 0, y: 0 };
@@ -120,7 +128,14 @@ export class InputController {
           this.pendingSpeedKill = e.shiftKey ? "flip" : this.speedKillActive() ? "cancel" : "keep";
           break;
         case "c":
-          this.commands.push("camera-mode");
+          if (e.shiftKey) this.commands.push("camera-mode");
+          else this.pendingMatch = "velocity";
+          break;
+        case ",":
+          this.commands.push("distance-down");
+          break;
+        case ".":
+          this.commands.push("distance-up");
           break;
         case "tab":
           this.commands.push("switch-ship");
@@ -135,10 +150,10 @@ export class InputController {
           this.commands.push("time-slower");
           break;
         case "t":
-          this.commands.push("theme");
+          this.commands.push(e.shiftKey ? "overlays" : "theme");
           break;
         case "v":
-          this.commands.push("overlays");
+          this.pendingMatch = e.shiftKey ? "lock" : "distance";
           break;
         case "f":
           this.faceCursor = !this.faceCursor;
@@ -252,6 +267,13 @@ export class InputController {
   }
 
   /** Current intent; consumes pending one-shot commands. `faceAngle` is supplied by the caller (needs world state). */
+  /** The course-matching key pressed since the last read (the flight screen adds target and distance). */
+  takeMatch(): "velocity" | "distance" | "lock" | undefined {
+    const m = this.pendingMatch;
+    this.pendingMatch = undefined;
+    return m;
+  }
+
   takeIntent(faceAngle: number | undefined): ControlIntent {
     const h = (k: string) => (this.held.has(k) ? 1 : 0);
     const rotate = h("q") - h("e");

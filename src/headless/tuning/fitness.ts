@@ -30,6 +30,10 @@ export interface MatchupStats {
   readonly sideA: number;
   /** How battles ended. */
   readonly reasons: Readonly<Record<string, number>>;
+  /** Share of alive time ships spent firing, and moving or turning; share of ships that hardly fired. */
+  readonly activity: number;
+  readonly moving: number;
+  readonly passive: number;
   /** Share of fighting time ships spent above 70 % heat, and with weapons short of power. */
   readonly hot: number;
   readonly brownout: number;
@@ -82,6 +86,7 @@ export function jobsFor(cfg: TuningConfig, p: Params, seeds: readonly number[], 
         balance: v.balance,
         jitter: { position: m.jitter ?? 300, angle: 25 },
         stopWhenDisarmed: true,
+        stopAfterDisabled: cfg.stopAfterDisabled,
       });
   return jobs;
 }
@@ -134,24 +139,42 @@ export function matchupStats(m: Matchup, metrics: readonly BattleMetrics[], cfg:
   const L = cfg.loss;
   const limit = limitOf(m, cfg);
   const lengths = metrics
-    .map((x) => (x.winner === "draw" ? limit : Math.min(limit, engagementOf(x))))
+    // A timeout counts as the time limit; a run stopped at the disabled-ship limit as its length.
+    .map((x) =>
+      x.winner === "draw" && x.reason !== "defeat-limit" ? limit : Math.min(limit, engagementOf(x)),
+    )
     .sort((a, b) => a - b);
   const med = median(lengths);
   const spread = med > 0 ? (quantile(lengths, 0.75) - quantile(lengths, 0.25)) / med : 0;
   const n = Math.max(1, metrics.length);
-  const timeouts = metrics.filter((x) => x.winner === "draw").length / n;
+  const timeouts = metrics.filter((x) => x.reason.startsWith("timeout")).length / n;
   const ammoOut = metrics.filter((x) => x.reason === "timeout-out-of-ammo").length / n;
   const reasons: Record<string, number> = {};
   for (const x of metrics) reasons[x.reason] = (reasons[x.reason] ?? 0) + 1;
   let hot = 0;
   let brown = 0;
   let shipTime = 0;
+  let alive = 0;
+  let moving = 0;
+  let firing = 0;
+  let passiveShips = 0;
+  let shipCount = 0;
   for (const x of metrics)
     for (const s of x.ships) {
       hot += s.hot;
       brown += s.brownout;
       shipTime += x.time;
+      alive += s.alive;
+      moving += s.moving;
+      firing += s.firing;
+      shipCount++;
+      if (s.alive > 0 && s.firing / s.alive < 0.05) passiveShips++;
     }
+  // No ship data (old results): nothing to judge, so no activity terms.
+  const activity = alive > 0 ? firing / alive : 1;
+  const movingShare = alive > 0 ? moving / alive : 1;
+  const passive = shipCount > 0 ? passiveShips / shipCount : 0;
+  const short = (v: number, min: number) => (min > 0 ? Math.max(0, (min - v) / min) : 0);
   const target = m.target ?? Math.sqrt(m.band[0] * m.band[1]);
   const err = bandError(med, m.band);
   const centre = Math.log(Math.max(1, med) / target);
@@ -161,7 +184,10 @@ export function matchupStats(m: Matchup, metrics: readonly BattleMetrics[], cfg:
     (lengthTerm +
       L.timeouts * Math.max(0, timeouts - L.allowedTimeouts) +
       L.ammoOut * ammoOut +
-      L.spread * Math.max(0, spread - L.allowedSpread));
+      L.spread * Math.max(0, spread - L.allowedSpread) +
+      L.activity * short(activity, L.minActivity) ** 2 +
+      L.moving * short(movingShare, L.minMoving) ** 2 +
+      L.passive * passive);
   return {
     id: m.id,
     battles: metrics.length,
@@ -175,6 +201,9 @@ export function matchupStats(m: Matchup, metrics: readonly BattleMetrics[], cfg:
     ammoOut,
     sideA: (metrics.filter((x) => x.winner === "a").length + 0.5 * timeouts * metrics.length) / n,
     reasons,
+    activity,
+    moving: movingShare,
+    passive,
     hot: shipTime > 0 ? hot / shipTime : 0,
     brownout: shipTime > 0 ? brown / shipTime : 0,
     ammoLeft: metrics.length ? metrics.reduce((a, x) => a + (x.ammoLeftA + x.ammoLeftB) / 2, 0) / n : 1,
@@ -226,6 +255,16 @@ export function evaluate(
     ),
     ammoOut: sum((s, m) => (m.weight ?? 1) * cfg.loss.ammoOut * s.ammoOut),
     spread: sum((s, m) => (m.weight ?? 1) * cfg.loss.spread * Math.max(0, s.spread - cfg.loss.allowedSpread)),
+    activity: sum((s, m) => {
+      const L = cfg.loss;
+      const short = (v: number, min: number) => (min > 0 ? Math.max(0, (min - v) / min) : 0);
+      return (
+        (m.weight ?? 1) *
+        (L.activity * short(s.activity, L.minActivity) ** 2 +
+          L.moving * short(s.moving, L.minMoving) ** 2 +
+          L.passive * s.passive)
+      );
+    }),
     drift: cfg.loss.drift * drift(cfg, p),
     viability: via?.penalty ?? 0,
     rules: cfg.rules.weight * rulesLoss(rules),

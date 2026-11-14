@@ -12,6 +12,8 @@ export interface ControlIntent {
   readonly faceAngle?: number | undefined;
   /** One-shot speed-kill command for this tick. */
   readonly speedKill?: "keep" | "flip" | "cancel" | undefined;
+  /** One-shot course-matching command (C, V, Shift+V): start, change or stop matching a target. */
+  readonly match?: MatchCommand | undefined;
   /**
    * Arcade flight only: the world velocity the ship should hold (the AI steers by velocity). Takes the place
    * of `thrust`.
@@ -23,8 +25,35 @@ export const IDLE_INTENT: ControlIntent = { thrust: ZERO, rotate: 0 };
 
 export type SpeedKillMode = "off" | "keep" | "flip";
 
+/**
+ * Course matching: hold the target's velocity ("velocity", C), or also close to `distance` metres and stay
+ * there ("distance", V). Locked matching survives manual steering: the ship goes back to it as soon as the
+ * pilot lets go.
+ */
+export interface MatchState {
+  readonly kind: "velocity" | "distance";
+  readonly targetId: string;
+  readonly distance: number;
+  readonly lock: boolean;
+}
+
+/** `toggle`: the same kind again switches matching off (pressing C or V twice). */
+export type MatchCommand = (MatchState & { readonly toggle?: boolean }) | "cancel";
+
 export interface FlightState {
   speedKill: SpeedKillMode;
+  match?: MatchState | null;
+}
+
+/** Applies this tick's matching command (before the reference velocity is read). */
+export function updateMatch(intent: ControlIntent, state: FlightState): void {
+  const c = intent.match;
+  if (intent.speedKill) state.match = null; // X stops the ship: it replaces matching
+  if (!c) return;
+  if (c === "cancel") state.match = null;
+  else if (c.toggle && state.match?.kind === c.kind && state.match.targetId === c.targetId)
+    state.match = null;
+  else state.match = { kind: c.kind, targetId: c.targetId, distance: c.distance, lock: c.lock };
 }
 
 export interface FlightContext {
@@ -56,6 +85,8 @@ export const FLIGHT = {
   killTau: 0.1,
   /** Speed-kill completion threshold (m/s). */
   killEpsilon: 0.05,
+  /** Course matching turns the ship to burn only for errors above this relative speed (m/s). */
+  matchFlipSpeed: 5,
   /** Flip-and-burn: start burning when heading error is below this (rad). */
   flipAlignTolerance: (10 * Math.PI) / 180,
   /**
@@ -150,6 +181,12 @@ export interface FlightCommand {
 export function flightControl(intent: ControlIntent, state: FlightState, ctx: FlightContext): FlightCommand {
   const thrusting = intent.thrust.x !== 0 || intent.thrust.y !== 0;
 
+  // Course matching runs on the speed-kill machinery against the target's (reference) velocity. Manual
+  // steering ends it, unless it is locked: then it only pauses while the pilot steers.
+  if (state.match && thrusting && !state.match.lock) state.match = null;
+  const matching = !!state.match && !thrusting;
+  if (matching && state.speedKill === "off") state.speedKill = "keep";
+
   // Speed-kill state machine (spec §6.7).
   if (intent.speedKill === "cancel") state.speedKill = "off";
   else if (intent.speedKill === "keep") state.speedKill = state.speedKill === "keep" ? "off" : "keep";
@@ -158,8 +195,18 @@ export function flightControl(intent: ControlIntent, state: FlightState, ctx: Fl
   if (state.speedKill === "flip" && intent.rotate !== 0) state.speedKill = "keep";
 
   const vRel = sub(ctx.velocity, ctx.referenceVelocity);
-  if (state.speedKill !== "off" && length(vRel) < FLIGHT.killEpsilon) state.speedKill = "off";
-  if (state.speedKill === "keep" && intent.rotate === 0) {
+  // Done braking: speed kill switches off; matching keeps holding (without turning the ship).
+  if (state.speedKill !== "off" && length(vRel) < FLIGHT.killEpsilon)
+    state.speedKill = matching ? "keep" : "off";
+  // While matching, small corrections use whatever thrust points the right way, without turning the ship
+  // around each time (it would spin endlessly holding station).
+  if (matching && state.speedKill === "flip" && length(vRel) < FLIGHT.matchFlipSpeed)
+    state.speedKill = "keep";
+  if (
+    state.speedKill === "keep" &&
+    intent.rotate === 0 &&
+    !(matching && length(vRel) < FLIGHT.matchFlipSpeed)
+  ) {
     // X is "auto": without enough retro thrust along the velocity, turn and burn instead.
     const t = speedKillTimes(vRel, ctx);
     if (t.keep > FLIGHT.keepSlowFactor * t.flip) state.speedKill = "flip";

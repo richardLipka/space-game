@@ -73,8 +73,8 @@ paste or drop a ship file / `SG1:` code anywhere to import
 **Flight:**
 
 W/S thrust · A/D strafe · Q/E rotate · F face cursor · X speed kill (turns to burn if it must) · Shift+X flip and burn ·
-Tab switch ship · C camera mode · wheel zoom · middle-drag pan (free camera) · +/− or [ ] time scale (every flight starts at ×1; numpad +/− work too) ·
-Space pause · T theme · V overlays · ? help · Esc back to editor ·
+Tab switch ship · Shift+C camera mode · C match the target's course and speed · V also close to a distance and keep it (, . change it; Shift+V locks it) · wheel zoom · middle-drag pan (free camera) · +/− or [ ] time scale (every flight starts at ×1; numpad +/− work too) ·
+Space pause · T theme · Shift+T overlays · ? help · Esc back to editor ·
 P power priority panel · R radiators in/out · N show resource networks · hold Y + click: destroy a part (debug) ·
 LMB fire selected groups at the cursor · 1–9 select weapon group (the keys above the letters on any keyboard layout, or the numpad; Shift adds) · G cycle group mode (manual/hold/AI) · RMB target a ship ·
 M launch a missile (Shift+M salvo) · H launch a drone (Shift+H all); each launcher and hangar is listed on the right with its reload · O PD also fires at ships ·

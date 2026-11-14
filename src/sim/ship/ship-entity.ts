@@ -3,7 +3,13 @@ import { weaponHeatRate, weaponPowerDemand } from "../../data/balance/model";
 import { arcadeControl, type FlightModel } from "../flight/arcade";
 import type { PowerGroup, ShipDesign, WeaponGroupSettings } from "../../data/schemas/design";
 import { allocate, wrenchOf, type Wrench } from "../flight/allocator";
-import { flightControl, IDLE_INTENT, type ControlIntent, type FlightState } from "../flight/controller";
+import {
+  flightControl,
+  IDLE_INTENT,
+  updateMatch,
+  type ControlIntent,
+  type FlightState,
+} from "../flight/controller";
 import {
   buildPropulsion,
   capabilities,
@@ -123,7 +129,10 @@ export class Ship {
   /** Flight model the ship flew under on the last tick (set by the world). */
   flightModel: FlightModel = "newtonian";
   lastDesired: Wrench = { fx: 0, fy: 0, torque: 0 };
-  /** Speed-kill reference velocity provider (spec §6.7 hook): world zero for now. */
+  /**
+   * Speed-kill reference velocity provider (spec §6.7 hook): world zero, or, while course matching, the
+   * target's velocity plus the closing speed (set by the world).
+   */
   referenceVelocity: () => Vec2 = () => ZERO;
 
   /** Structural connections (destroyed parts stay in place as wrecks; only ejection changes them). */
@@ -458,6 +467,7 @@ export class Ship {
       arcade = desired = cmd.wrench;
       u = cmd.throttles;
     } else {
+      updateMatch(this.intent, this.flight);
       const cmd = flightControl(this.intent, this.flight, {
         mass: mp.mass,
         inertia: mp.inertia,
@@ -495,7 +505,8 @@ export class Ship {
     );
     this.lastDesired = desired;
     this.lastWrench = arcade ?? wrenchOf(acts, u);
-    if (this.intent.speedKill) this.intent = { ...this.intent, speedKill: undefined };
+    if (this.intent.speedKill || this.intent.match)
+      this.intent = { ...this.intent, speedKill: undefined, match: undefined };
     return this.lastWrench;
   }
 

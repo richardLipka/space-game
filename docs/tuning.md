@@ -45,6 +45,16 @@ A battle stops early when:
   timeout and as that long.
 - Nobody can fight any more (`timeout-disarmed` or `timeout-out-of-ammo`). Ships that can still fly are not
   defeated (spec §8.1), so such a battle would otherwise run out the clock.
+- More than `stopAfterDisabled` (2) ships are out of the fight: defeated, or with nothing left to fire
+  (`defeat-limit`). A group fight is decided by then; its length counts as it is, not as a timeout, and the
+  side with more ships left wins.
+
+While it runs, the observer records for every ship:
+
+- **Alive time:** seconds it was undefeated.
+- **Firing time:** seconds within 3 s of one of its weapons firing.
+- **Manoeuvring time:** seconds it accelerated harder than 0.5 m/s² or turned faster than 0.05 rad/s.
+  Coasting does not count.
 
 ## The loss
 
@@ -57,8 +67,18 @@ One number per parameter set; lower is better and 0 means every matchup is on ta
 - **ammoOut**: `ammoOut × share of battles ending with nobody able to fire for lack of ammunition`.
 - **spread**: `spread × max(0, IQR/median − allowedSpread)`. Fights of the same ships should not swing
   between a 10 s alpha strike and a 5-minute brawl.
+- **activity**: ships should fight and fly, not wait.
+  - `activity × s(fire share, minActivity)²`, where fire share = firing time ÷ alive time, and
+    `s(v, min) = max(0, (min − v)/min)`.
+  - Plus `moving × s(manoeuvring share, minMoving)²`.
+  - Plus `passive × share of ships that fired less than 5 % of their alive time`: every ship should take
+    part.
+  - Defaults: activity 2 (min 0.4), moving 1 (min 0.6), passive 1.
+  - Today's fleet fires 40–80 % of the time and manoeuvres 70–95 %, so these terms only stop the GA from
+    trading length for passive stand-offs.
 
-The terms are weighted by each matchup's `weight` and averaged. **drift** adds
+The terms are weighted by each matchup's `weight` and averaged. The table `eval` prints shows each
+matchup's fire, manoeuvring and idle shares. **drift** adds
 `drift × Σ (gene position − start position)²` so the search does not wander from the current values
 without reason. **viability** adds the design-margin shortfall (see Design viability below). All weights
 are in `loss` and `viability` in the config.

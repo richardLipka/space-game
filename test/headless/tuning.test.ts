@@ -52,6 +52,41 @@ const metric = (
   ships: [],
 });
 
+describe("tuning loss: activity and manoeuvring", () => {
+  const ship = (alive: number, firing: number, moving: number) => ({
+    design: "x",
+    side: "a" as const,
+    hot: 0,
+    brownout: 0,
+    alive,
+    moving,
+    firing,
+    defeated: false,
+    defeatReason: null,
+    lost: {},
+  });
+  const m = DEFAULT_CONFIG.matchups.find((x) => x.id === "large-rapier")!;
+  const at = (ships: ReturnType<typeof ship>[]) =>
+    matchupStats(m, [{ ...metric(240), ships }], DEFAULT_CONFIG);
+
+  it("busy ships cost nothing; idle, drifting or silent ships cost", () => {
+    const busy = at([ship(200, 150, 180), ship(200, 120, 160)]);
+    expect(busy.loss).toBeLessThan(0.01);
+    const idle = at([ship(200, 5, 180), ship(200, 120, 160)]);
+    expect(idle.passive).toBe(0.5);
+    expect(idle.loss).toBeGreaterThan(busy.loss + 0.3);
+    const drifting = at([ship(200, 150, 20), ship(200, 120, 30)]);
+    expect(drifting.loss).toBeGreaterThan(busy.loss + 0.3);
+  });
+
+  it("a run stopped at the disabled-ship limit counts its length, not a timeout", () => {
+    const g = DEFAULT_CONFIG.matchups.find((x) => x.id === "large-group")!;
+    const s = matchupStats(g, [metric(220, "draw", "defeat-limit")], DEFAULT_CONFIG);
+    expect(s.timeouts).toBe(0);
+    expect(s.median).toBe(220);
+  });
+});
+
 describe("tuning genome", () => {
   it("the default genes are valid and start at the game's current values", () => {
     expect(checkGenes(genes)).toEqual([]);

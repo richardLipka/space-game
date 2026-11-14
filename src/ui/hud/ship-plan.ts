@@ -49,13 +49,16 @@ export function systemStatus(ship: Ship): SystemStatus[] {
 }
 
 /**
- * Schematic of a ship, nose up, every part coloured by its remaining hit points (the pilot's own ship on
- * the left of the screen, the target on the right). Geometry is rebuilt only when the ship or its part list
- * changes; each frame only the damage classes are refreshed.
+ * Schematic of a ship, turned the way the ship lies in the world (the camera keeps north up), every part
+ * coloured by its remaining hit points (the pilot's own ship on the left of the screen, the target on the
+ * right). Geometry is rebuilt only when the ship or its part list changes; each frame only the heading and
+ * the damage classes are refreshed.
  */
 export class ShipPlan {
   readonly el: SVGSVGElement;
   private key = "";
+  private readonly group = document.createElementNS(SVG_NS, "g");
+  private angleKey = "";
   private readonly polys = new Map<string, { el: SVGPolygonElement; cls: string }>();
   /** Part under the mouse, if any. */
   hoverUid: string | null = null;
@@ -70,7 +73,8 @@ export class ShipPlan {
     this.el.addEventListener("mouseleave", () => (this.hoverUid = null));
   }
 
-  update(ship: Ship | null, highlightUid: string | null = null): void {
+  /** `angle`: the ship's heading in the world (rad, counter-clockwise from +x). */
+  update(ship: Ship | null, highlightUid: string | null = null, angle = 0): void {
     if (!ship) {
       if (this.key !== "") {
         this.key = "";
@@ -82,6 +86,12 @@ export class ShipPlan {
     }
     const key = `${ship.id}|${ship.parts.map((p) => p.uid).join()}`;
     if (key !== this.key) this.build(ship, key);
+    // SVG y points down, so a counter-clockwise heading is a negative SVG rotation.
+    const ak = (-(angle * 180) / Math.PI).toFixed(1);
+    if (ak !== this.angleKey) {
+      this.angleKey = ak;
+      this.group.setAttribute("transform", `rotate(${ak})`);
+    }
     for (const p of ship.parts) {
       const poly = this.polys.get(p.uid);
       if (!poly) continue;
@@ -93,26 +103,35 @@ export class ShipPlan {
     }
   }
 
-  /** Ship frame (x forward, y left) → plan (nose up): x' = −y, y' = −x. */
+  /**
+   * Ship frame (x forward, y left) → SVG (y down) around the plan's centre: x' = x − cx, y' = −(y − cy).
+   * The view box is a square around the centre big enough for any heading.
+   */
   private build(ship: Ship, key: string): void {
     this.key = key;
+    this.angleKey = "";
     this.polys.clear();
     this.hoverUid = null;
     let minX = Infinity;
     let maxX = -Infinity;
     let minY = Infinity;
     let maxY = -Infinity;
-    const nodes: SVGPolygonElement[] = [];
-    for (const p of ship.parts) {
-      const outline = ship.layout.outlines.get(p.uid);
-      if (!outline) continue;
-      const pts = outline.map((v) => ({ x: -v.y, y: -v.x }));
-      for (const v of pts) {
+    for (const p of ship.parts)
+      for (const v of ship.layout.outlines.get(p.uid) ?? []) {
         minX = Math.min(minX, v.x);
         maxX = Math.max(maxX, v.x);
         minY = Math.min(minY, v.y);
         maxY = Math.max(maxY, v.y);
       }
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    let r = 0;
+    const nodes: SVGPolygonElement[] = [];
+    for (const p of ship.parts) {
+      const outline = ship.layout.outlines.get(p.uid);
+      if (!outline) continue;
+      const pts = outline.map((v) => ({ x: v.x - cx, y: -(v.y - cy) }));
+      for (const v of pts) r = Math.max(r, Math.hypot(v.x, v.y));
       const poly = document.createElementNS(SVG_NS, "polygon");
       poly.setAttribute("points", pts.map((v) => `${v.x.toFixed(3)},${v.y.toFixed(3)}`).join(" "));
       poly.setAttribute("data-uid", p.uid);
@@ -123,11 +142,12 @@ export class ShipPlan {
       this.el.replaceChildren();
       return;
     }
-    const pad = Math.max(maxX - minX, maxY - minY) * 0.06 + 0.3;
+    const half = r * 1.04 + 0.3;
     this.el.setAttribute(
       "viewBox",
-      `${(minX - pad).toFixed(2)} ${(minY - pad).toFixed(2)} ${(maxX - minX + 2 * pad).toFixed(2)} ${(maxY - minY + 2 * pad).toFixed(2)}`,
+      `${(-half).toFixed(2)} ${(-half).toFixed(2)} ${(2 * half).toFixed(2)} ${(2 * half).toFixed(2)}`,
     );
-    this.el.replaceChildren(...nodes);
+    this.group.replaceChildren(...nodes);
+    this.el.replaceChildren(this.group);
   }
 }

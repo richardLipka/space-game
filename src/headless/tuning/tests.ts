@@ -215,8 +215,14 @@ export function checkRules(results: ReadonlyMap<string, number>): RuleResult[] {
   return TUNING_RULES.map((rule) => {
     const value = rule.value(results);
     const width = Math.max(1e-9, rule.max - rule.min);
+    // A hair of tolerance: shares like 1 − 0.9 are not exactly 0.1 in floating point.
+    const eps = 1e-9;
     const miss =
-      value < rule.min ? (rule.min - value) / width : value > rule.max ? (value - rule.max) / width : 0;
+      value < rule.min - eps
+        ? (rule.min - value) / width
+        : value > rule.max + eps
+          ? (value - rule.max) / width
+          : 0;
     return { rule, value, ok: miss === 0, miss };
   });
 }

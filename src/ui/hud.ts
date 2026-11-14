@@ -46,6 +46,9 @@ export interface HudInfo {
   readonly cameraMode: string;
   readonly theme: string;
   readonly faceCursor: boolean;
+  /** Distance V keeps from the target (m), and a short note (e.g. "select a target first"). */
+  readonly keepDistance?: number;
+  readonly matchNote?: string | null;
   readonly showHelp: boolean;
   readonly fps: number;
   readonly title?: string;
@@ -64,6 +67,18 @@ export interface HudInfo {
   readonly eject?: { readonly hoverUid: string | null } | null;
 }
 
+/** Course matching: what C / V / Shift+V are doing, the distance V keeps, or a note. */
+function matchChip(ship: Ship, info: HudInfo): string {
+  const m = ship.flight.match;
+  const d = metres(m?.distance ?? info.keepDistance ?? 1000);
+  if (info.matchNote) return `<span class="ck-chip warn" data-testid="match">${esc(info.matchNote)}</span>`;
+  if (!m)
+    return `<span class="ck-chip" data-testid="match" title="C match the target's course · V also keep the distance (, . change it) · Shift+V lock">MATCH <b>off</b> · ${d}</span>`;
+  const name = info.world.hasShip(m.targetId) ? shortName(info.world.getShip(m.targetId)) : "?";
+  const what = m.kind === "velocity" ? "course" : `keep ${d}`;
+  return `<span class="ck-chip on" data-testid="match">MATCH <b>${what}${m.lock ? " · lock" : ""}</b> ${esc(name)}</span>`;
+}
+
 const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
 const shortName = (s: Ship) => s.design.name.split(" (")[0]!;
 const kw = (w: number) => (w >= 1e6 ? `${(w / 1e6).toFixed(1)} MW` : `${(w / 1000).toFixed(0)} kW`);
@@ -78,6 +93,8 @@ const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const wrapDeg = (d: number) => ((((d + 180) % 360) + 360) % 360) - 180;
 
 const HELP = `FLIGHT    W/S thrust · A/D strafe · Q/E rotate · F face cursor · X speed kill · Shift+X flip & burn
+          C match the target's course and speed · V also close to a distance and keep it (, . change it)
+          Shift+V lock: keeps the distance even after you steer (press again to unlock)
 WEAPONS   LMB fire · 1–9 weapon group (Shift adds) · G group mode · RMB target (or click a contact)
 ORDNANCE  M launch a missile (Shift+M salvo) · Z missile type · H launch a drone (Shift+H all) · U drone type
           O PD also fires at ships · smart missiles steer, rockets fly straight where the launcher points
@@ -85,7 +102,7 @@ FLEET     J follow · K attack my target · L hold · Ctrl+click or click a cont
           contacts panel: Help me, Protect me, ★ priority target, orders per ship
 SHIP      P power priority · R radiators · I drive (all / ion / chemical engines) · N networks · B eject mode (click a part) · Shift+B eject all wrecks
           Tab switch ship · hold Y + click: destroy part (debug)
-VIEW      C camera · wheel zoom · middle-drag pan (free cam) · V overlays · T theme
+VIEW      Shift+C camera · wheel zoom · middle-drag pan (free cam) · Shift+T overlays · T theme
 MODELS    Newtonian: thrust adds speed, brake by burning the other way. Arcade (pick it before a test flight
           or a skirmish): hold W to fly up to the top speed, release to stop, turning turns where you fly
 TIME      +/- or [ ] time scale (×1 at start) · Space pause · ? help · Esc editor`;
@@ -502,6 +519,7 @@ export class Hud {
         ? `<span class="ck-chip on">AUTO BRAKE <b>on</b></span>`
         : `<span class="ck-chip${sk === "off" ? "" : " on"}">SPEED KILL <b data-testid="speedkill">${sk}</b></span>`) +
         `<span class="ck-chip${info.faceCursor ? " on" : ""}">FACE CURSOR <b>${info.faceCursor ? "on" : "off"}</b></span>` +
+        matchChip(ship, info) +
         (ship.hasIonEngines
           ? `<span class="ck-chip${ship.driveMode === "all" ? "" : " on"}" data-testid="drive-mode" title="I: all engines, ion only, chemical only">DRIVE <b>${ship.driveMode}</b></span>`
           : "") +
@@ -512,7 +530,7 @@ export class Hud {
 
     // ---- Own ship plan ----
     const eject = info.eject ?? null;
-    this.ownPlan.update(ship, eject?.hoverUid ?? null);
+    this.ownPlan.update(ship, eject?.hoverUid ?? null, world.physics.getBodyState(ship.id).angle);
     const own = hullFraction(ship);
     html(
       this.ownHull,
@@ -554,7 +572,7 @@ export class Hud {
 
     // ---- Target ----
     const target = info.targetId && world.hasShip(info.targetId) ? world.getShip(info.targetId) : null;
-    this.targetPlan.update(target);
+    this.targetPlan.update(target, null, target ? world.physics.getBodyState(target.id).angle : 0);
     cls(this.targetPanel, `ck-panel ck-target${target ? "" : " empty"}`);
     if (target) {
       const ts = world.physics.getBodyState(target.id);

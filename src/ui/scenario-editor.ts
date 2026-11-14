@@ -112,19 +112,40 @@ export class ScenarioEditor {
       b.addEventListener("click", f);
       return b;
     };
+    // File menu: a floating drop-down like the ship editor's Export menu.
+    const file = el("details", { class: "sc-menu" }, el("summary", { "data-testid": "sc-file" }, "File"));
+    file.append(
+      btn("New scenario", "sc-new", () => this.newScenario()),
+      btn("Open…", "sc-open", () => void this.showOpen()),
+      btn("Save in this browser", "sc-save", () => this.save()),
+      btn("Export JSON file", "sc-export", () => this.exportJson()),
+    );
+    file.addEventListener("click", (e) => {
+      if ((e.target as HTMLElement).closest("button")) file.removeAttribute("open");
+    });
+    const view = el("details", { class: "sc-menu" }, el("summary", { "data-testid": "sc-view" }, "View"));
+    view.append(
+      btn("Fit the arena", "sc-fit", () => {
+        this.fit();
+        this.render();
+      }),
+      btn("Zoom in", "sc-zoom-in", () => this.zoom(0.7)),
+      btn("Zoom out", "sc-zoom-out", () => this.zoom(1 / 0.7)),
+    );
+    view.addEventListener("click", (e) => {
+      if ((e.target as HTMLElement).closest("button")) view.removeAttribute("open");
+    });
     const toolbar = el(
       "header",
-      { class: "ed-toolbar sc-toolbar" },
-      el("span", { class: "ed-title" }, "SCENARIO EDITOR"),
+      { class: "sc-toolbar" },
+      el("span", { class: "sc-title" }, "SCENARIO EDITOR"),
       name,
-      btn("New", "sc-new", () => this.newScenario()),
-      btn("Open", "sc-open", () => void this.showOpen()),
-      btn("Save", "sc-save", () => this.save(), "Save in this browser"),
-      btn("Export", "sc-export", () => this.exportJson(), "Download as JSON"),
-      el("span", { class: "ed-sep" }),
+      file,
+      view,
+      el("span", { class: "sc-sep" }),
       btn("↶", "sc-undo", () => this.model.undo() && this.render(), "Undo (Ctrl+Z)"),
       btn("↷", "sc-redo", () => this.model.redo() && this.render(), "Redo (Ctrl+Y)"),
-      el("span", { class: "ed-sep" }),
+      el("span", { class: "sc-sep" }),
       btn("Watch", "sc-watch", () => this.launch("watch"), "Watch the AI ships fight"),
       btn("Play", "sc-play", () => this.launch("play"), "Play it with the ship open in the ship editor"),
       btn("Ship editor", "sc-back", () => services.back()),
@@ -133,11 +154,14 @@ export class ScenarioEditor {
       class: "ed-dialog",
       "data-testid": "scenario-open",
     }) as HTMLDialogElement;
+    // Full screen like the ship editor: the map underneath, toolbar and panels floating over it.
     this.root = el(
       "div",
-      { class: "sc-root", "data-testid": "scenario-editor", hidden: "" },
+      { class: "sc-editor sc-root", "data-testid": "scenario-editor", hidden: "" },
+      this.map,
       toolbar,
-      el("div", { class: "sc-body" }, this.palette, this.map, this.side),
+      this.palette,
+      this.side,
       this.status,
     );
     document.body.append(this.root, this.openDialog);
@@ -177,10 +201,24 @@ export class ScenarioEditor {
       this.view.y - (cy - top - h / 2) * this.view.mpp,
     ];
   }
+  private zoom(f: number): void {
+    this.view.mpp = Math.min(200, Math.max(0.05, this.view.mpp * f));
+    this.render();
+  }
+
+  /** Fits the arena into the map area left free between the floating panels. */
   fit(): void {
     const { w, h } = this.size();
+    const left = this.palette.offsetWidth || 0;
+    const right = this.side.offsetWidth || 0;
+    const top = (this.root.querySelector(".sc-toolbar") as HTMLElement | null)?.offsetHeight ?? 44;
     const a = this.model.scenario.arena;
-    this.view = { x: 0, y: 0, mpp: Math.max(a.width / (w - 40), a.height / (h - 40)) };
+    const mpp = Math.max(
+      a.width / Math.max(200, w - left - right - 40),
+      a.height / Math.max(200, h - top - 68),
+    );
+    // The arena's centre sits in the middle of the free area, not of the screen.
+    this.view = { x: ((right - left) / 2) * mpp, y: ((top - 28) / 2) * mpp, mpp };
   }
 
   // ---------- input ----------
@@ -354,6 +392,7 @@ export class ScenarioEditor {
         height: a.height,
         class: "sc-arena",
         "stroke-width": 1.5 * px,
+        "stroke-dasharray": `${8 * px} ${6 * px}`,
       }),
     );
     const isSel = (r: ItemRef) => this.selected?.kind === r.kind && this.selected.index === r.index;
@@ -447,10 +486,16 @@ export class ScenarioEditor {
     });
   }
 
+  private paletteKey = "";
+  private paletteQuery = "";
+  private readonly openSections = new Set<string>(["Playable", "Test platforms"]);
+
   private renderPalette(): void {
+    const key = `${this.tool}|${this.placing.design}|${this.placing.team}|${this.placing.ai}|${this.paletteQuery}|${this.designs.size}`;
+    if (key === this.paletteKey) return;
+    this.paletteKey = key;
     const tools: [Tool, string][] = [
       ["select", "Select / move"],
-      ["ship", "Ship"],
       ["asteroid", "Asteroid"],
       ["well", "Black hole"],
       ["spawn", "Player spawn"],
@@ -459,26 +504,111 @@ export class ScenarioEditor {
     for (const [t, label] of tools) {
       const b = el(
         "button",
-        { "data-testid": `sc-tool-${t}`, class: this.tool === t ? "active" : "" },
+        { "data-testid": `sc-tool-${t}`, class: `sc-part${this.tool === t ? " active" : ""}` },
         label,
       );
       b.addEventListener("click", () => this.setTool(t));
       items.push(b);
     }
-    items.push(el("h3", {}, "New ship"));
-    items.push(this.designSelect(this.placing.design, (id) => (this.placing.design = id), "sc-place-design"));
-    items.push(this.teamSelect(this.placing.team, (t) => (this.placing.team = t), "sc-place-team"));
-    items.push(this.aiSelect(this.placing.ai, (a) => (this.placing.ai = a), "sc-place-ai"));
-    items.push(el("h3", {}, "New asteroid"));
     items.push(
       this.numberField(
-        "Radius (m)",
+        "Asteroid radius (m)",
         this.placing.asteroid,
         (v) => (this.placing.asteroid = Math.max(5, v)),
         "sc-place-radius",
       ),
     );
+    items.push(el("h3", {}, "Ships"));
+    items.push(this.teamSelect(this.placing.team, (t) => (this.placing.team = t), "sc-place-team"));
+    items.push(this.aiSelect(this.placing.ai, (a) => (this.placing.ai = a), "sc-place-ai"));
+    const search = el("input", {
+      class: "sc-search",
+      placeholder: "Search ships…",
+      "data-testid": "sc-ship-search",
+    }) as HTMLInputElement;
+    search.value = this.paletteQuery;
+    search.addEventListener("input", () => {
+      this.paletteQuery = search.value;
+      const pos = search.selectionStart;
+      this.renderPalette();
+      const again = this.palette.querySelector(".sc-search") as HTMLInputElement | null;
+      again?.focus();
+      if (pos !== null) again?.setSelectionRange(pos, pos);
+    });
+    items.push(search);
+    // Gallery: ships grouped by library section, drawn like the part palette (thumbnail, name, cost).
+    const q = this.paletteQuery.trim().toLowerCase();
+    const by = new Map<string, ShipDesign[]>();
+    for (const d of this.designs.values()) {
+      if (d.drone || (q && !d.name.toLowerCase().includes(q) && !d.id.includes(q))) continue;
+      const sec = designSection(d);
+      by.set(sec, [...(by.get(sec) ?? []), d]);
+    }
+    const cat = this.services.catalogue();
+    const list = el("div", { class: "sc-part-list", "data-testid": "sc-ship-gallery" });
+    for (const section of orderSections(by.keys())) {
+      const ships = by.get(section)!.sort((a, b) => a.name.localeCompare(b.name));
+      const box = el("details", {
+        class: "sc-cat",
+        "data-testid": `sc-gallery-${section}`,
+      }) as HTMLDetailsElement;
+      box.open = q !== "" || this.openSections.has(section);
+      box.addEventListener("toggle", () => {
+        if (q) return;
+        if (box.open) this.openSections.add(section);
+        else this.openSections.delete(section);
+      });
+      box.append(el("summary", {}, section, el("span", { class: "sc-cat-count" }, String(ships.length))));
+      for (const d of ships) {
+        const cost = d.parts.reduce((t, p) => t + (cat.has(p.partId) ? cat.get(p.partId).def.cost : 0), 0);
+        const on = this.tool === "ship" && this.placing.design === d.id;
+        const item = el("button", {
+          class: `sc-part${on ? " active" : ""}`,
+          "data-testid": `sc-ship-${d.id}`,
+          title: d.description ?? d.id,
+        });
+        item.append(
+          this.shipThumb(d.id),
+          el("span", { class: "sc-part-name" }, d.name),
+          el("span", { class: "sc-part-cost" }, String(cost)),
+        );
+        item.addEventListener("click", () => {
+          this.placing.design = d.id;
+          this.setTool("ship");
+        });
+        box.append(item);
+      }
+      list.append(box);
+    }
+    if (by.size === 0) list.append(el("p", { class: "dim" }, `No ships match "${this.paletteQuery}".`));
+    items.push(list);
     this.palette.replaceChildren(...items);
+  }
+
+  /** Small outline of a design (nose to the right), like the part thumbnails. */
+  private shipThumb(designId: string, size = 28): SVGSVGElement {
+    const polys = this.shipOutline(designId);
+    const pts = polys.flat();
+    const t = svg("svg", { width: size, height: size, class: "sc-thumb" }) as SVGSVGElement;
+    if (!pts.length) return t;
+    const xs = pts.map((p) => p[0]!);
+    const ys = pts.map((p) => p[1]!);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    const span = Math.max(maxX - minX, maxY - minY) || 1;
+    const pad = span * 0.08;
+    t.setAttribute("viewBox", `${minX - pad} ${-maxY - pad} ${span + 2 * pad} ${span + 2 * pad}`);
+    for (const poly of polys)
+      t.append(
+        svg("polygon", {
+          points: poly.map(([x, y]) => `${x},${-y!}`).join(" "),
+          class: "thumb-fill",
+          "vector-effect": "non-scaling-stroke",
+        }),
+      );
+    return t;
   }
 
   private designSelect(value: string, onChange: (id: string) => void, testid: string): HTMLElement {

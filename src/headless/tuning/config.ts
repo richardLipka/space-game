@@ -47,6 +47,17 @@ export interface LossWeights {
   readonly allowedSpread: number;
   /** Pull back toward the starting values (per gene, squared distance in range units). */
   readonly drift: number;
+  /**
+   * Activity: ships should fight, not wait. Loss per squared shortfall of the share of their alive time
+   * ships spend firing (within 3 s of a shot) below `minActivity`.
+   */
+  readonly activity: number;
+  readonly minActivity: number;
+  /** Manoeuvring: loss per squared shortfall of the share of alive time ships move or turn below `minMoving`. */
+  readonly moving: number;
+  readonly minMoving: number;
+  /** Per share of ships that hardly fire at all (under 5 % of their alive time): every ship should take part. */
+  readonly passive: number;
 }
 
 /**
@@ -71,6 +82,8 @@ export interface TuningConfig {
   readonly seeds: number;
   /** Time limit per battle (s); a fight still running then counts as this long and as a timeout. */
   readonly timeLimit: number;
+  /** A measuring battle ends once more than this many ships are disabled (a group fight is decided). */
+  readonly stopAfterDisabled: number;
   readonly loss: LossWeights;
   readonly viability: Viability;
   /** Balance rules measured by the tuning tests (src/headless/tuning/tests.ts). */
@@ -163,6 +176,7 @@ export const DEFAULT_CONFIG: TuningConfig = {
   matchups: DEFAULT_MATCHUPS,
   seeds: 4,
   timeLimit: 600,
+  stopAfterDisabled: 2,
   loss: {
     centre: 0.25,
     timeouts: 2,
@@ -171,6 +185,11 @@ export const DEFAULT_CONFIG: TuningConfig = {
     spread: 0.3,
     allowedSpread: 1,
     drift: 0.05,
+    activity: 2,
+    minActivity: 0.4,
+    moving: 1,
+    minMoving: 0.6,
+    passive: 1,
   },
   viability: { refuseBelow: 0.6, weight: 1, refusedLoss: 5 },
   rules: { weight: 2, runs: 20 },

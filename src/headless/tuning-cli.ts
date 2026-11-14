@@ -132,12 +132,12 @@ function table(cfg: TuningConfig, e: Evaluation): string {
     `loss ${e.loss.toFixed(3)} (${Object.entries(e.parts)
       .map(([k, v]) => `${k} ${v.toFixed(3)}`)
       .join(", ")}); ${e.inBand}/${e.matchups.length} matchups in band`,
-    `${pad("matchup", 15)} ${pad("band", 9)} ${pad("median", 7)} ${pad("lengths (s)", 26)} ${pad("t/o", 4)} ${pad("hot", 4)} ${pad("brwn", 4)} ${pad("ammo", 4)} ${pad("msl l/d/h", 10)} end reasons`,
+    `${pad("matchup", 15)} ${pad("band", 9)} ${pad("median", 7)} ${pad("lengths (s)", 26)} ${pad("t/o", 4)} ${pad("fire", 4)} ${pad("move", 4)} ${pad("idle", 4)} ${pad("hot", 4)} ${pad("brwn", 4)} ${pad("ammo", 4)} ${pad("msl l/d/h", 10)} end reasons`,
   ];
   for (const m of e.matchups) {
     const mark = m.inBand ? " " : m.median < m.band[0] ? "↓" : "↑";
     rows.push(
-      `${pad(m.id, 15)} ${pad(`${m.band[0]}-${m.band[1]}`, 9)} ${pad(`${m.median.toFixed(0)}${mark}`, 7)} ${pad(m.lengths.map((x) => x.toFixed(0)).join(","), 26)} ${pad(pct(m.timeouts), 4)} ${pad(pct(m.hot), 4)} ${pad(pct(m.brownout), 4)} ${pad(pct(m.ammoLeft), 4)} ${pad(`${m.missiles.launched}/${m.missiles.down}/${m.missiles.hits}`, 10)} ${Object.entries(
+      `${pad(m.id, 15)} ${pad(`${m.band[0]}-${m.band[1]}`, 9)} ${pad(`${m.median.toFixed(0)}${mark}`, 7)} ${pad(m.lengths.map((x) => x.toFixed(0)).join(","), 26)} ${pad(pct(m.timeouts), 4)} ${pad(pct(m.activity), 4)} ${pad(pct(m.moving), 4)} ${pad(pct(m.passive), 4)} ${pad(pct(m.hot), 4)} ${pad(pct(m.brownout), 4)} ${pad(pct(m.ammoLeft), 4)} ${pad(`${m.missiles.launched}/${m.missiles.down}/${m.missiles.hits}`, 10)} ${Object.entries(
         m.reasons,
       )
         .map(([k, v]) => `${k.replace("timeout-", "t/o-")}×${v}`)

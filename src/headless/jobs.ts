@@ -52,6 +52,8 @@ export type Job =
       readonly jitter?: { readonly position: number; readonly angle: number };
       /** End the battle as soon as nobody can fight any more (it would only run out the clock). */
       readonly stopWhenDisarmed?: boolean;
+      /** End the battle once more than this many ships are disabled (tuning: a group fight is decided). */
+      readonly stopAfterDisabled?: number;
     }
   | {
       /** One run of a tuning test (src/headless/tuning/tests.ts): its measured value. */
@@ -141,13 +143,22 @@ function runJobWith(job: Job): JobResult {
     applySkirmishOrders(battle, sk, job.setup);
     const obs = new BattleObserver(battle.world, battle.allyShips, battle.enemyShips);
     const ticks = Math.round(job.timeLimit * 60);
+    let atLimit = false;
     for (let i = 0; i < ticks && battle.status === "running"; i++) {
       battle.world.step();
       updateBattle(battle);
       obs.tick(1 / 60);
       if (job.stopWhenDisarmed && i % 60 === 59 && !obs.undecided()) break;
+      if (job.stopAfterDisabled !== undefined && i % 30 === 29 && obs.disabled() > job.stopAfterDisabled) {
+        atLimit = battle.status === "running";
+        break;
+      }
     }
-    return { kind: "skirmish", job, result: { label: job.label, seed: job.seed, metrics: obs.finish() } };
+    return {
+      kind: "skirmish",
+      job,
+      result: { label: job.label, seed: job.seed, metrics: obs.finish(atLimit) },
+    };
   }
   const profile = aiProfile(job.profile);
   if (job.kind === "match") {

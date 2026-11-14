@@ -19,6 +19,7 @@ import { EXPLOSION } from "./combat/constants";
 import { Ship } from "./ship/ship-entity";
 import type { ControlIntent } from "./flight/controller";
 import type { FlightModel } from "./flight/arcade";
+import { capabilities } from "./flight/propulsion";
 import {
   applyContactDamage,
   CombatState,
@@ -31,6 +32,12 @@ import { stepMissiles } from "./combat/missiles";
 import { controlDrones, launchDrones, updateDroneLinks } from "./drones/drones";
 import { createAiState, runAi, type AiState, type Order } from "./ai/brain";
 import type { AiProfile } from "../data/schemas/ai";
+
+/**
+ * Course matching (V): share of the strongest thrust planned for closing, the fastest closing speed (m/s),
+ * and the closing speed per metre of error near the set distance (1/s).
+ */
+export const MATCH = { accelShare: 0.3, maxClosing: 150, gain: 0.1 } as const;
 
 export interface WorldConfig {
   readonly seed: number;
@@ -188,9 +195,41 @@ export class World {
       for (const piece of pieces) this.physics.addPolygon(id, { vertices: piece, density: 1, tag });
     }
     this.physics.setMassProps(id, ship.massProps);
+    ship.referenceVelocity = () => this.matchReference(ship);
     this.ships.set(id, ship);
     this.sortedShips = null;
     return ship;
+  }
+
+  /**
+   * Course matching (C / V): the velocity the ship should hold relative to the world. The target's own
+   * velocity, plus, when keeping a distance, a closing (or opening) speed along the line to the target that
+   * the ship can still brake from: √(2·a·|error|) with a modest share of its strongest thrust, at most
+   * `MATCH.maxClosing`. Matching ends when the target is gone or defeated.
+   */
+  private matchReference(ship: Ship): Vec2 {
+    const m = ship.flight.match;
+    if (!m) return ZERO;
+    const target = this.ships.get(m.targetId);
+    if (!target || target.defeated || target === ship) {
+      ship.flight.match = null;
+      return ZERO;
+    }
+    const tv = this.physics.getBodyState(target.id).linearVelocity;
+    if (m.kind === "velocity") return tv;
+    const me = this.physics.getWorldCenter(ship.id);
+    const d = sub(this.physics.getWorldCenter(target.id), me);
+    const dist = length(d);
+    if (dist < 1e-6) return tv;
+    const caps = capabilities(ship.propulsion.actuators);
+    const a = (MATCH.accelShare * Math.max(caps.fwd, caps.back, caps.left, caps.right)) / ship.massProps.mass;
+    const err = dist - m.distance;
+    // Near the set distance the closing speed is proportional to the error, so the ship settles instead of
+    // overshooting back and forth (√ has an infinite slope at zero).
+    const closing =
+      Math.sign(err) *
+      Math.min(MATCH.maxClosing, Math.sqrt(2 * a * Math.abs(err)), MATCH.gain * Math.abs(err));
+    return add(tv, scale(d, closing / dist));
   }
 
   addGravityWell(well: GravityWellState): void {

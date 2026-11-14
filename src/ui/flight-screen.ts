@@ -1,7 +1,7 @@
 import type { Application } from "pixi.js";
 import { FixedStepLoop } from "../sim/core/loop";
 import { angleOf, sub } from "../sim/core/vec2";
-import { IDLE_INTENT } from "../sim/flight/controller";
+import { IDLE_INTENT, type MatchCommand } from "../sim/flight/controller";
 import { DRIVE_MODES, type Ship } from "../sim/ship/ship-entity";
 import type { World } from "../sim/world";
 import { Camera, CAMERA_MODES } from "../render/camera";
@@ -72,6 +72,12 @@ export class FlightScreen {
   /** Selected weapon groups and RMB target (spec §9.2). */
   readonly selectedGroups = new Set<number>([1]);
   targetId: string | null = null;
+  /** Distance V keeps from the target (m); , and . change it. */
+  keepDistance = 1000;
+  /** A distance change waiting to reach an active V on the next tick. */
+  private distanceChanged = false;
+  /** Short note for the HUD (course matching without a target, …). */
+  matchNote: { text: string; until: number } | null = null;
   /** Test hook: hold the trigger regardless of the mouse. */
   debugTrigger = false;
   /** M (one) or Shift+M (salvo) pressed: launch on the next tick (needs a target). */
@@ -709,6 +715,42 @@ export class FlightScreen {
    * or for every friendly AI ship when none are picked. "guard" keeps them close to the pilot's ship,
    * engaging what comes near it; "free" lets them choose for themselves.
    */
+  private setKeepDistance(d: number): void {
+    this.keepDistance = Math.round(Math.min(20_000, Math.max(100, d)) / 10) * 10;
+    this.distanceChanged = true;
+  }
+
+  /**
+   * The C / V / Shift+V key as a matching command for the pilot's ship: C matches the target's course and
+   * speed, V also closes to `keepDistance` and holds it, Shift+V locks it (manual steering only pauses
+   * it). Pressing C or V again switches it off. Without a target there is nothing to match.
+   */
+  private matchCommand(s: Ship, key: "velocity" | "distance" | "lock" | undefined): MatchCommand | undefined {
+    const cur = s.flight.match ?? null;
+    if (!key) {
+      if (this.distanceChanged && cur?.kind === "distance") {
+        this.distanceChanged = false;
+        return { ...cur, distance: this.keepDistance };
+      }
+      this.distanceChanged = false;
+      return undefined;
+    }
+    const target = this.targetId;
+    if (!target) {
+      if (cur && key !== "lock") return "cancel";
+      this.matchNote = {
+        text: "Select a target first (right-click a ship)",
+        until: performance.now() + 2500,
+      };
+      return undefined;
+    }
+    if (key === "lock")
+      return cur?.kind === "distance" && cur.targetId === target
+        ? { ...cur, lock: !cur.lock }
+        : { kind: "distance", targetId: target, distance: this.keepDistance, lock: true };
+    return { kind: key, targetId: target, distance: this.keepDistance, lock: false, toggle: true };
+  }
+
   private giveOrder(kind: OrderKind, id?: string, attackId: string | null = this.targetId): void {
     const world = this.setup?.world;
     const me = this.controlledShip;
@@ -865,8 +907,9 @@ export class FlightScreen {
         const s = this.controlledShip!;
         const center = w.physics.getWorldCenter(s.id);
         const mouseWorld = this.camera.screenToWorld(this.input.mouse);
-        w.setIntent(s.id, this.input.takeIntent(angleOf(sub(mouseWorld, center))));
         if (this.targetId && !w.hasShip(this.targetId)) this.targetId = null;
+        const intent = this.input.takeIntent(angleOf(sub(mouseWorld, center)));
+        w.setIntent(s.id, { ...intent, match: this.matchCommand(s, this.input.takeMatch()) });
         s.weaponCommand = {
           trigger: this.input.leftHeld || this.debugTrigger,
           aimPoint: mouseWorld,
@@ -906,6 +949,10 @@ export class FlightScreen {
     for (const cmd of this.input.takeCommands()) {
       if (setup.spectate && !SPECTATOR_COMMANDS.has(cmd)) continue;
       switch (cmd) {
+        case "distance-down":
+        case "distance-up":
+          this.setKeepDistance(this.keepDistance * (cmd === "distance-up" ? 1.25 : 0.8));
+          break;
         case "camera-mode":
           this.camera.mode =
             CAMERA_MODES[(CAMERA_MODES.indexOf(this.camera.mode) + 1) % CAMERA_MODES.length]!;
@@ -1110,6 +1157,8 @@ export class FlightScreen {
       cameraMode: this.camera.mode,
       theme: this.themeName(),
       faceCursor: this.input.faceCursor,
+      keepDistance: this.keepDistance,
+      matchNote: this.matchNote && this.matchNote.until > performance.now() ? this.matchNote.text : null,
       showHelp: this.showHelp,
       fps: this.fps,
       title: setup.title,
