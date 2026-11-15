@@ -135,6 +135,7 @@ export function repairOfficer(raw: unknown, seed = 1): { officer: Officer | null
     traits: ordered.map((k) => k.id),
     strength: ordered.map((k) => k.strength),
     training,
+    ...(typeof raw.ai === "string" && raw.ai.length >= 1 && raw.ai.length <= 40 ? { ai: raw.ai } : {}),
     portrait: migrated,
   };
   const check = validateOfficer(officer);

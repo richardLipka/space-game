@@ -41,6 +41,9 @@ export const STEER = {
   /** Asteroid look-ahead (s) and clearance beyond the rock's and ship's radii (m). */
   lookAhead: 5,
   clearance: 40,
+  /** Friendly ships: look-ahead (s) and clearance beyond both ships' radii (m). */
+  allyLookAhead: 8,
+  allyClearance: 15,
   /** Arena boundary margin where steering starts pushing inward (m), and the inward speed at the edge. */
   boundaryMargin: 600,
   boundarySpeed: 80,
@@ -116,7 +119,13 @@ function radiusOf(outline: readonly Vec2[]): number {
  * Bends a desired velocity around asteroids on a collision course within STEER.lookAhead and away from
  * the arena boundary (plan M6 task 2). Deterministic: rocks are visited in world order.
  */
-export function avoidObstacles(world: World, ship: Ship, desired: Vec2): Vec2 {
+export function avoidObstacles(
+  world: World,
+  ship: Ship,
+  desired: Vec2,
+  /** Also steer clear of friendly ships (off for doctrine formations, which keep their own spacing). */
+  allies = true,
+): Vec2 {
   const pos = world.physics.getWorldCenter(ship.id);
   const me = ship.layout.boundingRadius;
   let out = desired;
@@ -138,6 +147,34 @@ export function avoidObstacles(world: World, ship: Ship, desired: Vec2): Vec2 {
       // Steer around it and ease off along the path, so there is time to swing clear.
       out = add(add(out, scale(away, k * (Math.sqrt(vv) + 20))), scale(v, -0.5 * k));
     }
+  }
+  // Friendly ships: bend away from any on a collision course (relative motion), so wingmen do not ram their
+  // leader when it stops or flips, and fleets do not pile into each other.
+  // The ship's actual motion counts, not only the request: a heavy ship still carries its speed while it
+  // turns to brake.
+  const moving = world.physics.getBodyState(ship.id).linearVelocity;
+  for (const o of allies ? world.allShips() : []) {
+    if (o === ship || o.team !== ship.team || o.drone || ship.drone) continue;
+    const op = world.physics.getWorldCenter(o.id);
+    const rel = sub(op, pos);
+    const safe = o.layout.boundingRadius + me + STEER.allyClearance;
+    const ov = world.physics.getBodyState(o.id).linearVelocity;
+    // Of the request and the current motion, whichever closes faster on the other ship.
+    const a = sub(out, ov);
+    const b = sub(moving, ov);
+    const dv = dot(b, rel) > dot(a, rel) ? b : a;
+    const dvv = lengthSq(dv);
+    const dist = length(rel);
+    if (dist - safe > Math.sqrt(dvv) * STEER.allyLookAhead + 1) continue;
+    const t = dvv > 1e-6 ? Math.max(0, Math.min(STEER.allyLookAhead, dot(rel, dv) / dvv)) : 0;
+    const closest = sub(rel, scale(dv, t));
+    const miss = length(closest);
+    if (miss >= safe) continue;
+    const away =
+      miss > 1e-6 ? normalize(scale(closest, -1)) : dist > 1e-6 ? normalize(scale(rel, -1)) : vec2(1, 0);
+    const k = (safe - miss) / safe;
+    // Sideways out of the way, and less closing speed the nearer the miss.
+    out = add(add(out, scale(away, k * (Math.sqrt(dvv) + 10))), scale(dv, -0.6 * k));
   }
   const arena = world.arena;
   if (arena) {

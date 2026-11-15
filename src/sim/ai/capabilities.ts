@@ -48,7 +48,8 @@ export interface CapabilityProfile {
     readonly stock: number;
     readonly range: number;
   };
-  readonly drones: { readonly stored: number; readonly decoys: number };
+  /** Drones in the hangars (decoys among them), and intact hangars for attack or PD drones. */
+  readonly drones: { readonly stored: number; readonly decoys: number; readonly hangars: number };
   /** Heat level (fraction of capacity), spare power (0..1), hull, gun ammo and fuel fractions. */
   readonly heat: number;
   readonly powerHeadroom: number;
@@ -146,9 +147,11 @@ export function capabilityProfile(ship: Ship): CapabilityProfile {
   const missileStock = launchers > 0 ? ship.missileStock().reduce((n, s) => n + s.count, 0) : 0;
   let stored = 0;
   let decoys = 0;
+  let hangars = 0;
   for (const p of ship.parts) {
     const h = p.def.def.hangar;
     if (!h || p.hp <= 0) continue;
+    if (!h.droneType.includes("decoy")) hangars++;
     stored += Math.floor(p.ammo);
     if (h.droneType.includes("decoy")) decoys += Math.floor(p.ammo);
   }
@@ -170,7 +173,7 @@ export function capabilityProfile(ship: Ship): CapabilityProfile {
       guns,
     },
     missiles: { launchers, loaded, ready, stock: missileStock, range: missileRange },
-    drones: { stored, decoys },
+    drones: { stored, decoys, hangars },
     heat: ship.heatLevel,
     powerHeadroom: pw.supply > 0 ? Math.max(0, 1 - pw.used / pw.supply) : 0,
     hp: maxHp > 0 ? Math.min(1, ship.parts.reduce((s, p) => s + Math.max(0, p.hp), 0) / maxHp) : 0,

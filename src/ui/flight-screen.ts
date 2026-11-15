@@ -14,7 +14,8 @@ import type { PowerGroup } from "../data/schemas/design";
 import { partCentroid, partPiecesShipFrame } from "../sim/ship/ship";
 import { rotate as rot } from "../sim/core/vec2";
 import { pointInPolygon } from "../sim/core/geometry";
-import { aiProfile } from "../data/ai/index";
+import { AI_PROFILES, aiProfile } from "../data/ai/index";
+import { commanderAi } from "../sim/crew/officers";
 import type { AiProfile } from "../data/schemas/ai";
 import type { Order } from "../sim/ai/brain";
 import { GUARD_RADIUS, updateBattle, type Battle } from "../sim/scenario/battle";
@@ -701,6 +702,12 @@ export class FlightScreen {
     return setup.playerShips.filter((_, i) => i !== this.controlled);
   }
 
+  /** AI for an ally: its commanding officer's chosen profile (docs/officers.md), else the default. */
+  private profileFor(s: Ship): AiProfile {
+    const id = commanderAi(s.crew);
+    return (id && AI_PROFILES.get(id)) || this.allyProfile;
+  }
+
   /** Hands every ally to the AI following the controlled ship (keeps existing orders). */
   private assignAllies(previous?: string): void {
     const world = this.setup?.world;
@@ -710,7 +717,7 @@ export class FlightScreen {
     this.selectedAllies.delete(me.id);
     this.allies().forEach((s, i) => {
       const st = world.ai.get(s.id);
-      if (!st) world.setAi(s.id, this.allyProfile, { kind: "follow", leader: me.id }, i);
+      if (!st) world.setAi(s.id, this.profileFor(s), { kind: "follow", leader: me.id }, i);
       else {
         st.slot = i;
         if (st.order?.kind === "follow" || s.id === previous) st.order = { kind: "follow", leader: me.id };
@@ -909,7 +916,7 @@ export class FlightScreen {
       // without a pilot (scenario AI "none": test platforms) stay that way.
       const scripted = new Set([...(setup.battle?.allyShips ?? []), ...(setup.battle?.enemyShips ?? [])]);
       for (const s of setup.playerShips)
-        if (!setup.world.ai.has(s.id) && !scripted.has(s)) setup.world.setAi(s.id, this.allyProfile);
+        if (!setup.world.ai.has(s.id) && !scripted.has(s)) setup.world.setAi(s.id, this.profileFor(s));
     } else this.assignAllies();
     this.input.enabled = true;
     this.input.takeCommands();

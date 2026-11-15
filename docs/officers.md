@@ -44,6 +44,10 @@ scenario crews, officer dialog) opens the promotion dialog, which lists every st
 officer's post (the post's own stats first), the officer's effects now and after, and **Random** (a pick
 weighted like levels gained in battle). Officers at level 5 cannot be promoted.
 
+An officer may have a **default AI** (optional `ai`, the "AI:" choice on the officer card, ★ marks the one that
+suits their traits). When they command an AI-flown ship (captain, or a fighter's pilot), that ship flies by it:
+your other ships in flight mode and the ships you command in strategy mode. See docs/ai-recommendations.md.
+
 The **officer dialog** (`OfficerDialog` in `src/ui/crew-ui.ts`; the roster's **Edit…** next to each post)
 edits one officer on a copy: Apply keeps the changes, Cancel or ✕ drops them.
 A ship's modifier for a stat is 1 + the sum of its officers' percentages, kept between 0.7 and 1.3.

@@ -83,6 +83,11 @@ export const Officer = Type.Object(
      * worked out from the post the officer is trained for.
      */
     training: Type.Optional(Type.Array(StatId, { maxItems: 4 })),
+    /**
+     * The AI profile this officer flies by when the ship is under AI control and the officer commands it
+     * (captain, or the pilot of a fighter). Optional: without it the ship gets the usual default.
+     */
+    ai: Type.Optional(Type.String({ minLength: 1, maxLength: 40 })),
     portrait: PortraitSpec,
   },
   strict,

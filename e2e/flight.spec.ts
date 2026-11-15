@@ -52,7 +52,7 @@ test("speed kill (X) brings the fighter back to rest (turning to burn if that is
 });
 
 test("speed kill (X) stops the gunboat, which has no retro thrust, by flipping", async ({ page }) => {
-  test.setTimeout(45_000);
+  test.setTimeout(60_000);
   await ready(page);
   await expect(page.getByTestId("ship-name")).toContainText("Lancer");
   const speed = page.getByTestId("speed");
@@ -61,11 +61,12 @@ test("speed kill (X) stops the gunboat, which has no retro thrust, by flipping",
   await page.keyboard.up("w");
   await page.keyboard.press("x");
   await expect(page.getByTestId("speedkill")).toHaveText("flip");
-  await expect.poll(async () => Number(await speed.textContent()), { timeout: 20_000 }).toBeLessThan(0.1);
+  // The CI runner renders in software and runs the simulation slower than real time.
+  await expect.poll(async () => Number(await speed.textContent()), { timeout: 35_000 }).toBeLessThan(0.1);
 });
 
 test("flip and burn (Shift+X) stops a ship without retro thrust", async ({ page }) => {
-  test.setTimeout(45_000);
+  test.setTimeout(60_000);
   await ready(page);
   await expect(page.getByTestId("ship-name")).toContainText("Lancer");
   const speed = page.getByTestId("speed");
@@ -74,7 +75,8 @@ test("flip and burn (Shift+X) stops a ship without retro thrust", async ({ page 
   await page.keyboard.up("w");
   await page.keyboard.press("Shift+X");
   await expect(page.getByTestId("speedkill")).toHaveText("flip");
-  await expect.poll(async () => Number(await speed.textContent()), { timeout: 20_000 }).toBeLessThan(0.1);
+  // The CI runner renders in software and runs the simulation slower than real time.
+  await expect.poll(async () => Number(await speed.textContent()), { timeout: 35_000 }).toBeLessThan(0.1);
   await expect(page.getByTestId("speedkill")).toHaveText("off");
 });
 

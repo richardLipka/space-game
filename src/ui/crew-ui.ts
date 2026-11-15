@@ -12,6 +12,7 @@ import {
   migratePortrait,
   promote,
   promotionOptions,
+  suggestedAi,
   levelUpStat,
   officerEffects,
   POSITIONS,
@@ -28,6 +29,7 @@ import {
   trait,
   TRAITS,
 } from "../sim/crew/officers";
+import { AI_PROFILES } from "../data/ai/index";
 import { CLASS_LABEL } from "../sim/ship/classes";
 import type { PartCatalogue } from "../sim/ship/catalogue";
 import type { CrewMember, Ship } from "../sim/ship/ship-entity";
@@ -671,7 +673,21 @@ export function officerCard(o: Officer, opts: OfficerCardOptions): HTMLElement {
     );
     training.append(sel);
   });
-  const line = el("div", { class: "roster-line" }, name, reroll, pos, lvl);
+  // Default AI (optional): what the officer flies by when the ship is under AI control and they command it.
+  const suggested = suggestedAi(o);
+  const ai = el("select", {
+    "aria-label": "Default AI",
+    title: "AI profile when this officer commands an AI-flown ship (optional)",
+    "data-testid": `officer-ai-${o.id}`,
+  }) as HTMLSelectElement;
+  ai.append(
+    el("option", { value: "" }, `AI: default (suggested ${AI_PROFILES.get(suggested)?.name ?? suggested})`),
+  );
+  for (const p of AI_PROFILES.values())
+    ai.append(el("option", { value: p.id }, `AI: ${p.name}${p.id === suggested ? " ★" : ""}`));
+  ai.value = o.ai && AI_PROFILES.has(o.ai) ? o.ai : "";
+  ai.addEventListener("change", () => update({ ai: ai.value || undefined }));
+  const line = el("div", { class: "roster-line" }, name, reroll, pos, lvl, ai);
   if (opts.promotions && o.level < MAX_LEVEL) {
     const up = el(
       "button",

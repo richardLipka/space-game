@@ -2,6 +2,8 @@ import { CrewStrip } from "./crew-ui";
 import { describeBearing, liveFirepower } from "../sim/ai/firepower";
 import type { Application } from "pixi.js";
 import { AI_PROFILES } from "../data/ai/index";
+import type { AiProfile } from "../data/schemas/ai";
+import { commanderAi } from "../sim/crew/officers";
 import { Camera } from "../render/camera";
 import { Scene } from "../render/scene";
 import type { ThemeResolver } from "../render/theme";
@@ -20,6 +22,12 @@ const SVG = "http://www.w3.org/2000/svg";
 const TIME_SCALES = [0.25, 0.5, 1, 2, 4, 8] as const;
 /** Default AI type for ships the player commands that had no pilot yet (test platforms). */
 const DEFAULT_PROFILE = "balanced";
+
+/** AI for a commanded ship without a pilot: its commanding officer's chosen profile, else the default. */
+const profileFor = (s: Ship): AiProfile => {
+  const id = commanderAi(s.crew);
+  return (id && AI_PROFILES.get(id)) || AI_PROFILES.get(DEFAULT_PROFILE)!;
+};
 
 type Mode = "select" | "move" | "attack" | "patrol" | "wait" | "facing" | "aim";
 
@@ -197,7 +205,7 @@ export class StrategyScreen {
     // Every commanded ship needs a pilot: ships placed without AI get the default type, holding position.
     for (const s of this.mine)
       if (!setup.world.ai.has(s.id))
-        setup.world.setAi(s.id, AI_PROFILES.get(DEFAULT_PROFILE)!, {
+        setup.world.setAi(s.id, profileFor(s), {
           kind: "hold",
           point: setup.world.physics.getWorldCenter(s.id),
         });
@@ -627,7 +635,7 @@ export class StrategyScreen {
       .sort()
       .forEach((id, i) => {
         const s = w.getShip(id);
-        const st = w.ai.get(id) ?? w.setAi(id, AI_PROFILES.get(DEFAULT_PROFILE)!);
+        const st = w.ai.get(id) ?? w.setAi(id, profileFor(s));
         const o = order(s, i);
         if (queue) st.queue.push(o);
         else {

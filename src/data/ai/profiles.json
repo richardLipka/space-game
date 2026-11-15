@@ -42,28 +42,30 @@
       "volleyInterval": 3,
       "droneLaunchRange": 3000,
       "preferWeakened": 0.8,
-      "stance": "aggressive"
+      "stance": "aggressive",
+      "ramWhenDry": true
     },
     {
       "id": "kiter",
       "name": "Kiter",
-      "rangeFactor": 0.95,
+      "rangeFactor": 0.85,
       "weights": {
         "approach": 0.9,
-        "hold": 1.3,
-        "broadside": 1,
-        "face": 1,
-        "evade": 1.1,
+        "hold": 1.0,
+        "broadside": 1.3,
+        "face": 1.0,
+        "evade": 1.2,
         "retreat": 1,
         "cool": 1
       },
-      "retreatHp": 0.35,
-      "maxSpeed": 140,
-      "orbitSpeed": 60,
-      "minHitProbability": 0.3,
+      "retreatHp": 0.3,
+      "maxSpeed": 180,
+      "orbitSpeed": 90,
+      "minHitProbability": 0.15,
       "volleyInterval": 6,
       "droneLaunchRange": 2500,
-      "preferWeakened": 0.3
+      "preferWeakened": 0.3,
+      "kite": true
     },
     {
       "id": "brawler",
@@ -73,13 +75,13 @@
         "approach": 1.2,
         "hold": 0.9,
         "broadside": 1.2,
-        "face": 1.3,
-        "evade": 0.7,
+        "face": 1.4,
+        "evade": 0.6,
         "retreat": 0.7,
         "cool": 0.9
       },
       "retreatHp": 0.15,
-      "maxSpeed": 120,
+      "maxSpeed": 130,
       "orbitSpeed": 25,
       "minHitProbability": 0.15,
       "volleyInterval": 4,
@@ -91,8 +93,8 @@
       "name": "Sniper",
       "rangeFactor": 1,
       "weights": {
-        "approach": 0.8,
-        "hold": 1.4,
+        "approach": 0.7,
+        "hold": 1.5,
         "broadside": 0.9,
         "face": 1.1,
         "evade": 1.1,
@@ -100,9 +102,9 @@
         "cool": 1.1
       },
       "retreatHp": 0.3,
-      "maxSpeed": 90,
-      "orbitSpeed": 15,
-      "minHitProbability": 0.4,
+      "maxSpeed": 80,
+      "orbitSpeed": 10,
+      "minHitProbability": 0.2,
       "volleyInterval": 8,
       "droneLaunchRange": 2500,
       "preferWeakened": 0.4
@@ -126,7 +128,8 @@
       "minHitProbability": 0.2,
       "volleyInterval": 5,
       "droneLaunchRange": 4000,
-      "preferWeakened": 0.5
+      "preferWeakened": 0.5,
+      "outgunnedRatio": 2
     },
     {
       "id": "defensive",
@@ -176,24 +179,25 @@
     {
       "id": "cautious",
       "name": "Cautious",
-      "rangeFactor": 0.95,
+      "rangeFactor": 1.05,
       "weights": {
-        "approach": 0.9,
+        "approach": 0.8,
         "hold": 1.4,
         "broadside": 1,
         "face": 1,
-        "evade": 1.2,
-        "retreat": 1,
-        "cool": 1
+        "evade": 1.4,
+        "retreat": 1.2,
+        "cool": 1.1
       },
-      "retreatHp": 0.3,
-      "maxSpeed": 140,
-      "orbitSpeed": 60,
+      "retreatHp": 0.4,
+      "maxSpeed": 110,
+      "orbitSpeed": 30,
       "minHitProbability": 0.15,
       "volleyInterval": 6,
       "droneLaunchRange": 2500,
       "preferWeakened": 0.3,
-      "stance": "cautious"
+      "stance": "cautious",
+      "outgunnedRatio": 1.5
     },
     {
       "id": "fleet-pass",

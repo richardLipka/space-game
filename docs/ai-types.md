@@ -11,7 +11,7 @@ four AI types. Each type is a full AI profile built from a base profile plus 3â€
 | **Aggressive** | Closes in fast, fires at long odds and fights almost to the end. | Engage range (55 %), top speed (160 m/s), retreat below hull (10 %), fire threshold (10 %) |
 | **Defensive** | Stays with a guarded ship (escort formation) and engages only enemies within the guard radius of it, ranked by distance to that ship; never chases beyond the radius. | Guarded ship, guard radius (2500 m), engage range (60 %), retreat below hull (15 %), fire threshold (15 %) |
 | **Retreating** | Falls back from the nearest threat at its withdraw speed with its guns toward it, and keeps firing. Once out of reach (1.6 Ã— its engage range) it stops and turns to fight whoever follows. | Withdraw speed (20 m/s), engage range (90 %), fire threshold (15 %) |
-| **Cautious** | Keeps its distance, evades more and leaves early when hurt. | Engage range (95 %), top speed (140 m/s), retreat below hull (30 %), fire threshold (15 %) |
+| **Cautious** | Keeps its distance, evades more, leaves early when hurt and gets away at full speed when outgunned 1.5 : 1 nearby. | Engage range (105 %), top speed (110 m/s), retreat below hull (40 %), fire threshold (15 %) |
 
 What the parameters mean:
 
@@ -23,6 +23,13 @@ What the parameters mean:
 - **Fire threshold:** the minimum estimated hit chance before a weapon fires.
 - **Guard radius:** for defensive ships, the zone around the guarded ship.
 - **Withdraw speed:** for retreating ships, the speed of the steady fallback.
+
+Which AI suits which ship and situation, with the per-ship study behind it: [ai-recommendations.md](ai-recommendations.md)
+(`npm run ai:ships`).
+
+A review of every profile's actual behaviour against its intent, with observed battles and the fixes that
+followed (fuel, top speed, sniper and kiter fire thresholds, carrier standoff, missile-wall salvos), is in
+[ai-behaviour.md](ai-behaviour.md) (`npm run ai:observe`).
 
 ## AI changes made with this work
 

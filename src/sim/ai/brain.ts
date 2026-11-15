@@ -1,7 +1,19 @@
 import { DOCTRINE, isMissileLine, isPass, passSteering, salvoDue, wallOffset } from "./doctrine";
 import { bearingOf, FIREPOWER, liveFirepower } from "./firepower";
 import type { AiProfile } from "../../data/schemas/ai";
-import { type Vec2, add, angleOf, cross, length, normalize, rotate, scale, sub, vec2 } from "../core/vec2";
+import {
+  type Vec2,
+  add,
+  angleOf,
+  cross,
+  dot,
+  length,
+  normalize,
+  rotate,
+  scale,
+  sub,
+  vec2,
+} from "../core/vec2";
 import { compareIds } from "../core/ids";
 import { intercept } from "../combat/lead";
 import type { GroupMode } from "../combat/weapons";
@@ -10,6 +22,7 @@ import type { World } from "../world";
 import { burstKind } from "../flight/burst";
 import type { BurstKind } from "../flight/controller";
 import { toShipDir } from "../ship/ship";
+import { DRONE } from "../combat/constants";
 import { capabilityProfile, type CapabilityProfile } from "./capabilities";
 import { avoidObstacles, steerToIntent, type Steering } from "./steering";
 
@@ -20,7 +33,18 @@ import { avoidObstacles, steerToIntent, type Steering } from "./steering";
  */
 
 export type Behaviour =
-  "approach" | "hold" | "broadside" | "face" | "evade" | "retreat" | "cool" | "follow" | "station" | "idle";
+  | "approach"
+  | "hold"
+  | "broadside"
+  | "face"
+  | "evade"
+  | "retreat"
+  | "cool"
+  | "follow"
+  | "station"
+  | "idle"
+  /** Aggressive AI out of ammunition: flies into its target. */
+  | "ram";
 
 /** Allied orders (spec §11.3). They replace the top-level goal; evade, cool down and retreat still apply. */
 export type Order =
@@ -62,10 +86,34 @@ export const AI_TUNING = {
   /** Cool down above this heat level, until it drops below `coolExit`. */
   coolEnter: 0.7,
   coolExit: 0.5,
+  /**
+   * Fuel: the AI never asks for more speed than this share of the Δv left (nor less than `fuelMinSpeed`),
+   * so it does not burn its tanks dry in the first minutes and drift helplessly afterwards.
+   */
+  fuelSpeedShare: 0.4,
+  fuelMinSpeed: 25,
+  /** A gunless carrier stands off at this share of its drone launch range (within drone control range). */
+  carrierStandoff: 0.6,
   /** Hit probability used when planning the preferred range (see preferredRange). */
   rangePlanningProbability: 0.2,
   /** Retreat speed as a share of the profile's top speed (a pursuer at full speed catches up). */
   retreatSpeed: 0.6,
+  /** Kiters back off when an enemy comes inside this share of their range. */
+  kiteInside: 0.8,
+  /**
+   * Outgunned check: enemies and friends within this multiple of the preferred range (at least
+   * `outgunnedMinReach`), so a superior force is seen coming before it is in gun range.
+   */
+  outgunnedReach: 3,
+  outgunnedMinReach: 4000,
+  /** A ship stops escaping once the odds fall below this share of its outgunned ratio. */
+  outgunnedExit: 0.75,
+  /** Escaping ships run at this multiple of the profile's top speed (fuel permitting): to get away. */
+  escapeSpeed: 1.6,
+  /** Escaping ships slide along the arena edge within this distance of it (m). */
+  escapeEdgeMargin: 1500,
+  /** Rammers keep ramming while their hull is above this share. */
+  ramMinHull: 0.15,
   /** Retreating AI type: falls back while an enemy is within this multiple of its engage range. */
   withdrawReach: 1.6,
   /** While cooling, guns (not PD) also hold fire above this heat level. */
@@ -74,8 +122,10 @@ export const AI_TUNING = {
   gain: 0.5,
   /** Followers and holders engage armed enemies this close to their leader or point (m). */
   engageRadius: 2000,
-  /** Formation spacing behind the leader (m). */
+  /** Formation spacing behind the leader (m), at least; larger ships keep more. */
   formationSpacing: 60,
+  /** Above this speed (m/s) a formation turns with its leader's direction of travel. */
+  formationTurnSpeed: 5,
   /** A move order or patrol waypoint counts as reached within this distance (m), or 3 ship radii. */
   arriveDistance: 120,
 } as const;
@@ -93,6 +143,12 @@ export interface AiState {
   /** Tick the formation went past the enemy (it comes about after a while even if chased). */
   passOutTick: number;
   behaviour: Behaviour;
+  /**
+   * How a retreat is flown: "fight" is the hull-based fighting withdrawal (a pursuer catches up); "escape"
+   * runs at full speed, for a ship with nothing left to fight with or one that is outgunned (cautious), so it
+   * survives to fight again.
+   */
+  retreatMode: "fight" | "escape";
   scores: Partial<Record<Behaviour, number>>;
   targetId: string | null;
   /** Tick of the next evaluation. */
@@ -108,6 +164,11 @@ export interface AiState {
   targetRadius: number;
   /** Formation slot among the leader's followers. */
   slot: number;
+  /**
+   * Direction the formation is laid out along (rad): the leader's direction of travel, kept while it is
+   * slow. Not its heading: a leader that flips to burn would swing every slot through itself.
+   */
+  formationAngle: number | null;
   /** Weapon group modes before the AI took over, restored when the player takes control. */
   readonly savedModes: [number, GroupMode][];
   /** Last steering request, for the debug view. */
@@ -125,6 +186,7 @@ export function createAiState(ship: Ship, profile: AiProfile, order: Order | nul
     passSide: 1,
     passOutTick: 0,
     behaviour: "idle",
+    retreatMode: "fight",
     scores: {},
     targetId: null,
     nextEval: 0,
@@ -135,6 +197,7 @@ export function createAiState(ship: Ship, profile: AiProfile, order: Order | nul
     broadsideAngle: null,
     targetRadius: 3,
     slot,
+    formationAngle: null,
     savedModes: [...ship.groupModes],
     debug: { desiredVel: vec2(0, 0), faceAngle: null },
     caps: null,
@@ -169,7 +232,16 @@ export function preferredRange(
   // Missile-line doctrine: stand off near missile range whatever the guns could reach.
   if (profile.doctrine === "missile-line" && caps.missiles.range > 0)
     return caps.missiles.range * (profile.standoffFactor ?? DOCTRINE.missileLine.standoff);
-  const base = dps > 0 ? sum / dps : caps.missiles.range > 0 ? caps.missiles.range * 0.7 : 1000;
+  // Gunless ships: missile ships stand off within missile range; carriers stand off and let drones fight
+  // (also once the drones are out, so the carrier does not drift into gun range).
+  const base =
+    dps > 0
+      ? sum / dps
+      : caps.missiles.range > 0
+        ? caps.missiles.range * 0.7
+        : caps.drones.hangars > 0
+          ? Math.min(profile.droneLaunchRange, DRONE.controlRange) * AI_TUNING.carrierStandoff
+          : 1000;
   return Math.max(150, base * profile.rangeFactor);
 }
 
@@ -308,10 +380,12 @@ function scoreBehaviours(
   caps: CapabilityProfile,
   dist: number | null,
   incoming: number,
+  outgunned = false,
 ): Partial<Record<Behaviour, number>> {
   const w = st.profile.weights;
   const R = preferredRange(caps, st.profile, st.targetRadius);
   const s: Partial<Record<Behaviour, number>> = {};
+  let escape = false;
   const gunDps = caps.weapons.fixedDps + caps.weapons.turretDps;
   const armed = gunDps > 0 || caps.missiles.stock > 0 || caps.drones.stored > 0 || ship.liveDrones > 0;
   if (dist !== null) {
@@ -327,7 +401,14 @@ function scoreBehaviours(
     const builtArmed = ship.parts.some(
       (p) => p.def.def.hangar || (p.def.def.weapon && p.def.def.weapon.kind !== "pd"),
     );
-    if (!armed && builtArmed) s.retreat = w.retreat * 2;
+    if (!armed && builtArmed) {
+      // Aggressive ships ram while they can take the knock; the rest get away to fight another day.
+      if (st.profile.ramWhenDry && caps.hp > AI_TUNING.ramMinHull) s.ram = 3;
+      else {
+        s.retreat = w.retreat * 2;
+        escape = true;
+      }
+    }
     // Retreating stance: always falling back while an enemy is in sight (it keeps firing).
     // Once out of reach it stops and waits (and turns to fight whoever follows).
     if (st.profile.stance === "retreating" && dist < R * AI_TUNING.withdrawReach)
@@ -343,11 +424,67 @@ function scoreBehaviours(
   // A move order goes first: the ship flies there before it fights (it still fires on the way).
   if (st.order?.kind === "move") s.station = 2;
   else s.idle = 0.1;
+  // Missile line: every ship holds its place in the wall (hold faces the strongest side anyway), instead of
+  // orbiting off on a broadside of its own.
+  if (isMissileLine(st) && dist !== null) {
+    s.hold = Math.max(s.hold ?? 0, s.broadside ?? 0, s.face ?? 0);
+    delete s.broadside;
+    delete s.face;
+  }
   if (incoming > 0) s.evade = w.evade * (0.9 + 0.2 * Math.min(incoming, 4));
   // Badly damaged: retreat outranks closing in (approach tops out at 1.5).
   if (caps.hp < st.profile.retreatHp) s.retreat = Math.max(s.retreat ?? 0, w.retreat * 2.2);
+  // Outgunned (cautious, carrier): disengage and get clear.
+  if (outgunned && dist !== null) {
+    s.retreat = Math.max(s.retreat ?? 0, w.retreat * 2.5);
+    escape = true;
+  }
   if (st.cooling) s.cool = w.cool * 1.4;
+  st.retreatMode = escape ? "escape" : "fight";
   return s;
+}
+
+/**
+ * Escape direction near the arena edge: the part heading out of the arena is dropped, so the ship slides
+ * along the edge instead of stopping against it (cornered: across the threat's bearing).
+ */
+function slideAlongEdge(world: World, pos: Vec2, away: Vec2, toThreat: Vec2 | null): Vec2 {
+  const arena = world.arena;
+  if (!arena) return away;
+  const margin = AI_TUNING.escapeEdgeMargin;
+  let x = away.x;
+  let y = away.y;
+  if (Math.abs(pos.x) > arena.width / 2 - margin && Math.sign(x) === Math.sign(pos.x)) x = 0;
+  if (Math.abs(pos.y) > arena.height / 2 - margin && Math.sign(y) === Math.sign(pos.y)) y = 0;
+  if (Math.hypot(x, y) > 0.2) return normalize(vec2(x, y));
+  // Cornered: run across the threat's bearing, towards the arena's middle.
+  const across = toThreat && length(toThreat) > 1e-6 ? normalize(vec2(-toThreat.y, toThreat.x)) : vec2(0, 1);
+  return dot(across, pos) > 0 ? scale(across, -1) : across;
+}
+
+/**
+ * Outgunned (profiles with `outgunnedRatio`): the threat of the enemies near the ship is above that multiple
+ * of its own side's threat there (damage counted). Once escaping it keeps going until the odds have eased.
+ */
+function isOutgunned(world: World, ship: Ship, st: AiState, me: Pose, caps: CapabilityProfile): boolean {
+  const ratio = st.profile.outgunnedRatio;
+  if (!ratio) return false;
+  const reach = Math.max(
+    AI_TUNING.outgunnedMinReach,
+    preferredRange(caps, st.profile, st.targetRadius) * AI_TUNING.outgunnedReach,
+  );
+  let foes = 0;
+  let friends = 0;
+  for (const s of world.allShips()) {
+    if (s.defeated || s.inert || s.drone) continue;
+    if (length(sub(world.physics.getWorldCenter(s.id), me.pos)) > reach) continue;
+    const c = s === ship ? caps : capabilityProfile(s);
+    const threat = c.threat * Math.max(0.25, c.hp);
+    if (s.team === ship.team) friends += threat;
+    else foes += threat;
+  }
+  const escaping = st.behaviour === "retreat" && st.retreatMode === "escape";
+  return foes > ratio * (escaping ? AI_TUNING.outgunnedExit : 1) * Math.max(1, friends);
 }
 
 /** One evaluation: target, cool-down latch, broadside heading and behaviour (with hysteresis). */
@@ -409,7 +546,14 @@ function evaluate(world: World, ship: Ship, st: AiState, me: Pose): void {
   const dist = tPos ? length(sub(tPos, me.pos)) : null;
   // Present the strongest side of the weapons as they are now (turrets lost change it).
   st.broadsideAngle = tPos ? bestHeading(ship, angleOf(sub(tPos, me.pos)), me.angle) : null;
-  const scores = scoreBehaviours(ship, st, caps, dist, incomingMissiles(world, ship, me).length);
+  const scores = scoreBehaviours(
+    ship,
+    st,
+    caps,
+    dist,
+    incomingMissiles(world, ship, me).length,
+    isOutgunned(world, ship, st, me, caps),
+  );
   st.scores = scores;
   let best: Behaviour = st.behaviour;
   let bestScore = -Infinity;
@@ -453,6 +597,13 @@ function behaviourSteering(
     const off = sub(goal, c);
     return length(off) > o.radius ? add(c, scale(normalize(off), o.radius)) : goal;
   };
+  /** Kiter: an enemy inside its comfort range: back away at speed, guns still on it. */
+  const kiting = (tp: Pose) => !!p.kite && length(sub(tp.pos, me.pos)) < R * AI_TUNING.kiteInside;
+  const kiteAway = (tp: Pose, face: number | null): Steering => {
+    const off = sub(me.pos, tp.pos);
+    const away = length(off) > 1e-6 ? normalize(off) : rotate(vec2(-1, 0), me.angle);
+    return { desiredVel: add(tp.vel, scale(away, p.maxSpeed)), faceAngle: face, mayBurn: false };
+  };
   const leadAngle = (tp: Pose) => {
     const speed = caps.weapons.fixedSpeed;
     const sol = speed > 0 ? intercept(me.pos, me.vel, tp.pos, tp.vel, speed) : null;
@@ -472,6 +623,7 @@ function behaviourSteering(
           ? leadAngle(t)
           : (st.broadsideAngle ?? angleOf(dir));
       const far = length(sub(goal, me.pos)) > R * 0.3;
+      if (kiting(t)) return kiteAway(t, face);
       return { desiredVel: seek(goal, t.vel), faceAngle: face, mayBurn: st.behaviour === "approach" || far };
     }
     case "broadside": {
@@ -480,6 +632,7 @@ function behaviourSteering(
       const side = cross(radial, sub(me.vel, t.vel)) >= 0 ? 1 : -1;
       const tangent = scale(vec2(-radial.y, radial.x), side * p.orbitSpeed);
       const Rt = preferredRange(caps, p, st.targetRadius, "turret");
+      if (kiting(t)) return kiteAway(t, st.broadsideAngle);
       const err = Rt - length(sub(me.pos, t.pos));
       // Radial correction capped by stopping distance, like approach (heavy ships overshoot otherwise).
       const radialSpeed = Math.min(Math.abs(err) * AI_TUNING.gain, arrivalSpeed(caps, Math.abs(err)));
@@ -506,6 +659,11 @@ function behaviourSteering(
           ? leadAngle(t)
           : (st.broadsideAngle ?? angleOf(sub(t.pos, me.pos)))
         : null;
+      // Escaping (disarmed or outgunned): full speed, nose along the way to burn hardest.
+      if (st.retreatMode === "escape") {
+        const run = slideAlongEdge(world, me.pos, away, t ? sub(t.pos, me.pos) : null);
+        return { desiredVel: scale(run, p.maxSpeed * AI_TUNING.escapeSpeed), faceAngle: null, mayBurn: true };
+      }
       return {
         desiredVel: scale(
           away,
@@ -516,6 +674,12 @@ function behaviourSteering(
         faceAngle: face,
         mayBurn: true,
       };
+    }
+    case "ram": {
+      if (!t) break;
+      // Straight at the target at full speed (plus its own velocity, so a fleeing target is run down).
+      const dir = length(sub(t.pos, me.pos)) > 1e-6 ? normalize(sub(t.pos, me.pos)) : vec2(1, 0);
+      return { desiredVel: add(t.vel, scale(dir, p.maxSpeed)), faceAngle: angleOf(dir), mayBurn: true };
     }
     case "cool":
       return {
@@ -531,14 +695,16 @@ function behaviourSteering(
       const l = poseOf(world, leader);
       const row = Math.floor(st.slot / 2) + 1;
       const side = st.slot % 2 === 0 ? 1 : -1;
-      const slot = add(
-        l.pos,
-        rotate(
-          vec2(-row * AI_TUNING.formationSpacing, side * row * AI_TUNING.formationSpacing * 0.8),
-          l.angle,
-        ),
+      if (length(l.vel) > AI_TUNING.formationTurnSpeed) st.formationAngle = angleOf(l.vel);
+      else if (st.formationAngle === null) st.formationAngle = l.angle;
+      // Slots far enough apart for the ships' size (a cruiser behind a gunboat needs more than 60 m).
+      const spacing = Math.max(
+        AI_TUNING.formationSpacing,
+        2.5 * (ship.layout.boundingRadius + world.getShip(leader).layout.boundingRadius),
       );
-      return { desiredVel: seek(slot, l.vel), faceAngle: l.angle, mayBurn: true };
+      const slot = add(l.pos, rotate(vec2(-row * spacing, side * row * spacing * 0.8), st.formationAngle));
+      // Face along the formation's way, not the leader's nose (it may have flipped to burn).
+      return { desiredVel: seek(slot, l.vel), faceAngle: st.formationAngle, mayBurn: true };
     }
     case "station": {
       const point = orderPoint(st);
@@ -619,6 +785,20 @@ function fireControl(world: World, ship: Ship, st: AiState, me: Pose, caps: Capa
   };
 }
 
+/**
+ * Speed the AI may ask for (world frame): the profile's top speed while fighting or repositioning (a heavy
+ * sniper does not chase a fighter at 250 m/s), never more than the fuel left allows. Evading, following a
+ * leader and doctrine manoeuvres (a pass at pass speed) are only held to the fuel limit.
+ */
+export function speedLimit(st: AiState, caps: CapabilityProfile, doctrine: boolean): number {
+  const fuel = Math.max(AI_TUNING.fuelMinSpeed, caps.deltaV * AI_TUNING.fuelSpeedShare);
+  const free = doctrine || st.behaviour === "evade" || st.behaviour === "follow" || st.behaviour === "ram";
+  const escaping = st.behaviour === "retreat" && st.retreatMode === "escape";
+  return Math.min(fuel, free ? Infinity : st.profile.maxSpeed * (escaping ? AI_TUNING.escapeSpeed : 1));
+}
+
+const limitSpeed = (v: Vec2, max: number): Vec2 => clampLen(v, max);
+
 /** Step 0e: every AI ship thinks (every evalInterval) and acts (every tick). */
 export function runAi(world: World, dt: number): void {
   const every = Math.max(1, Math.round(AI_TUNING.evalInterval / dt));
@@ -639,7 +819,12 @@ export function runAi(world: World, dt: number): void {
     const steering = own ?? behaviourSteering(world, ship, st, me, caps);
     const avoided = {
       ...steering,
-      desiredVel: avoidObstacles(world, ship, steering.desiredVel),
+      desiredVel: avoidObstacles(
+        world,
+        ship,
+        limitSpeed(steering.desiredVel, speedLimit(st, caps, !!own)),
+        !own,
+      ),
     };
     st.debug = { desiredVel: avoided.desiredVel, faceAngle: avoided.faceAngle };
     ship.intent = steerToIntent(world, ship, caps, avoided);

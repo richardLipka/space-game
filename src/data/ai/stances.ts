@@ -119,11 +119,10 @@ export const STANCES: readonly StanceDef[] = [
   {
     id: "cautious",
     name: "Cautious",
-    description: "Keeps its distance, evades more and leaves early when hurt.",
-    base: "kiter",
+    description: "Keeps its distance, evades more, leaves early when hurt and gets away when outgunned.",
+    base: "cautious",
     params: [P.rangeFactor, P.maxSpeed, P.retreatHp, P.minHitProbability],
-    defaults: { rangeFactor: 0.95, maxSpeed: 140, retreatHp: 0.3, minHitProbability: 0.15 },
-    weights: { hold: 1.4, evade: 1.2 },
+    defaults: { rangeFactor: 1.05, maxSpeed: 110, retreatHp: 0.4, minHitProbability: 0.15 },
   },
 ];
 

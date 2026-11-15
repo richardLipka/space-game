@@ -142,13 +142,16 @@ export function wallOffset(world: World, ship: Ship, st: AiState): number {
 
 /**
  * Missile-line salvo clock: the whole side launches in the same tick window every `salvoInterval` seconds,
- * so its missiles arrive together. True on the first tick of a window this ship has not fired in.
+ * so its missiles arrive together. True during the first second of a window this ship has not fired in.
  */
 export function salvoDue(world: World, st: AiState): boolean {
   const every = Math.max(
     1,
     Math.round((st.profile.salvoInterval ?? DOCTRINE.missileLine.salvoInterval) * 60),
   );
+  // Only in the first second of a window: a ship whose launchers were not ready waits for the next one
+  // instead of firing late and alone.
+  if (world.tick % every >= Math.min(60, every)) return false;
   const window = Math.floor(world.tick / every);
   return window > Math.floor(st.lastVolleyTick / every);
 }

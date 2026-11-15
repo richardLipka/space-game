@@ -99,6 +99,12 @@ export const FLIGHT = {
    * to flip when the estimated keep time exceeds this factor times the flip time (decision log: Speed kill auto).
    */
   keepSlowFactor: 1.5,
+  /**
+   * Flip-and-burn finishes without turning below this speed (m/s), as long as the strongest axis still
+   * points within 90° of the way to brake: turning with RCS pushes the ship sideways about as much as is
+   * left to kill, so a slow ship would otherwise chase its own residual velocity round and round.
+   */
+  flipFinishSpeed: 3,
 } as const;
 
 export const wrapAngle = (a: number): number => {
@@ -232,8 +238,9 @@ export function flightControl(intent: ControlIntent, state: FlightState, ctx: Fl
       const axis = strongestAxis(ctx.caps);
       const heading = angleOf(neg(vRel)) - angleOf(axis);
       const err = wrapAngle(heading - ctx.angle);
-      omegaTarget = headingRate(err, ctx);
-      if (Math.abs(err) < FLIGHT.flipAlignTolerance) {
+      const finishing = length(vRel) < FLIGHT.flipFinishSpeed && fLocal.x * axis.x + fLocal.y * axis.y > 0;
+      omegaTarget = finishing ? 0 : headingRate(err, ctx);
+      if (finishing || Math.abs(err) < FLIGHT.flipAlignTolerance) {
         fx = fLocal.x;
         fy = fLocal.y;
       }

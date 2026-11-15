@@ -27,6 +27,8 @@
     "tuning": "tsx src/headless/tuning-cli.ts",
     "designs:audit": "tsx src/headless/design-audit-cli.ts",
     "ai:duel": "tsx src/headless/ai-duel-cli.ts",
+    "ai:observe": "tsx src/headless/ai-observe-cli.ts",
+    "ai:ships": "tsx src/headless/ai-ships-cli.ts",
     "designs:platforms": "tsx src/headless/platforms-cli.ts && prettier --write src/data/designs/platforms"
   },
   "type": "module",

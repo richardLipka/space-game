@@ -51,6 +51,15 @@ export const AiProfile = Type.Object(
         Type.Literal("cautious"),
       ]),
     ),
+    /** Kiter: backs off at full speed, guns on the target, whenever an enemy comes inside 80 % of its range. */
+    kite: Type.Optional(Type.Boolean()),
+    /**
+     * Disengages (escapes at full speed) when the enemies' threat near it exceeds this multiple of its own
+     * side's there (cautious, carrier). Default: never.
+     */
+    outgunnedRatio: Type.Optional(Type.Number({ minimum: 1, maximum: 10 })),
+    /** Out of ammunition and missiles: rams its target instead of leaving (aggressive). */
+    ramWhenDry: Type.Optional(Type.Boolean()),
     /** Retreating stance: speed of the steady withdrawal (m/s). */
     withdrawSpeed: Type.Optional(PositiveNumber),
     /**

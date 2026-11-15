@@ -135,6 +135,60 @@ export function levelUpStat(random: () => number, position: Position): Stat {
   return pool[Math.floor(random() * pool.length)]!;
 }
 
+/**
+ * How each trait leans an officer towards an AI profile (docs/ai-recommendations.md): daredevils and
+ * hot-rodders charge, a steady hand snipes, a smooth helm kites, a missile savant stands in the missile wall,
+ * nervous and timid officers fly cautiously. Weighted by the trait's strength.
+ */
+const AI_LEANING: Readonly<Record<string, Readonly<Record<string, number>>>> = {
+  daredevil: { aggressive: 1, kiter: 1 },
+  "hot-rodder": { aggressive: 1, "fleet-pass": 1 },
+  reckless: { aggressive: 1, brawler: 1 },
+  "quick-loader": { brawler: 1 },
+  "gunnery-expert": { brawler: 1, balanced: 0.5 },
+  "heavy-handed": { brawler: 1 },
+  "steady-hand": { sniper: 1.5 },
+  "eagle-eye": { sniper: 1, defensive: 0.5 },
+  "smooth-helm": { kiter: 1.5 },
+  "missile-savant": { "missile-wall": 1.5 },
+  tactician: { balanced: 1, "missile-wall": 0.5 },
+  "pd-ace": { defensive: 1.5 },
+  "cool-head": { balanced: 0.5, sniper: 0.5 },
+  "reactor-whisperer": { carrier: 1 },
+  nervous: { cautious: 1.5 },
+  "timid-throttle": { cautious: 1, retreating: 1 },
+  "slow-reflexes": { defensive: 1, sniper: 0.5 },
+  "gun-shy": { cautious: 1, carrier: 1 },
+  superstitious: { brawler: 0.5 },
+};
+
+/**
+ * The AI profile that suits an officer's traits (the officer card's suggestion): the profile the traits lean
+ * to most, or balanced when nothing stands out.
+ */
+export function suggestedAi(o: Pick<Officer, "traits" | "strength">): string {
+  const score = new Map<string, number>();
+  o.traits.forEach((id, i) => {
+    const k = STRENGTH[o.strength?.[i] ?? 3] ?? 1;
+    for (const [profile, w] of Object.entries(AI_LEANING[id] ?? {}))
+      score.set(profile, (score.get(profile) ?? 0) + w * k);
+  });
+  let best = "balanced";
+  let top = 1;
+  for (const [profile, v] of score)
+    if (v > top + 1e-9 || (Math.abs(v - top) < 1e-9 && profile < best && best !== "balanced")) {
+      best = profile;
+      top = v;
+    }
+  return best;
+}
+
+/** The AI profile the ship's commanding officer chose (captain, else pilot), if any. */
+export function commanderAi(crew: readonly { officer: Officer; position: Position }[]): string | null {
+  const cmd = crew.find((c) => c.position === "captain") ?? crew.find((c) => c.position === "pilot") ?? null;
+  return cmd?.officer.ai ?? null;
+}
+
 /** Highest experience level. */
 export const MAX_LEVEL = 5;
 
