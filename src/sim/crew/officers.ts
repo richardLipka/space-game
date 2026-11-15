@@ -1,6 +1,6 @@
 import { generateName } from "./names";
 import type { NameDescriptor } from "../../data/schemas/names";
-import type { Officer, PortraitSpec, Position } from "../../data/schemas/officer";
+import type { Officer, PortraitPart, PortraitSpec, Position } from "../../data/schemas/officer";
 import type { ShipClass } from "../ship/classes";
 
 /**
@@ -185,18 +185,18 @@ export function shipMods(crew: readonly { officer: OfficerStats; position: Posit
 // ---------- random officers ----------
 
 /** Option counts of every portrait part (src/ui/portrait.ts draws them). */
-export const PORTRAIT_COUNTS: Readonly<Record<Exclude<keyof PortraitSpec, "suit">, number>> = {
+export const PORTRAIT_COUNTS: Readonly<Record<PortraitPart, number>> = {
   head: 7,
   skin: 9,
-  hair: 15,
+  hair: 18,
   hairColor: 11,
   eyes: 13,
   mouth: 9,
   facialHair: 11,
   neck: 9,
-  uniform: 10,
+  uniform: 13,
   uniformColor: 10,
-  collar: 9,
+  collar: 12,
   accessory: 15,
 };
 
@@ -212,10 +212,21 @@ export function crewRng(seed: number): () => number {
   };
 }
 
+/**
+ * Uniform styles (uniform, cap, collar and colour indices): British colonial navy whites, a modern uniform with
+ * metal stripes, and the Kaiserliche Marine's dark tunic with its high collar.
+ */
+export const UNIFORM_STYLES = {
+  colonial: { uniform: 10, hair: 15, collar: 9, uniformColor: 5 },
+  modern: { uniform: 11, hair: 16, collar: 11, uniformColor: 3 },
+  kaiser: { uniform: 12, hair: 17, collar: 10, uniformColor: 0 },
+} as const satisfies Record<string, Partial<PortraitSpec>>;
+export type UniformStyle = keyof typeof UNIFORM_STYLES;
+
 export function randomPortrait(random: () => number): PortraitSpec {
   const pick = (n: number) => Math.floor(random() * n);
   const c = PORTRAIT_COUNTS;
-  return {
+  const spec: PortraitSpec = {
     head: pick(c.head),
     skin: pick(c.skin),
     hair: pick(c.hair),
@@ -230,6 +241,20 @@ export function randomPortrait(random: () => number): PortraitSpec {
     accessory: random() < 0.35 ? 0 : pick(c.accessory),
     suit: random() < 0.15,
   };
+  // Sometimes a second accessory; often one of the uniform styles.
+  if (spec.accessory && random() < 0.3) {
+    const extra = 1 + pick(c.accessory - 1);
+    if (extra !== spec.accessory) spec.extras = [extra];
+  }
+  if (random() < 0.45) {
+    const styles = Object.values(UNIFORM_STYLES);
+    const st = styles[Math.floor(random() * styles.length)]!;
+    spec.uniform = st.uniform;
+    spec.collar = st.collar;
+    spec.uniformColor = st.uniformColor;
+    if (random() < 0.7) spec.hair = st.hair;
+  }
+  return spec;
 }
 
 /** Name options for random officers: a style id (or "mixed") and the descriptor to draw from. */

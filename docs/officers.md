@@ -147,6 +147,12 @@ for enemy crews.
 helmet, top hat, brass helmet), hair colour, eyes (goggles, monocle, mechanical eye, spectacles), mouth,
 moustache or beard, neckwear, uniform and its colour, collar and an accessory (epaulettes, cog medal,
 headset, pipe, scar, brass gear, watch chain, cog earring). A space suit puts a helmet bubble round the
-head. The portrait dialog (click a portrait in the roster) steps through each part, toggles the suit and
-randomises. Every part has 7–15 options (`PART_LABELS`; `PORTRAIT_COUNTS` in `src/sim/crew/officers.ts`
+head. Three **uniform styles** come with their own cap and collar: British colonial navy (white tunic, white
+peaked cap, stand collar, black and gold shoulder boards), modern (dark uniform with metal stripes, soft cap
+with a metal badge, collar tabs) and Kaisermarine (dark double-breasted tunic, tall gold-embroidered collar,
+peaked cap with cockade). Any number of accessories can be worn together: `accessory` plus the optional
+`extras` list.
+
+The portrait dialog (click a portrait in the roster) steps through each part with ◀/▶ or picks it from a
+list, applies a uniform style in one go, ticks accessories on and off, toggles the suit and randomises. Every part has 7–15 options (`PART_LABELS`; `PORTRAIT_COUNTS` in `src/sim/crew/officers.ts`
 holds the counts for random portraits).

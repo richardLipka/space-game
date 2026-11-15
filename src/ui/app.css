@@ -2402,3 +2402,17 @@ button.crew-card {
 button.crew-card:hover {
   border-color: var(--accent);
 }
+.portrait-accessories {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px 10px;
+  font-size: 12px;
+}
+.portrait-row select.portrait-value {
+  min-width: 0;
+  width: 100%;
+}
+label.portrait-style {
+  display: grid;
+  grid-template-columns: 7.5em 1fr;
+}

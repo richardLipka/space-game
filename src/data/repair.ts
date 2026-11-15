@@ -112,6 +112,11 @@ export function repairOfficer(raw: unknown, seed = 1): { officer: Officer | null
     if (Number.isInteger(v) && (v as number) >= 0 && (v as number) <= 99) portrait[k] = v as number;
   }
   portrait.suit = typeof rp.suit === "boolean" ? rp.suit : fallback.suit;
+  const extras = Array.isArray(rp.extras)
+    ? rp.extras.filter((v): v is number => Number.isInteger(v) && v >= 0 && v <= 99).slice(0, 8)
+    : [];
+  if (extras.length) portrait.extras = extras;
+  else delete portrait.extras;
   const training = trainingOf({
     level,
     position,

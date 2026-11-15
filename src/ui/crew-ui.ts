@@ -13,6 +13,8 @@ import {
   STRENGTH_LABEL,
   TRAINING_PCT,
   trainingOf,
+  UNIFORM_STYLES,
+  type UniformStyle,
   randomPortrait,
   shipMods,
   STAT_LABEL,
@@ -25,7 +27,14 @@ import { CLASS_LABEL } from "../sim/ship/classes";
 import type { PartCatalogue } from "../sim/ship/catalogue";
 import type { CrewMember, Ship } from "../sim/ship/ship-entity";
 import { el } from "./editor/dom";
-import { chevronsSvg, PART_LABELS, portraitSvg } from "./portrait";
+import {
+  accessoriesOf,
+  chevronsSvg,
+  PART_LABELS,
+  portraitSvg,
+  UNIFORM_STYLE_LABELS,
+  withAccessories,
+} from "./portrait";
 import {
   crewOf,
   designClass,
@@ -79,34 +88,80 @@ export class PortraitDialog {
     const preview = el("div", { class: "portrait-preview", "data-testid": "portrait-preview" });
     preview.innerHTML = portraitSvg(this.spec, 180, this.level);
     const rows = el("div", { class: "portrait-parts" });
-    for (const key of Object.keys(PART_LABELS) as (keyof typeof PART_LABELS)[]) {
+    // Uniform style: uniform, cap, collar and colour in one pick.
+    const style = el("select", {
+      "data-testid": "portrait-style",
+      "aria-label": "Uniform style",
+    }) as HTMLSelectElement;
+    style.append(el("option", { value: "" }, "Custom"));
+    for (const [id, label] of Object.entries(UNIFORM_STYLE_LABELS))
+      style.append(el("option", { value: id }, label));
+    const current = (
+      Object.entries(UNIFORM_STYLES) as [UniformStyle, (typeof UNIFORM_STYLES)[UniformStyle]][]
+    ).find(([, st]) => st.uniform === this.spec.uniform && st.collar === this.spec.collar);
+    style.value = current?.[0] ?? "";
+    style.addEventListener("change", () => {
+      const st = UNIFORM_STYLES[style.value as UniformStyle];
+      if (st) this.spec = { ...this.spec, ...st, suit: false };
+      this.render();
+    });
+    rows.append(
+      el(
+        "label",
+        { class: "portrait-row portrait-style" },
+        el("span", { class: "dim" }, "uniform style"),
+        style,
+      ),
+    );
+    for (const key of (Object.keys(PART_LABELS) as (keyof typeof PART_LABELS)[]).filter(
+      (k) => k !== "accessory",
+    )) {
       const labels = PART_LABELS[key];
-      const step = (d: number) => {
-        this.spec = {
-          ...this.spec,
-          [key]: (((this.spec[key] + d) % labels.length) + labels.length) % labels.length,
-        };
+      const set = (v: number) => {
+        this.spec = { ...this.spec, [key]: ((v % labels.length) + labels.length) % labels.length };
         this.render();
       };
+      const value = ((this.spec[key] % labels.length) + labels.length) % labels.length;
       const prev = el("button", { "data-testid": `portrait-${key}-prev`, title: "Previous" }, "◀");
-      prev.addEventListener("click", () => step(-1));
+      prev.addEventListener("click", () => set(value - 1));
       const next = el("button", { "data-testid": `portrait-${key}-next`, title: "Next" }, "▶");
-      next.addEventListener("click", () => step(1));
+      next.addEventListener("click", () => set(value + 1));
+      // The same choice as a list.
+      const pick = el("select", {
+        class: "portrait-value",
+        "data-testid": `portrait-${key}`,
+        "aria-label": key,
+      }) as HTMLSelectElement;
+      labels.forEach((l, i) => pick.append(el("option", { value: String(i) }, l)));
+      pick.value = String(value);
+      pick.addEventListener("change", () => set(Number(pick.value)));
       rows.append(
         el(
           "div",
           { class: "portrait-row" },
           el("span", { class: "dim" }, key.replace(/([A-Z])/g, " $1").toLowerCase()),
           prev,
-          el(
-            "span",
-            { class: "portrait-value", "data-testid": `portrait-${key}` },
-            labels[this.spec[key] % labels.length]!,
-          ),
+          pick,
           next,
         ),
       );
     }
+    // Accessories: any number together.
+    const worn = new Set(accessoriesOf(this.spec));
+    const acc = el("div", { class: "portrait-accessories", "data-testid": "portrait-accessories" });
+    PART_LABELS.accessory.forEach((label, i) => {
+      if (i === 0) return;
+      const box = el("input", { type: "checkbox", "data-testid": `portrait-acc-${i}` }) as HTMLInputElement;
+      box.checked = worn.has(i);
+      box.addEventListener("change", () => {
+        const list = accessoriesOf(this.spec).filter((a) => a !== i);
+        if (box.checked) list.push(i);
+        this.spec = withAccessories(this.spec, list);
+        this.render();
+      });
+      acc.append(el("label", {}, box, ` ${label}`));
+    });
+    rows.append(el("div", { class: "dim" }, "accessories"), acc);
     const suit = el("input", { type: "checkbox", "data-testid": "portrait-suit" }) as HTMLInputElement;
     suit.checked = this.spec.suit;
     suit.addEventListener("change", () => {

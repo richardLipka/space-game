@@ -19,12 +19,16 @@ export const PortraitSpec = Type.Object(
     uniformColor: Index,
     collar: Index,
     accessory: Index,
+    /** More accessories worn together with `accessory` (scar, medal, monocle chain, …). */
+    extras: Type.Optional(Type.Array(Index, { maxItems: 8 })),
     /** Space suit: a helmet ring round the head instead of the uniform's collar. */
     suit: Type.Boolean(),
   },
   strict,
 );
 export type PortraitSpec = Static<typeof PortraitSpec>;
+/** The portrait parts picked by a single index (not the suit flag or the extra accessories). */
+export type PortraitPart = Exclude<keyof PortraitSpec, "suit" | "extras">;
 
 export const Position = Type.Union([
   Type.Literal("pilot"),

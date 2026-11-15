@@ -1,4 +1,4 @@
-import type { PortraitSpec } from "../data/schemas/officer";
+import type { PortraitPart, PortraitSpec } from "../data/schemas/officer";
 import { PORTRAIT_COUNTS } from "../sim/crew/officers";
 
 /**
@@ -49,7 +49,7 @@ const BRASS_DARK = "#8a6420";
 const STEEL = "#8d99a3";
 const LINE = "#1b1b1b";
 
-export const PART_LABELS: Record<Exclude<keyof PortraitSpec, "suit">, readonly string[]> = {
+export const PART_LABELS: Record<PortraitPart, readonly string[]> = {
   head: ["Oval", "Square jaw", "Round", "Long", "Heart", "Wide", "Angular"],
   skin: ["Fair", "Light", "Tan", "Brown", "Dark", "Android", "Pale", "Olive", "Brass automaton"],
   hair: [
@@ -68,6 +68,9 @@ export const PART_LABELS: Record<Exclude<keyof PortraitSpec, "suit">, readonly s
     "Peaked cap",
     "Bowler hat",
     "Pith helmet",
+    "Colonial white cap",
+    "Modern cap",
+    "Kaisermarine cap",
   ],
   hairColor: [
     "Black",
@@ -133,6 +136,9 @@ export const PART_LABELS: Record<Exclude<keyof PortraitSpec, "suit">, readonly s
     "Cape",
     "Hussar frogging",
     "Exo-frame",
+    "Colonial whites",
+    "Modern, metal stripes",
+    "Kaisermarine tunic",
   ],
   uniformColor: ["Navy", "Crimson", "Green", "Grey", "Brown", "Ivory", "Black", "Teal", "Purple", "Mustard"],
   collar: [
@@ -145,6 +151,9 @@ export const PART_LABELS: Record<Exclude<keyof PortraitSpec, "suit">, readonly s
     "Ruff",
     "Pinned collar",
     "Hood",
+    "Colonial stand collar",
+    "Kaiser high collar",
+    "Metal collar tabs",
   ],
   accessory: [
     "None",
@@ -183,9 +192,18 @@ function head(i: number, skin: string): string {
 
 function hair(i: number, c: string): string {
   const s = `fill="${c}" stroke="${LINE}" stroke-width="1"`;
-  switch (((i % 15) + 15) % 15) {
+  switch (((i % 18) + 18) % 18) {
     case 0:
       return "";
+    case 15:
+      // British colonial navy: white-topped peaked cap, black band, gold badge, black visor.
+      return `<g stroke="${LINE}" stroke-width="1"><path fill="#f6f4ee" d="M29 33 Q31 15 50 15 Q69 15 71 33 Z"/><rect x="31" y="29" width="38" height="5.5" fill="#15151a"/><path fill="#0d0d10" d="M32 34.5 Q50 42 68 34.5 Z"/></g><ellipse cx="50" cy="31.7" rx="4" ry="2.4" fill="${BRASS}" stroke="${BRASS_DARK}" stroke-width="0.6"/><path d="M46 30 Q50 26.5 54 30" stroke="${BRASS}" stroke-width="0.9" fill="none"/>`;
+    case 16:
+      // Modern: soft cap tilted, metal badge with stripes.
+      return `<g stroke="${LINE}" stroke-width="1"><path fill="#2a2f36" d="M30 35 Q27 19 47 17 Q69 15 72 29 Q66 31 59 33 Q46 37 30 35 Z"/><path d="M30 35 Q50 39 67 32" fill="none" stroke="#14171b" stroke-width="2"/></g><rect x="35" y="23" width="8" height="8" rx="1" fill="${STEEL}" stroke="${LINE}" stroke-width="0.6"/><path d="M36.5 25.5 L41.5 25.5 M36.5 27.5 L41.5 27.5 M36.5 29.5 L41.5 29.5" stroke="#e8eef2" stroke-width="0.8"/>`;
+    case 17:
+      // Kaisermarine: dark peaked cap with a wide crown, black band, cockade and gold crown.
+      return `<g stroke="${LINE}" stroke-width="1"><path fill="#1b2233" d="M26 25 Q50 12 74 25 L69 33 L31 33 Z"/><rect x="32" y="29" width="36" height="5.5" fill="#0f0f12"/><path fill="#0d0d10" d="M33 34.5 Q50 41 67 34.5 Z"/></g><circle cx="50" cy="31.7" r="2.6" fill="#b22222"/><circle cx="50" cy="31.7" r="1.7" fill="#f4f4f4"/><circle cx="50" cy="31.7" r="0.9" fill="#111"/><path d="M46.5 25 L47.5 21.5 L50 23.5 L52.5 21.5 L53.5 25 Z" fill="${BRASS}" stroke="${BRASS_DARK}" stroke-width="0.4"/>`;
     case 9:
       // Curly.
       return `<g ${s}>${[
@@ -326,10 +344,13 @@ function facialHair(i: number, c: string): string {
 }
 
 function body(spec: PortraitSpec, cloth: string, skin: string): string {
-  const u = ((spec.uniform % 10) + 10) % 10;
-  const shoulders = `<path fill="${cloth}" stroke="${LINE}" stroke-width="1.2" d="M14 120 Q14 86 36 80 L64 80 Q86 86 86 120 Z"/>`;
+  const u = ((spec.uniform % 13) + 13) % 13;
+  // Colonial whites are always white; the closed tunics (10–12) hide the shirt.
+  const coat = u === 10 ? "#f4f1e8" : cloth;
+  const shoulders = `<path fill="${coat}" stroke="${LINE}" stroke-width="1.2" d="M14 120 Q14 86 36 80 L64 80 Q86 86 86 120 Z"/>`;
   const neckSkin = `<rect x="44" y="64" width="12" height="18" fill="${skin}" stroke="${LINE}" stroke-width="1"/>`;
-  const shirt = `<path fill="#f2efe6" stroke="${LINE}" stroke-width="1" d="M42 80 L50 96 L58 80 Z"/>`;
+  const shirt =
+    u >= 10 ? "" : `<path fill="#f2efe6" stroke="${LINE}" stroke-width="1" d="M42 80 L50 96 L58 80 Z"/>`;
   let extra = "";
   if (u === 1)
     extra = [88, 96, 104]
@@ -359,6 +380,41 @@ function body(spec: PortraitSpec, cloth: string, skin: string): string {
       .join("");
   else if (u === 9)
     extra = `<g stroke="${STEEL}" stroke-width="3" fill="none" stroke-linecap="round"><path d="M22 120 L27 92 L38 84"/><path d="M78 120 L73 92 L62 84"/></g><g stroke="${LINE}" stroke-width="0.5">${cog(27, 92, 4, BRASS)}${cog(73, 92, 4, BRASS)}</g>`;
+  else if (u === 10)
+    // British colonial navy whites: single row of gold buttons, black shoulder boards with gold stripes.
+    extra =
+      `<path d="M50 82 L50 120" stroke="#c9c4b4" stroke-width="1"/>` +
+      [94, 101, 108, 115]
+        .map(
+          (y) =>
+            `<circle cx="50" cy="${y}" r="1.5" fill="${BRASS}" stroke="${BRASS_DARK}" stroke-width="0.4"/>`,
+        )
+        .join("") +
+      `<g stroke="${LINE}" stroke-width="0.6"><rect x="20" y="84" width="17" height="6" rx="1.5" fill="#15151a" transform="rotate(-14 28 87)"/><rect x="63" y="84" width="17" height="6" rx="1.5" fill="#15151a" transform="rotate(14 72 87)"/></g>` +
+      `<g stroke="${BRASS}" stroke-width="0.9"><path d="M22 88.5 L35 85.2 M22.6 90.4 L35.6 87.1"/><path d="M78 88.5 L65 85.2 M77.4 90.4 L64.4 87.1"/></g>`;
+  else if (u === 11)
+    // Modern: zipped seam, metal stripes on the shoulders and a metal rank plate on the chest.
+    extra =
+      `<path d="M47 82 L53 120" stroke="#0e1114" stroke-width="1.4"/>` +
+      `<g fill="${STEEL}" stroke="${LINE}" stroke-width="0.4">${[0, 1, 2]
+        .flatMap((k) => [
+          `<rect x="${21 + k * 4}" y="${88 - k * 1.4}" width="2.4" height="8" transform="rotate(-20 ${22 + k * 4} ${92 - k * 1.4})"/>`,
+          `<rect x="${76.6 - k * 4}" y="${88 - k * 1.4}" width="2.4" height="8" transform="rotate(20 ${78 - k * 4} ${92 - k * 1.4})"/>`,
+        ])
+        .join(
+          "",
+        )}<rect x="57" y="92" width="15" height="2.4"/><rect x="57" y="96" width="15" height="2.4"/><rect x="57" y="100" width="11" height="2.4"/></g>`;
+  else if (u === 12)
+    // Kaisermarine: double-breasted dark tunic, two converging rows of gold buttons, braided shoulder straps.
+    extra =
+      [88, 95, 102, 109]
+        .flatMap((y, k) => [
+          `<circle cx="${39 + k * 1.2}" cy="${y}" r="1.7" fill="${BRASS}" stroke="${BRASS_DARK}" stroke-width="0.4"/>`,
+          `<circle cx="${61 - k * 1.2}" cy="${y}" r="1.7" fill="${BRASS}" stroke="${BRASS_DARK}" stroke-width="0.4"/>`,
+        ])
+        .join("") +
+      `<path d="M44 82 L48 120" stroke="#0e1320" stroke-width="1"/>` +
+      `<g fill="none" stroke="${BRASS}" stroke-width="1.6"><path d="M21 90 Q28 84 36 83"/><path d="M79 90 Q72 84 64 83"/></g><g fill="none" stroke="#f0e2b0" stroke-width="0.6" stroke-dasharray="1 1"><path d="M21 90 Q28 84 36 83"/><path d="M79 90 Q72 84 64 83"/></g>`;
   return neckSkin + shoulders + shirt + extra;
 }
 
@@ -386,7 +442,16 @@ function neckwear(i: number): string {
 }
 
 function collar(i: number, cloth: string): string {
-  switch (((i % 9) + 9) % 9) {
+  switch (((i % 12) + 12) % 12) {
+    case 9:
+      // Colonial whites: white stand collar edged in gold.
+      return `<path fill="#f4f1e8" stroke="${BRASS}" stroke-width="1" d="M40 71 L60 71 L61 82 L39 82 Z"/><circle cx="41.5" cy="76.5" r="1.1" fill="${BRASS}"/><circle cx="58.5" cy="76.5" r="1.1" fill="${BRASS}"/>`;
+    case 10:
+      // Kaiserliche Marine: tall dark collar with gold embroidery.
+      return `<path fill="${cloth}" stroke="${BRASS}" stroke-width="1.2" d="M39 68 L61 68 L62.5 82 L37.5 82 Z"/><g stroke="${BRASS}" stroke-width="0.8" fill="none"><path d="M40.5 72 Q43 70 45.5 72 Q43 74 40.5 72 M40.5 77 Q43 75 45.5 77 Q43 79 40.5 77"/><path d="M59.5 72 Q57 70 54.5 72 Q57 74 59.5 72 M59.5 77 Q57 75 54.5 77 Q57 79 59.5 77"/></g>`;
+    case 11:
+      // Modern: closed band collar with metal tabs.
+      return `<path fill="${cloth}" stroke="${LINE}" stroke-width="1" d="M41 73 L59 73 L60 82 L40 82 Z"/><g fill="${STEEL}" stroke="${LINE}" stroke-width="0.4"><rect x="41.5" y="75" width="5" height="4"/><rect x="53.5" y="75" width="5" height="4"/></g><path d="M42.5 77 L45.5 77 M54.5 77 L57.5 77" stroke="#e8eef2" stroke-width="0.6"/>`;
     case 5:
       return `<path fill="${cloth}" stroke="${BRASS}" stroke-width="1" d="M41 74 L59 74 L60 82 L40 82 Z"/>`;
     case 6:
@@ -496,12 +561,32 @@ export function portraitSvg(spec: PortraitSpec, size = 96, level?: number): stri
     mouth(spec.mouth) +
     eyes(spec.eyes) +
     hair(spec.hair, hairC) +
-    accessory(spec.accessory) +
+    [...new Set([spec.accessory, ...(spec.extras ?? [])])].map(accessory).join("") +
     helmet +
     (level ? chevrons(level) : "") +
     `</svg>`
   );
 }
 
+/** Uniform styles: a uniform, its cap and collar, and a colour (the portrait dialog's style picker). */
+export const UNIFORM_STYLE_LABELS: Record<string, string> = {
+  colonial: "British colonial navy",
+  modern: "Modern, metal stripes",
+  kaiser: "Kaisermarine",
+};
+
+/** All accessories of a portrait (the primary one and the extras), without "none". */
+export const accessoriesOf = (spec: PortraitSpec): number[] =>
+  [...new Set([spec.accessory, ...(spec.extras ?? [])])].filter((a) => a > 0);
+
+/** A portrait with exactly these accessories (the first is the primary one). */
+export function withAccessories(spec: PortraitSpec, list: readonly number[]): PortraitSpec {
+  const uniq = [...new Set(list.filter((a) => a > 0))];
+  const { extras: _old, ...rest } = spec;
+  return uniq.length > 1
+    ? { ...rest, accessory: uniq[0]!, extras: uniq.slice(1) }
+    : { ...rest, accessory: uniq[0] ?? 0 };
+}
+
 /** Option count of a part (for the portrait dialog's arrows). */
-export const partCount = (k: Exclude<keyof PortraitSpec, "suit">): number => PORTRAIT_COUNTS[k];
+export const partCount = (k: PortraitPart): number => PORTRAIT_COUNTS[k];
