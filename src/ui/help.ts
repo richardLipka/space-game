@@ -1,3 +1,4 @@
+import { COPYRIGHT, creditLink, HOMEPAGE } from "./credit";
 import { el } from "./editor/dom";
 
 /**
@@ -71,6 +72,10 @@ export const HELP: Record<
           ["Test flight", "fly the ship against dummies"],
           ["Scenarios / Skirmish / Sandbox", "fight scenarios, a skirmish, or free flight"],
           ["Scenario editor", "build scenarios and play them, as a pilot or in strategy mode"],
+          [
+            "Crew",
+            "officers: assign them to this design's posts (by class), edit names, traits, levels (chevrons) and portraits, generate crews with English, German, Japanese or mixed names, import your own name file, export or import the roster as JSON",
+          ],
           ["F1 or ? or Help", "this help"],
         ],
       ],
@@ -191,6 +196,16 @@ export const HELP: Record<
           ["Esc", "back to the editor"],
         ],
       ],
+      [
+        "Crew",
+        [
+          [
+            "Strip above fire control",
+            "officers of your ship: portrait, post, experience (stars) and what they add; the last card is the ship's total. Hover a card for its traits",
+          ],
+          ["Officers", "yours from the roster (Crew in the ship editor); enemy ships get random ones"],
+        ],
+      ],
     ],
   },
   strategy: {
@@ -293,13 +308,38 @@ export const HELP: Record<
           ["Faint lines", "orders of ships not selected"],
         ],
       ],
+      [
+        "Crew",
+        [
+          [
+            "Strip along the bottom",
+            "officers of the selected ship: post, experience and what they add, and the ship's total",
+          ],
+        ],
+      ],
     ],
   },
 };
 
+/** The About page: what the game is, the author and the homepage. */
+function aboutPage(): HTMLElement {
+  return el(
+    "div",
+    { class: "help-body about", "data-testid": "help-about" },
+    el("h3", {}, "Space Game"),
+    el(
+      "p",
+      { class: "help-intro" },
+      "Design ships from parts, fly them with Newtonian physics, and fight scenarios as a pilot or as a fleet commander.",
+    ),
+    el("p", {}, COPYRIGHT),
+    el("p", {}, "Homepage: ", creditLink(HOMEPAGE)),
+  );
+}
+
 export class HelpDialog {
   private readonly dialog: HTMLDialogElement;
-  private topic: HelpTopic = "flight";
+  private topic: HelpTopic | "about" = "flight";
 
   constructor() {
     this.dialog = el("dialog", {
@@ -323,8 +363,8 @@ export class HelpDialog {
     if (this.dialog.open) this.dialog.close();
   }
 
-  /** Opens on `topic` (the screen in use); the tabs show the others. Pressing it again closes it. */
-  show(topic: HelpTopic): void {
+  /** Opens on `topic` (the screen in use, or the About page); the tabs show the others. Pressing it again closes it. */
+  show(topic: HelpTopic | "about"): void {
     if (this.dialog.open && this.topic === topic) return this.close();
     this.topic = topic;
     this.render();
@@ -350,6 +390,28 @@ export class HelpDialog {
       });
       tabs.append(b);
     }
+    const about = el(
+      "button",
+      {
+        role: "tab",
+        "data-testid": "help-tab-about",
+        class: this.topic === "about" ? "on" : "",
+        "aria-selected": String(this.topic === "about"),
+      },
+      "About",
+    );
+    about.addEventListener("click", () => {
+      this.topic = "about";
+      this.render();
+    });
+    tabs.append(about);
+    const close = el("button", { "data-testid": "help-close" }, "Close");
+    close.addEventListener("click", () => this.close());
+    const footer = el("div", { class: "actions help-footer" }, creditLink(), close);
+    if (this.topic === "about") {
+      this.dialog.replaceChildren(el("h2", {}, "Help"), tabs, aboutPage(), footer);
+      return;
+    }
     const h = HELP[this.topic];
     const body = el(
       "div",
@@ -361,8 +423,6 @@ export class HelpDialog {
       for (const [keys, what] of rows) table.append(el("tr", {}, el("th", {}, keys), el("td", {}, what)));
       body.append(el("section", {}, el("h3", {}, title), table));
     }
-    const close = el("button", { "data-testid": "help-close" }, "Close");
-    close.addEventListener("click", () => this.close());
-    this.dialog.replaceChildren(el("h2", {}, "Help"), tabs, body, el("div", { class: "actions" }, close));
+    this.dialog.replaceChildren(el("h2", {}, "Help"), tabs, body, footer);
   }
 }

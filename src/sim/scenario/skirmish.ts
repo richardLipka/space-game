@@ -22,6 +22,8 @@ export interface SkirmishShip {
   readonly designId: string;
   readonly pilot: SkirmishPilot;
   readonly params?: Partial<Record<StanceParamKey, number>>;
+  /** A complete AI profile that replaces the pilot type's (AI duel harness: any parameter set). */
+  readonly profile?: AiProfile;
   /** Defensive AI: index of the ship on the same side it guards. */
   readonly guard?: number;
 }
@@ -106,7 +108,7 @@ export function skirmishBattle(
         return;
       }
       const id = `skirmish-${s}-${i}`;
-      profiles.set(id, { ...stanceProfile(ship.pilot, ship.params), id });
+      profiles.set(id, { ...(ship.profile ?? stanceProfile(ship.pilot, ship.params)), id });
       index.set(`${s}:${i}`, enemies.length);
       enemySlots.push([s, i]);
       enemies.push({

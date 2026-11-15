@@ -89,3 +89,68 @@ No type dominates: every score but one lies between 35 % and 55 %. The outlier i
   still counts) and repair of escorts. Weapon numbers should not change for this.
 - Types that hold back (retreating, cautious) produce the most draws. The stall rule in `npm run tune` scores
   these by armor left.
+
+## Fleet doctrines
+
+Two AI profiles fly a whole side by a doctrine instead of each ship's behaviour scores alone
+(`src/sim/ai/doctrine.ts`). They can be picked wherever an AI type is chosen: in the scenario editor, in
+strategy mode, and in duels.
+
+**Fleet pass** (`fleet-pass`, in the style of The Lost Fleet):
+
+- **Formation:** the side's ships form up abreast of the leader, the lowest-numbered ship, 150 m apart. The
+  leader slows, to 60 % of pass speed at 1 km off station, until the others have taken their slots.
+- **The pass:** the leader flies at the enemy fleet's centre at the pass speed (300 m/s), aiming 400 m to
+  one side of it. The fleets cross with a short, violent contact, and each ship turns its strongest side
+  (its live attack front) to the nearest enemy while in reach.
+- **Coming about:** past the enemy, the formation runs on until it is 4 km beyond the enemy centre, or
+  until the time that would take has passed if it is being chased. It then comes about and makes its next
+  pass on the other side.
+- **Parameters:** `passSpeed`, `passOffset`, `passTurnDistance`, `formationSpacing`.
+
+**Missile wall** (`missile-wall`, in the style of the Honorverse):
+
+- **Standoff:** the side stands off at 85 % of its missile range (`standoffFactor`) in a line abreast
+  across the bearing to the enemy (a wall of battle, `formationSpacing` 300 m).
+- **Salvos:** it launches on a shared salvo clock (`salvoInterval` 12 s). Every ship fires in the same
+  window, so the missiles arrive as one wave against the enemy's point defense.
+- **Point defense:** stays active throughout.
+- **Weakness:** heavy missile ships cannot outrun a fleet that charges straight in, so the doctrine is at
+  its best in missile duels.
+
+## AI duels (`npm run ai:duel`)
+
+The duel harness pits two identical fleets against each other, one flown by AI parameter set A and one
+by B. Each seed is fought twice, with A on each side, so neither gains from its spawn.
+
+```bash
+npm run ai:duel -- --a fleet-pass --b balanced --fleet fleet-rapier,fleet-viper,fleet-wasp --seeds 8
+```
+
+`--a` and `--b` take a profile id or a JSON file holding a full profile. Other options are `--distance`
+(start distance, m), `--time` (limit, s), `--round` (fresh seeds) and `--threads`. The result line gives:
+
+- wins, losses and draws for A
+- ships each side lost per battle
+- median fight length
+- the share of time each side spent firing
+- missiles launched, shot down and hit
+- a score: A's win share (draws count half), plus a little for ships B lost rather than A
+
+`--tune` hill-climbs A's parameters against a fixed B. It uses `--iterations`, `--params` (default: the
+general parameters and those of A's doctrine, see `TUNABLE` in `src/headless/ai-duel.ts`) and `--seed`.
+A candidate is accepted only when it beats the best so far and holds up on fresh seeds. The best profile is
+written to `balance-report/ai-duel/<id>-tuned.json`. Use at least 10 seeds when tuning: with 3 seeds (6
+battles) one lucky round swings the score by 0.3.
+
+First results (8 seeds × 2 sides, 2026-11-15):
+
+| Duel | Fleet | Score | A : B (draws) |
+|---|---|---|---|
+| fleet-pass vs balanced | Rapier, Viper, Wasp at 6 km | 0.64 | 6 : 2 (8) |
+| fleet-pass vs aggressive | Rapier, Viper, Wasp at 6 km | 0.35 | 5 : 9 (2) |
+| missile-wall vs balanced | Viper, Squall, Maul at 9 km | 0.36 | 1 : 5 (10) |
+| missile-wall vs cautious | Viper, Squall, Maul at 9 km | 0.30 | 2 : 8 (6) |
+
+In the missile-wall duels point defense shot down 84 % of all missiles, so the current balance does not
+favour missile duels.

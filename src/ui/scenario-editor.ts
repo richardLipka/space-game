@@ -1,3 +1,4 @@
+import { creditFoot } from "./credit";
 import { designFirepower } from "../sim/ai/firepower";
 import type { ShipDesign } from "../data/schemas/design";
 import type { Scenario } from "../data/schemas/scenario";
@@ -195,6 +196,7 @@ export class ScenarioEditor {
       this.palette,
       this.side,
       this.status,
+      creditFoot("scenario-credit"),
     );
     document.body.append(this.root, this.openDialog);
     this.bindMap();

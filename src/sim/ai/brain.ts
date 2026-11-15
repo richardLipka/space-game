@@ -1,3 +1,4 @@
+import { DOCTRINE, isMissileLine, isPass, passSteering, salvoDue, wallOffset } from "./doctrine";
 import { bearingOf, FIREPOWER, liveFirepower } from "./firepower";
 import type { AiProfile } from "../../data/schemas/ai";
 import { type Vec2, add, angleOf, cross, length, normalize, rotate, scale, sub, vec2 } from "../core/vec2";
@@ -81,6 +82,11 @@ export interface AiState {
   queue: Order[];
   /** Waypoint a patrol is flying to. */
   patrolIndex: number;
+  /** Pass doctrine (leader): inbound to the enemy or out past it, and which side of it this pass goes. */
+  passPhase: "in" | "out";
+  passSide: 1 | -1;
+  /** Tick the formation went past the enemy (it comes about after a while even if chased). */
+  passOutTick: number;
   behaviour: Behaviour;
   scores: Partial<Record<Behaviour, number>>;
   targetId: string | null;
@@ -110,6 +116,9 @@ export function createAiState(ship: Ship, profile: AiProfile, order: Order | nul
     order,
     queue: [],
     patrolIndex: 0,
+    passPhase: "in",
+    passSide: 1,
+    passOutTick: 0,
     behaviour: "idle",
     scores: {},
     targetId: null,
@@ -152,6 +161,9 @@ export function preferredRange(
     sum += g.dps * Math.min(g.reach, pReach);
     dps += g.dps;
   }
+  // Missile-line doctrine: stand off near missile range whatever the guns could reach.
+  if (profile.doctrine === "missile-line" && caps.missiles.range > 0)
+    return caps.missiles.range * (profile.standoffFactor ?? DOCTRINE.missileLine.standoff);
   const base = dps > 0 ? sum / dps : caps.missiles.range > 0 ? caps.missiles.range * 0.7 : 1000;
   return Math.max(150, base * profile.rangeFactor);
 }
@@ -427,7 +439,9 @@ function behaviourSteering(
     case "face": {
       if (!t) break;
       const dir = length(sub(t.pos, me.pos)) > 1e-6 ? normalize(sub(t.pos, me.pos)) : vec2(1, 0);
-      const goal = leash(sub(t.pos, scale(dir, R)));
+      // Missile line: each ship takes its place along a wall across the bearing to the enemy.
+      const wall = isMissileLine(st) ? scale(vec2(-dir.y, dir.x), wallOffset(world, ship, st)) : vec2(0, 0);
+      const goal = leash(add(sub(t.pos, scale(dir, R)), wall));
       const face =
         caps.weapons.fixedShare >= 0.5 || st.behaviour === "face"
           ? leadAngle(t)
@@ -546,7 +560,10 @@ function fireControl(world: World, ship: Ship, st: AiState, me: Pose, caps: Capa
     caps.missiles.ready > 0 &&
     caps.missiles.ready >= caps.missiles.loaded &&
     dist <= caps.missiles.range * 0.85 &&
-    world.tick - st.lastVolleyTick >= st.profile.volleyInterval * 60
+    // Missile-line ships launch together on the side's salvo clock; others on their own volley timer.
+    (isMissileLine(st)
+      ? salvoDue(world, st)
+      : world.tick - st.lastVolleyTick >= st.profile.volleyInterval * 60)
   ) {
     launch = true;
     st.lastVolleyTick = world.tick;
@@ -589,7 +606,12 @@ export function runAi(world: World, dt: number): void {
       st.nextEval = world.tick + every;
     }
     const caps = st.caps!;
-    const steering = behaviourSteering(world, ship, st, me, caps);
+    // Pass doctrine flies the formation passes itself, unless the ship is retreating or cooling down.
+    const own =
+      isPass(st) && st.behaviour !== "retreat" && st.behaviour !== "cool" && !st.order
+        ? passSteering(world, ship, st, me, caps)
+        : null;
+    const steering = own ?? behaviourSteering(world, ship, st, me, caps);
     const avoided = {
       ...steering,
       desiredVel: avoidObstacles(world, ship, steering.desiredVel),

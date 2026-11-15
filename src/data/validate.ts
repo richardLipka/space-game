@@ -1,3 +1,6 @@
+import { NameDescriptor } from "./schemas/names";
+import { Officer, Roster } from "./schemas/officer";
+import { trait } from "../sim/crew/officers";
 import { Ajv, type ErrorObject, type ValidateFunction } from "ajv";
 import type { TSchema, Static } from "@sinclair/typebox";
 import { Catalogue, PartDef } from "./schemas/part";
@@ -121,5 +124,33 @@ export const validateInputs = (d: unknown) =>
     for (let i = 1; i < s.frames.length; i++) {
       if (s.frames[i]!.tick < s.frames[i - 1]!.tick) errs.push(`/frames/${i}: ticks must be non-decreasing`);
     }
+    return errs;
+  });
+
+/** Officer and roster files (docs/officers.md): the schema, plus three positive and two negative known traits. */
+const officerErrors = (o: Officer): string[] => {
+  const ts = o.traits.map((id) => trait(id));
+  const errs = o.traits.filter((_, i) => !ts[i]).map((id) => `${o.name}: unknown trait "${id}"`);
+  if (errs.length) return errs;
+  const pos = ts.filter((t) => t!.positive).length;
+  if (pos !== 3) errs.push(`${o.name}: needs 3 positive and 2 negative traits (has ${pos} positive)`);
+  if (new Set(o.traits).size !== o.traits.length) errs.push(`${o.name}: a trait is listed twice`);
+  return errs;
+};
+/** Name descriptor files (docs/officers.md): the schema, and every style id once. */
+export const validateNames = (d: unknown) =>
+  withSemantics(validate(NameDescriptor, d), (n) => {
+    const ids = n.styles.map((s) => s.id);
+    return ids.length === new Set(ids).size ? [] : ["a style id is used twice"];
+  });
+export const validateOfficer = (d: unknown) => withSemantics(validate(Officer, d), officerErrors);
+export const validateRoster = (d: unknown) =>
+  withSemantics(validate(Roster, d), (r) => {
+    const ids = new Set(r.officers.map((o) => o.id));
+    const errs = r.officers.flatMap(officerErrors);
+    if (ids.size !== r.officers.length) errs.push("an officer id is used twice");
+    for (const [ship, crew] of Object.entries(r.crews))
+      for (const [pos, id] of Object.entries(crew))
+        if (!ids.has(id)) errs.push(`crew of ${ship}: ${pos} is unknown officer "${id}"`);
     return errs;
   });

@@ -84,7 +84,9 @@ describe("M6 architecture", () => {
       "carrier",
       "cautious",
       "defensive",
+      "fleet-pass",
       "kiter",
+      "missile-wall",
       "retreating",
       "sniper",
     ]);

@@ -1,3 +1,5 @@
+import { NO_MODS, shipMods, type Mods } from "../crew/officers";
+import type { Officer, Position } from "../../data/schemas/officer";
 import { segmentPolygonDistance } from "../core/geometry";
 import type { MissileDef } from "../../data/schemas/part";
 import { weaponHeatRate, weaponPowerDemand } from "../../data/balance/model";
@@ -118,6 +120,12 @@ export interface MissileStock {
  * Runtime ship: parts, resource networks, power, heat, fuel, ammo, flight state and last control outputs.
  * The physics body id equals the ship id.
  */
+/** An officer at a position aboard a ship. */
+export interface CrewMember {
+  readonly officer: Officer;
+  readonly position: Position;
+}
+
 export class Ship {
   intent: ControlIntent = IDLE_INTENT;
   readonly flight: FlightState = { speedKill: "off" };
@@ -135,6 +143,17 @@ export class Ship {
    * target's velocity plus the closing speed (set by the world).
    */
   referenceVelocity: () => Vec2 = () => ZERO;
+
+  /** Officers aboard (docs/officers.md) and the modifiers they give; no crew = all 1. */
+  crew: readonly CrewMember[] = [];
+  mods: Mods = NO_MODS;
+
+  /** Puts officers aboard: their traits change the ship's performance by a few percent. */
+  setCrew(crew: readonly CrewMember[]): void {
+    this.crew = crew;
+    this.mods = crew.length ? shipMods(crew) : NO_MODS;
+    for (const w of this.weapons) w.mods = { rate: this.mods.fireRate, accuracy: this.mods.accuracy };
+  }
 
   /** Structural connections (destroyed parts stay in place as wrecks; only ejection changes them). */
   connections: readonly Connection[] = [];
@@ -368,7 +387,10 @@ export class Ship {
       const commanded = net === this.commandNetwork;
       const sources = parts
         .filter((p) => p.def.def.reactor)
-        .map((p) => ({ uid: p.uid, maxOutput: p.def.def.reactor!.maxOutput * hpFactor(p) * throttle }));
+        .map((p) => ({
+          uid: p.uid,
+          maxOutput: p.def.def.reactor!.maxOutput * hpFactor(p) * throttle * this.mods.power,
+        }));
       const batteries = parts
         .filter((p) => p.def.def.battery)
         .map((p) => {
@@ -568,7 +590,9 @@ export class Ship {
         this.radiatorsExtended,
       );
     }
-    const hull = hullDissipation(this.hullExposedLength);
+    // Officers: cooling scales all heat shed.
+    dissipation *= this.mods.cooling;
+    const hull = hullDissipation(this.hullExposedLength) * this.mods.cooling;
     // Per-shot heat arrives as joules; report it as average power over this tick.
     const shotHeat = this.pendingHeat / dt;
     sources.weapons += shotHeat;

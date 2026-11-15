@@ -385,8 +385,11 @@ export class World {
         model: ship.drone ? "newtonian" : this.flightModel,
       });
       const f = rotate({ x: w.fx, y: w.fy }, s.angle);
-      if (f.x !== 0 || f.y !== 0) this.physics.applyForceToCenter(ship.id, f);
-      if (w.torque !== 0) this.physics.applyTorque(ship.id, w.torque);
+      // Officers: thrust and turning.
+      const m = ship.mods;
+      if (f.x !== 0 || f.y !== 0)
+        this.physics.applyForceToCenter(ship.id, m.thrust === 1 ? f : scale(f, m.thrust));
+      if (w.torque !== 0) this.physics.applyTorque(ship.id, w.torque * m.turning);
     }
     // Environment forces on every dynamic body: gravity wells and arena boundary.
     if (this.gravityWells.length > 0 || this.arena) {

@@ -25,6 +25,8 @@ import { MISSILE } from "./constants";
  */
 export interface Missile {
   readonly id: string;
+  /** Officer modifier on the warhead (missile damage); absent = 1. */
+  damageScale?: number;
   readonly owner: string;
   readonly team: number;
   pos: Vec2;
@@ -136,7 +138,10 @@ function fusePoint(world: World, m: Missile, from: Vec2, to: Vec2): Vec2 | null 
 }
 
 function detonate(world: World, m: Missile, at: Vec2): void {
-  warhead(world, at, m.def.blastRadius, m.def.damage, { ship: m.owner, source: m.source ?? "missile" });
+  warhead(world, at, m.def.blastRadius, m.def.damage * (m.damageScale ?? 1), {
+    ship: m.owner,
+    source: m.source ?? "missile",
+  });
   pushEvent(world, "explosion", at, m.def.blastRadius * 0.4);
   world.combat.stats.missileHits++;
   m.hp = 0;

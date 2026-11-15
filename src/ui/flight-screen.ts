@@ -1,3 +1,4 @@
+import { CrewStrip } from "./crew-ui";
 import type { Application } from "pixi.js";
 import { FixedStepLoop } from "../sim/core/loop";
 import { angleOf, sub } from "../sim/core/vec2";
@@ -140,7 +141,7 @@ export class FlightScreen {
     this.resultsPanel = el("div", { class: "results-panel", "data-testid": "results", hidden: "" });
     document.body.append(this.resultsPanel);
     this.weaponBar = el("div", { class: "weapon-bar", "data-testid": "weapon-bar", hidden: "" });
-    this.hud.fireControlSlot.append(this.weaponBar);
+    this.hud.fireControlSlot.append(this.crewStrip.el, this.weaponBar);
     this.launchPanel = el("div", {
       class: "launch-panel ck-panel",
       "data-testid": "launch-panel",
@@ -151,6 +152,8 @@ export class FlightScreen {
 
   private readonly weaponBar: HTMLElement;
   private weaponBarKey = "";
+  /** Officers of the controlled ship (above fire control). */
+  private readonly crewStrip = new CrewStrip("flight-crew");
 
   /**
    * Fire control along the bottom of the screen (spec §9.2): one card per weapon group with its key, mode,
@@ -1213,6 +1216,7 @@ export class FlightScreen {
     });
     this.renderPowerPanel();
     this.renderWeaponBar();
+    this.crewStrip.update(this.setup?.spectate ? null : this.controlledShip);
   }
 }
 

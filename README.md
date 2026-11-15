@@ -36,6 +36,7 @@ npm run ai:study               # AI types against each other on the mirror scena
 npm run balance:derive         # regenerate the core catalogue from the balance model (src/data/balance/model.ts)
 npm run tuning -- eval         # mirror fights vs fight-length targets; also sensitivity, ga (hours, resumable), apply → docs/tuning.md
 npm run tuning -- tests        # balance rules on the test platforms (PD vs missile salvos, laser vs autocannon)
+npm run ai:duel -- --a fleet-pass --b balanced   # identical fleets, two AI parameter sets; --tune hill-climbs A (docs/ai-types.md)
 npm run designs:audit          # every ship against the design rules (power, cooling, ammunition); --fix adds parts
 ```
 
@@ -65,6 +66,8 @@ The library is grouped into sections: **Playable** (the symmetric fleet, `src/da
 **Scenario editor:** Scenario editor (toolbar) → place ships (design, team, AI or "No AI" to stay put), asteroids, black holes and player spawns on the map; drag to move, Q/E rotate, Delete removes, wheel zooms. Watch or Play (with the ship open in the editor), Save in the browser, Export as JSON, or Open bundled scenarios, the tuning tests, saved ones, or every scenario (and ship design) in a GitHub folder.
 
 **Scenarios:** Scenarios (toolbar) → choose one → add designs to the fleet (or take the suggested fleet) within the budget → Start battle → results → back to the editor. **Watch AI battle** lets the AI fly the fleet (or the suggested one) while you watch: Tab follows the next ship, +/− change the time scale up to ×8. Scenarios 11–15 are mirror matches: the same fleet on both sides, the enemy flown by a mix of AI types.
+
+**Crew:** Crew (toolbar) → the officer roster ([docs/officers.md](docs/officers.md)). Ships carry officers by class: none on drones, a pilot on fighters, a captain and a tactical officer on corvettes and frigates, five (captain, tactical, navigation, engineering, operations) on anything larger. Each officer has three positive and two negative traits worth a few percent of thrust, turning, gun, missile or point-defense damage, rate of fire, accuracy, cooling or reactor output; the post emphasises its own stats and experience (1–5 stars) adds a little. Assign officers to a design's posts, generate crews for one ship or all of them, and edit names, traits and portraits (a steampunk face generator; experience shows as rank chevrons). Names come from a descriptor file with English, German and Japanese styles; you can import your own. The roster exports and imports as JSON. In flight and in strategy mode the ship's officers and their effects are shown along the bottom.
 
 **Skirmish:** Skirmish (toolbar) → two sides, any designs, and a pilot per ship: you (side 1) or an AI type, aggressive, defensive (guards a ship you pick), retreating or cautious, each with 3–5 tunable parameters ([docs/ai-types.md](docs/ai-types.md)). Without a player ship you watch the battle.
 
@@ -111,3 +114,7 @@ B eject mode (click a part to jettison it and everything hanging on it; B/Esc le
 - `src/ui` — input, HUD, flight screen, editor screen and dialogs
 - `src/themes` — theme stylesheets (`neon.css`, `flat.css`)
 - `test/` — Vitest suites, fixtures, golden hashes; `e2e/` — Playwright
+
+---
+
+© 2026 Richard Lipka · [home.zcu.cz/~lipka](https://home.zcu.cz/~lipka/)

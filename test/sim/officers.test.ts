@@ -1,0 +1,176 @@
+import { describe, expect, it } from "vitest";
+import catalogueJson from "../../src/data/core/catalogue.json";
+import { validateCatalogue, validateOfficer, validateRoster } from "../../src/data/validate";
+import { PartCatalogue } from "../../src/sim/ship/catalogue";
+import { BUNDLED_DESIGNS } from "../../src/data/designs/index";
+import { World } from "../../src/sim/world";
+import { length, vec2 } from "../../src/sim/core/vec2";
+import {
+  crewRng,
+  crewSlots,
+  FOCUS,
+  OFF_FOCUS,
+  officerEffects,
+  PER_LEVEL,
+  randomOfficer,
+  shipMods,
+  TRAITS,
+} from "../../src/sim/crew/officers";
+import { crewBattle, crewOf, emptyRoster, generateCrew } from "../../src/ui/roster";
+import type { Officer } from "../../src/data/schemas/officer";
+
+const r = validateCatalogue(catalogueJson);
+if (!r.ok) throw new Error(r.errors.join("\n"));
+const cat = PartCatalogue.fromJson(r.value);
+
+const officer = (traits: string[], level = 1): Officer => ({
+  id: "o1",
+  name: "Test Officer",
+  position: "tactical",
+  level,
+  traits,
+  portrait: {
+    head: 0,
+    skin: 0,
+    hair: 0,
+    hairColor: 0,
+    eyes: 0,
+    mouth: 0,
+    facialHair: 0,
+    neck: 0,
+    uniform: 0,
+    uniformColor: 0,
+    collar: 0,
+    accessory: 0,
+    suit: false,
+  },
+});
+const traits = ["gunnery-expert", "hot-rodder", "cool-head", "gun-shy", "nervous"];
+
+describe("officers", () => {
+  it("posts by class: none on drones, a pilot on fighters, 2 on corvettes and frigates, 5 above", () => {
+    expect(crewSlots("drone")).toEqual([]);
+    expect(crewSlots("fighter")).toEqual(["pilot"]);
+    expect(crewSlots("corvette")).toEqual(["captain", "tactical"]);
+    expect(crewSlots("frigate")).toEqual(["captain", "tactical"]);
+    for (const c of ["destroyer", "cruiser", "battlecruiser", "battleship"] as const)
+      expect(crewSlots(c)).toHaveLength(5);
+  });
+
+  it("the post emphasises its own stats and experience adds a little", () => {
+    const o = officer(["gunnery-expert", "hot-rodder", "cool-head", "heavy-handed", "slow-reflexes"]);
+    // Gun damage is tactical's work, thrust is navigation's.
+    expect(officerEffects(o, "tactical").gunDamage).toBeCloseTo(5 * FOCUS, 6);
+    expect(officerEffects(o, "tactical").thrust).toBeCloseTo(5 * OFF_FOCUS, 6);
+    expect(officerEffects(o, "navigation").thrust).toBeCloseTo(5 * FOCUS, 6);
+    expect(officerEffects(o, "navigation").gunDamage).toBeCloseTo(5 * OFF_FOCUS, 6);
+    const veteran = officer(o.traits, 5);
+    expect(officerEffects(veteran, "tactical").gunDamage).toBeCloseTo(5 * FOCUS * (1 + 4 * PER_LEVEL), 6);
+  });
+
+  it("a ship's modifiers sum its officers and stay within ±30 %", () => {
+    const o = officer(traits);
+    const m = shipMods([
+      { officer: o, position: "tactical" },
+      { officer: o, position: "captain" },
+    ]);
+    // Gun damage: +5 and −4 per officer, ×1.5 tactical and ×0.8 captain.
+    expect(m.gunDamage).toBeCloseTo(1 + (1 * 1.5 + 1 * 0.8) / 100, 6);
+    expect(m.missileDamage).toBe(1);
+    const lots = Array.from({ length: 20 }, () => ({
+      officer: officer(traits, 5),
+      position: "tactical" as const,
+    }));
+    expect(shipMods(lots).gunDamage).toBe(1.3);
+  });
+
+  it("random officers are valid: three positive and two negative traits, levels 1–5", () => {
+    const random = crewRng(7);
+    for (let i = 0; i < 200; i++) {
+      const o = randomOfficer(random, "operations", `o-${i}`);
+      const v = validateOfficer(o);
+      expect(v.ok, v.ok ? "" : v.errors.join("; ")).toBe(true);
+      expect(o.level).toBeGreaterThanOrEqual(1);
+      expect(o.level).toBeLessThanOrEqual(5);
+    }
+    expect(TRAITS.filter((t) => t.positive).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("the validator rejects wrong trait counts, signs and unknown officers in crews", () => {
+    expect(
+      validateOfficer(officer(["gunnery-expert", "hot-rodder", "gun-shy", "nervous", "wasteful"])).ok,
+    ).toBe(false);
+    expect(
+      validateOfficer(officer(["gunnery-expert", "gunnery-expert", "cool-head", "gun-shy", "nervous"])).ok,
+    ).toBe(false);
+    expect(validateOfficer(officer(["gunnery-expert", "x", "cool-head", "gun-shy", "nervous"])).ok).toBe(
+      false,
+    );
+    expect(validateRoster({ ...emptyRoster(), crews: { ship: { captain: "nobody" } } }).ok).toBe(false);
+  });
+});
+
+describe("roster", () => {
+  it("generates a crew for the empty posts and reads it back", () => {
+    const roster = emptyRoster();
+    generateCrew(roster, "ship-a", "cruiser", 3);
+    expect(roster.officers).toHaveLength(5);
+    expect(crewOf(roster, "ship-a", "cruiser").map((c) => c.position)).toEqual(crewSlots("cruiser"));
+    // Full: nothing new. Smaller class: only its posts count.
+    generateCrew(roster, "ship-a", "cruiser", 4);
+    expect(roster.officers).toHaveLength(5);
+    expect(crewOf(roster, "ship-a", "frigate")).toHaveLength(2);
+    expect(validateRoster(JSON.parse(JSON.stringify(roster))).ok).toBe(true);
+  });
+
+  it("enemy ships get random officers (the same for the same seed), the player's ships the roster's", () => {
+    const crews = (seed: number, roster = emptyRoster()) => {
+      const w = new World({ seed });
+      w.addShip(BUNDLED_DESIGNS.get("fleet-wasp")!, cat);
+      w.addShip(BUNDLED_DESIGNS.get("fleet-wasp")!, cat, { position: vec2(300, 0), team: 1 });
+      crewBattle(w, roster);
+      return w
+        .allShips()
+        .map((s) => s.crew.map((c) => `${c.position}:${c.officer.id}:${c.officer.traits.join(",")}`));
+    };
+    const [mine, theirs] = crews(5);
+    expect(mine).toEqual([]);
+    expect(theirs!.length).toBeGreaterThan(0);
+    expect(crews(5)).toEqual([mine, theirs]);
+    const roster = generateCrew(emptyRoster(), "fleet-wasp", "fighter", 9);
+    expect(crews(5, roster)[0]).toEqual([
+      `pilot:${roster.officers[0]!.id}:${roster.officers[0]!.traits.join(",")}`,
+    ]);
+  });
+});
+
+describe("officer modifiers in the simulation", () => {
+  it("thrust follows the modifier", () => {
+    const run = (thrust: number) => {
+      const w = new World({ seed: 1 });
+      const s = w.addShip(BUNDLED_DESIGNS.get("fleet-wasp")!, cat);
+      if (thrust !== 1) (s as { mods: unknown }).mods = { ...s.mods, thrust };
+      w.setIntent(s.id, { thrust: vec2(1, 0), rotate: 0 });
+      w.run(60);
+      return length(w.physics.getBodyState(s.id).linearVelocity);
+    };
+    const base = run(1);
+    expect(base).toBeGreaterThan(0);
+    expect(run(1.2) / base).toBeCloseTo(1.2, 1);
+  });
+
+  it("setCrew passes rate of fire and accuracy to the weapons", () => {
+    const w = new World({ seed: 1 });
+    const s = w.addShip(BUNDLED_DESIGNS.get("fleet-wasp")!, cat);
+    s.setCrew([
+      {
+        officer: officer(["quick-loader", "steady-hand", "cool-head", "gun-shy", "nervous"]),
+        position: "pilot",
+      },
+    ]);
+    expect(s.mods.fireRate).toBeGreaterThan(1);
+    for (const wp of s.weapons) expect(wp.mods?.rate).toBe(s.mods.fireRate);
+    s.setCrew([]);
+    expect(s.mods.fireRate).toBe(1);
+  });
+});

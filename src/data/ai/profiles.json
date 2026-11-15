@@ -89,7 +89,7 @@
     {
       "id": "sniper",
       "name": "Sniper",
-      "rangeFactor": 1.0,
+      "rangeFactor": 1,
       "weights": {
         "approach": 0.8,
         "hold": 1.4,
@@ -194,6 +194,57 @@
       "droneLaunchRange": 2500,
       "preferWeakened": 0.3,
       "stance": "cautious"
+    },
+    {
+      "id": "fleet-pass",
+      "name": "Fleet pass",
+      "rangeFactor": 0.8,
+      "weights": {
+        "approach": 1,
+        "hold": 0.6,
+        "broadside": 1,
+        "face": 1,
+        "evade": 0.2,
+        "retreat": 0.6,
+        "cool": 1
+      },
+      "retreatHp": 0.15,
+      "maxSpeed": 300,
+      "orbitSpeed": 40,
+      "minHitProbability": 0.1,
+      "volleyInterval": 4,
+      "droneLaunchRange": 2500,
+      "preferWeakened": 0.3,
+      "doctrine": "pass",
+      "passSpeed": 300,
+      "passOffset": 400,
+      "passTurnDistance": 4000,
+      "formationSpacing": 150
+    },
+    {
+      "id": "missile-wall",
+      "name": "Missile wall",
+      "rangeFactor": 1,
+      "weights": {
+        "approach": 1,
+        "hold": 1.2,
+        "broadside": 1.2,
+        "face": 0.6,
+        "evade": 0.3,
+        "retreat": 0.8,
+        "cool": 1
+      },
+      "retreatHp": 0.2,
+      "maxSpeed": 160,
+      "orbitSpeed": 5,
+      "minHitProbability": 0.2,
+      "volleyInterval": 12,
+      "droneLaunchRange": 4000,
+      "preferWeakened": 0.5,
+      "doctrine": "missile-line",
+      "standoffFactor": 0.85,
+      "salvoInterval": 12,
+      "formationSpacing": 300
     }
   ]
 }

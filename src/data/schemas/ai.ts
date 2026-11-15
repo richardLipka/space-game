@@ -53,6 +53,23 @@ export const AiProfile = Type.Object(
     ),
     /** Retreating stance: speed of the steady withdrawal (m/s). */
     withdrawSpeed: Type.Optional(PositiveNumber),
+    /**
+     * Fleet doctrine (src/sim/ai/doctrine.ts): "pass" flies formation passes through the enemy at high
+     * speed and comes about for the next one; "missile-line" stands off near missile range in a wall of
+     * battle and launches synchronised salvos. Default: standard (behaviour scores only).
+     */
+    doctrine: Type.Optional(
+      Type.Union([Type.Literal("standard"), Type.Literal("pass"), Type.Literal("missile-line")]),
+    ),
+    /** Pass doctrine: speed of the passes (m/s), how far to the side of the enemy centre they aim (m), and the distance past it at which the formation comes about (m). */
+    passSpeed: Type.Optional(PositiveNumber),
+    passOffset: Type.Optional(NonNegativeNumber),
+    passTurnDistance: Type.Optional(PositiveNumber),
+    /** Pass and missile-line doctrines: distance between ships across the formation (m). */
+    formationSpacing: Type.Optional(PositiveNumber),
+    /** Missile-line doctrine: standoff as a share of missile range, and seconds between the side's salvos. */
+    standoffFactor: Type.Optional(Type.Number({ minimum: 0.2, maximum: 1.2 })),
+    salvoInterval: Type.Optional(PositiveNumber),
   },
   strict,
 );

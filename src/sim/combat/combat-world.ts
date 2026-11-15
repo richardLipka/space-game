@@ -551,7 +551,17 @@ function resolveOrder(world: World, ship: Ship, o: FireOrder, dt: number): void 
   if (o.kind === "missile" && o.missile) {
     const targetId = o.targetId && world.hasShip(o.targetId) ? o.targetId : null;
     if (!targetId && o.missile.guidance !== "none") return;
-    spawnMissile(world, ship, o.missile, o.muzzle, o.dir, o.muzzleVelocity, targetId, o.weapon.part.def.id);
+    const m = spawnMissile(
+      world,
+      ship,
+      o.missile,
+      o.muzzle,
+      o.dir,
+      o.muzzleVelocity,
+      targetId,
+      o.weapon.part.def.id,
+    );
+    if (ship.mods.missileDamage !== 1) m.damageScale = ship.mods.missileDamage;
     world.physics.applyImpulse(
       ship.id,
       scale(o.dir, -o.missile.mass * MISSILE.launchSpeed * COMBAT.momentumTransfer),
@@ -562,12 +572,14 @@ function resolveOrder(world: World, ship: Ship, o: FireOrder, dt: number): void 
   }
   if (o.kind === "projectile" && def.projectile) {
     const pr = def.projectile;
+    // Officers: point defense and gun damage.
+    const dmgMod = def.kind === "pd" ? ship.mods.pdDamage : ship.mods.gunDamage;
     const burst =
       pr.burstRadius && pr.burstDamage
         ? {
             proximity: pr.proximityFuse ?? 0,
             radius: pr.burstRadius,
-            damage: pr.burstDamage,
+            damage: pr.burstDamage * dmgMod,
             time: o.fuseTime ?? null,
           }
         : undefined;
@@ -578,7 +590,7 @@ function resolveOrder(world: World, ship: Ship, o: FireOrder, dt: number): void 
       pos: o.muzzle,
       vel: add(o.muzzleVelocity, scale(o.dir, pr.speed)),
       mass: pr.mass,
-      damage: pr.damage,
+      damage: pr.damage * dmgMod,
       age: 0,
       lifetime: pr.lifetime,
       kind: def.ammoType ?? def.kind,
@@ -601,7 +613,7 @@ function resolveOrder(world: World, ship: Ship, o: FireOrder, dt: number): void 
     world.combat.beams.push({ owner: ship.id, from: o.muzzle, to, hit: !!hit });
     if (!hit) return;
     const strength = beamFalloff(hit.t, def.beam.falloffStart, def.range) * ship.powerFactorOf(o.weapon.uid);
-    const dmg = def.beam.dps * dt * strength;
+    const dmg = def.beam.dps * dt * strength * ship.mods.gunDamage;
     if (hit.kind === "ship") {
       damageShipAlongRay(world, hit, dmg, COMBAT.minDamage * dt, {
         ship: ship.id,

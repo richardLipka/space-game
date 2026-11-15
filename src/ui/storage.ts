@@ -14,4 +14,11 @@ export const safeStorage = {
       /* unavailable (private mode) */
     }
   },
+  remove(k: string): void {
+    try {
+      localStorage.removeItem(k);
+    } catch {
+      /* unavailable (private mode) */
+    }
+  },
 };

@@ -1,3 +1,4 @@
+import { CrewStrip } from "./crew-ui";
 import { describeBearing, liveFirepower } from "../sim/ai/firepower";
 import type { Application } from "pixi.js";
 import { AI_PROFILES } from "../data/ai/index";
@@ -121,6 +122,8 @@ export class StrategyScreen {
   private readonly detailText: HTMLElement;
   private readonly plan = Object.assign(new ShipPlan(), { showFirepower: true });
   private detailsAge = 0;
+  /** Officers of the focused ship along the bottom. */
+  private readonly crewStrip = new CrewStrip("strategy-crew");
 
   constructor(
     private readonly app: Application,
@@ -161,6 +164,7 @@ export class StrategyScreen {
       this.bar,
       this.panel,
       this.status,
+      this.crewStrip.el,
       this.banner,
     );
     document.body.append(this.root);
@@ -1026,6 +1030,7 @@ export class StrategyScreen {
     const w = this.setup!.world;
     const s = this.focus();
     this.details.hidden = !s;
+    this.crewStrip.update(s);
     if (!s) return;
     this.plan.update(s, null, w.physics.getBodyState(s.id).angle);
     this.detailsAge += dt;

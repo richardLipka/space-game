@@ -27,6 +27,8 @@ export interface WeaponState {
   beamActive: boolean;
   /** Angle between where the weapon points and where it wants to point (rad). */
   aimError: number;
+  /** Officer modifiers (rate of fire, accuracy); absent = 1. */
+  mods?: { readonly rate: number; readonly accuracy: number };
 }
 
 /** What the pilot asks of the weapons this tick (spec §9.2). */
@@ -144,7 +146,9 @@ export function mountOf(w: WeaponState, pose: ShooterPose): { muzzle: Vec2; moun
 /** Effective fire interval and spread for a weapon at its current HP (spec §8: function scales with HP). */
 export function weaponPerformance(w: WeaponState): { interval: number; spread: number } {
   const hf = Math.max(COMBAT.hpFloor, hpFactor(w.part));
-  return { interval: w.def.fireInterval / hf, spread: degToRad(w.def.spread) / hf };
+  const rate = w.mods?.rate ?? 1;
+  const acc = w.mods?.accuracy ?? 1;
+  return { interval: w.def.fireInterval / hf / rate, spread: degToRad(w.def.spread) / hf / acc };
 }
 
 /**

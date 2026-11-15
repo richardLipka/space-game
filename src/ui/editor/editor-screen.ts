@@ -1,3 +1,4 @@
+import { creditFoot } from "../credit";
 import { describeBearing, designFirepower } from "../../sim/ai/firepower";
 import { CLASS_LABEL } from "../../sim/ship/classes";
 import { flightModelSelect, preferredFlightModel, rememberFlightModel } from "../flight-model";
@@ -67,6 +68,8 @@ export interface EditorServices {
   openScenarioEditor(): void;
   /** Opens the help dialog on the ship editor's page. */
   showHelp(): void;
+  /** Opens the crew roster (officers and their posts), on this design when given. */
+  openRoster(designId?: string): void;
 }
 
 type Mode =
@@ -336,6 +339,12 @@ export class EditorScreen {
         () => void this.openSkirmish(),
         "Your two ships against an AI squadron",
       ),
+      this.button(
+        "Crew",
+        "btn-crew",
+        () => this.services.openRoster(this.model.design.id),
+        "Officers of your ships: posts, traits, portraits",
+      ),
       this.button("Theme", "btn-theme", () => this.services.cycleTheme()),
       this.button("? Help", "btn-help", () => this.services.showHelp(), "Controls (F1 or ?)"),
     );
@@ -365,6 +374,7 @@ export class EditorScreen {
       this.ui.palette,
       side,
       this.ui.status,
+      creditFoot("credit"),
       this.ui.partInfo,
     );
   }

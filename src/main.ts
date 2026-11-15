@@ -1,4 +1,6 @@
 /** Browser entry: app shell with the ship editor (default) and the flight screen (test flight / sandbox). */
+import { crewBattle, loadRoster } from "./ui/roster";
+import { RosterDialog } from "./ui/crew-ui";
 import { preferredFlightModel } from "./ui/flight-model";
 import { Application } from "pixi.js";
 import catalogueJson from "./data/core/catalogue.json";
@@ -130,6 +132,8 @@ async function main(): Promise<void> {
   const flight = new FlightScreen(app, theme, hudEl, input);
   flight.openHelp = () => help.show("flight");
   const strategy = new StrategyScreen(app, theme, help);
+  /** Officers (docs/officers.md): the player's crews from the roster, random ones for everyone else. */
+  let roster = loadRoster();
   flight.themeName = () => THEMES[themeIndex]!;
 
   let mode: "editor" | "flight" | "scenario" | "strategy" = "editor";
@@ -176,6 +180,7 @@ async function main(): Promise<void> {
     }
     // Test flights and the sandbox use the model picked in the toolbar.
     world.flightModel = preferredFlightModel();
+    crewBattle(world, roster);
     editor.hide();
     mode = "flight";
     flight.start({ world, playerShips: ships, title });
@@ -193,6 +198,7 @@ async function main(): Promise<void> {
         profiles: AI_PROFILES,
         droneDesigns: [...droneDesigns.values()],
       });
+      crewBattle(battle.world, roster);
       editor.hide();
       mode = "flight";
       flight.start({
@@ -244,6 +250,7 @@ async function main(): Promise<void> {
       });
       applySkirmishOrders(battle, sk, setup);
       battle.world.flightModel = setup.flightModel ?? "newtonian";
+      crewBattle(battle.world, roster);
       const watch = battle.playerShips.length === 0;
       editor.hide();
       mode = "flight";
@@ -299,7 +306,17 @@ async function main(): Promise<void> {
       void scenarioEditor.show();
     },
     showHelp: () => help.show("ship-editor"),
+    openRoster: (id) => void rosterDialog.open(id),
   };
+  const rosterDialog = new RosterDialog({
+    roster: () => roster,
+    setRoster: (r) => {
+      roster = r;
+    },
+    designs: async () => [...(await allDesigns()).values()],
+    catalogue: () => catalogue,
+    toast,
+  });
 
   /** Strategy mode (RTS): the scenario's team-0 ships take orders; back to the scenario editor at the end. */
   const startStrategy = (scenario: Scenario) => {
@@ -311,6 +328,7 @@ async function main(): Promise<void> {
         profiles: AI_PROFILES,
         droneDesigns: [...droneDesigns.values()],
       });
+      crewBattle(battle.world, roster);
       scenarioEditor.hide();
       editor.hide();
       flight.stop();
