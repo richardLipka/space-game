@@ -1,3 +1,6 @@
+import { lenient, repairCrew } from "../data/repair";
+import { ShipDesign as ShipDesignSchema } from "../data/schemas/design";
+import { Scenario as ScenarioSchema } from "../data/schemas/scenario";
 import type { ShipDesign } from "../data/schemas/design";
 import type { AsteroidSpawn, GravityWell, Scenario } from "../data/schemas/scenario";
 import { validateDesign, validateScenario } from "../data/validate";
@@ -281,20 +284,67 @@ export async function loadGithubFolder(folder: GithubFolder, fetcher: Fetch = fe
       const r = await fetcher(f.download_url!);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const j = await r.json();
-      const s = validateScenario(j);
-      if (s.ok) {
-        out.scenarios.push(s.value);
+      const p = parseGameFile(j);
+      if (p.kind === "scenario") out.scenarios.push(p.scenario);
+      else if (p.kind === "design") out.designs.push(p.design);
+      else {
+        out.skipped.push(`${f.name}: ${p.errors[0] ?? "neither a scenario nor a ship design"}`);
         continue;
       }
-      const d = validateDesign(j);
-      if (d.ok) {
-        out.designs.push(d.value);
-        continue;
-      }
-      out.skipped.push(`${f.name}: neither a scenario nor a ship design`);
+      out.skipped.push(...p.notes.map((n) => `${f.name}: ${n}`));
     } catch (e) {
       out.skipped.push(`${f.name}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
   return out;
+}
+
+export type ParsedGameFile =
+  | { kind: "scenario"; scenario: Scenario; notes: string[] }
+  | { kind: "design"; design: ShipDesign; notes: string[] }
+  | { kind: "error"; errors: string[] };
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  !!v && typeof v === "object" && !Array.isArray(v);
+
+/**
+ * A scenario or ship design file, read tolerantly (docs/save-load.md): settings this version does not know are
+ * ignored, and crews are taken out first and repaired on their own (unknown traits replaced), so an officer
+ * never stops the file from loading. Notes say what changed.
+ */
+export function parseGameFile(data: unknown): ParsedGameFile {
+  if (!isRecord(data)) return { kind: "error", errors: ["not a scenario or ship design file"] };
+  const notes: string[] = [];
+  if (Array.isArray(data.enemies) && isRecord(data.arena)) {
+    const crews: unknown[] = [];
+    const enemies = data.enemies.map((e) => {
+      if (!isRecord(e)) return e;
+      const { crew, ...rest } = e;
+      crews.push(crew);
+      return rest;
+    });
+    const r = lenient(ScenarioSchema, { ...data, enemies }, validateScenario);
+    if (!r.ok) return { kind: "error", errors: r.errors };
+    notes.push(...r.notes);
+    const scenario = {
+      ...r.value,
+      enemies: r.value.enemies.map((e, i) => {
+        if (crews[i] === undefined) return e;
+        const c = repairCrew(crews[i], 77 + i);
+        notes.push(...c.notes.map((n) => `ship ${i + 1}: ${n}`));
+        return c.crew.length ? { ...e, crew: c.crew } : e;
+      }),
+    };
+    return { kind: "scenario", scenario, notes };
+  }
+  if (Array.isArray(data.parts)) {
+    const { crew, ...rest } = data;
+    const r = lenient(ShipDesignSchema, rest, validateDesign);
+    if (!r.ok) return { kind: "error", errors: r.errors };
+    notes.push(...r.notes);
+    const c = repairCrew(crew, 5);
+    notes.push(...c.notes);
+    return { kind: "design", design: c.crew.length ? { ...r.value, crew: c.crew } : r.value, notes };
+  }
+  return { kind: "error", errors: ["neither a scenario nor a ship design"] };
 }

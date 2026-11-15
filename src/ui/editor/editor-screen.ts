@@ -1,3 +1,5 @@
+import type { CrewEntry } from "../../data/schemas/officer";
+import { missingPartsNote, resolveDesign } from "../../sim/ship/resolve";
 import { creditFoot } from "../credit";
 import { describeBearing, designFirepower } from "../../sim/ai/firepower";
 import { CLASS_LABEL } from "../../sim/ship/classes";
@@ -70,6 +72,10 @@ export interface EditorServices {
   showHelp(): void;
   /** Opens the crew roster (officers and their posts), on this design when given. */
   openRoster(designId?: string): void;
+  /** The roster's officers at this design's posts (saved into ship files). */
+  crewForDesign(design: ShipDesign): CrewEntry[];
+  /** Officers that came with an imported ship: they join the roster at the design's posts. */
+  adoptCrew(designId: string, crew: readonly CrewEntry[]): void;
 }
 
 type Mode =
@@ -191,7 +197,12 @@ export class EditorScreen {
     private readonly services: EditorServices,
     initial: ShipDesign,
   ) {
-    this.model = new EditorModel(services.catalogue(), initial, services.now);
+    // A design with parts this version lacks opens without them (main.ts falls back to the fighter if none are left).
+    this.model = new EditorModel(
+      services.catalogue(),
+      resolveDesign(initial, services.catalogue()).design ?? initial,
+      services.now,
+    );
     this.view = new EditorView(theme, app);
     this.root = this.buildDom();
     document.body.appendChild(this.root);
@@ -228,8 +239,16 @@ export class EditorScreen {
   }
 
   loadDesign(d: ShipDesign): void {
-    this.model.catalogue = this.services.catalogue();
-    this.model.load(d);
+    const cat = this.services.catalogue();
+    // Parts this version does not have are left out, with a warning; a design of nothing but those stays closed.
+    const { design, missing } = resolveDesign(d, cat);
+    if (missing.length) this.services.toast(missingPartsNote(d.name, missing), "error");
+    if (!design) {
+      this.services.toast(`${d.name} cannot be opened: none of its parts exist in this version.`, "error");
+      return;
+    }
+    this.model.catalogue = cat;
+    this.model.load(design);
     this.selected.clear();
     this.cancelMode();
     this.dirty = false;
@@ -1009,8 +1028,10 @@ export class EditorScreen {
     designs.set(d.id, d);
     let bundle;
     try {
+      // The ship profile carries its officers from the roster.
+      const crew = this.services.crewForDesign(d);
       bundle = buildExport(
-        [d],
+        [crew.length ? { ...d, crew } : d],
         { core: this.services.core(), userParts: snap.userParts, designs },
         {
           archival,

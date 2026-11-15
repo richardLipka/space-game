@@ -1,3 +1,6 @@
+import { ScenarioCrewDialog } from "./scenario-crew";
+import type { Roster } from "../data/schemas/officer";
+import { flightModelSelect } from "./flight-model";
 import { creditFoot } from "./credit";
 import { designFirepower } from "../sim/ai/firepower";
 import type { ShipDesign } from "../data/schemas/design";
@@ -5,13 +8,13 @@ import type { Scenario } from "../data/schemas/scenario";
 import { SCENARIOS } from "../data/scenarios/index";
 import { TUNING_TESTS } from "../headless/tuning/tests";
 import { designSection, orderSections } from "../data/designs/index";
-import { validateScenario } from "../data/validate";
 import {
   asteroidRadius,
   emptyScenario,
   type ItemRef,
   loadGithubFolder,
   NO_AI,
+  parseGameFile,
   parseGithubFolder,
   ScenarioModel,
 } from "../editor/scenario-model";
@@ -36,6 +39,8 @@ export interface ScenarioEditorServices {
   command(s: Scenario): void;
   /** Opens the help dialog on the scenario editor's page. */
   showHelp(): void;
+  /** The officer roster (team-0 crews can be copied from it). */
+  roster(): Roster;
   back(): void;
   toast(message: string, kind?: "info" | "error"): void;
 }
@@ -53,20 +58,26 @@ function svg(tag: string, attrs: Record<string, string | number> = {}): SVGEleme
   return e;
 }
 
-export function savedScenarios(): Scenario[] {
+/** Raw saved entries (kept as they are, so a scenario this version cannot read is never overwritten). */
+function savedRaw(): unknown[] {
   try {
-    const list = JSON.parse(safeStorage.get(SAVED_KEY) ?? "[]") as unknown[];
-    return list.flatMap((j) => {
-      const r = validateScenario(j);
-      return r.ok ? [r.value] : [];
-    });
+    const list = JSON.parse(safeStorage.get(SAVED_KEY) ?? "[]") as unknown;
+    return Array.isArray(list) ? list : [];
   } catch {
     return [];
   }
 }
 
+/** Scenarios saved in this browser, read tolerantly; ones that cannot be read at all are left out (but kept). */
+export function savedScenarios(): Scenario[] {
+  return savedRaw().flatMap((j) => {
+    const p = parseGameFile(j);
+    return p.kind === "scenario" ? [p.scenario] : [];
+  });
+}
+
 function storeScenario(s: Scenario): void {
-  const list = savedScenarios().filter((x) => x.id !== s.id);
+  const list = savedRaw().filter((x) => !(x && typeof x === "object" && (x as { id?: unknown }).id === s.id));
   safeStorage.set(SAVED_KEY, JSON.stringify([...list, s]));
 }
 
@@ -83,6 +94,13 @@ export class ScenarioEditor {
   private readonly status: HTMLElement;
   private readonly openDialog: HTMLDialogElement;
   private designs = new Map<string, ShipDesign>();
+  private readonly crewDialog: ScenarioCrewDialog;
+  private readonly importFile = el("input", {
+    type: "file",
+    accept: ".json,application/json",
+    hidden: "",
+    "data-testid": "sc-import-file",
+  }) as HTMLInputElement;
   private tool: Tool = "select";
   private selected: ItemRef | null = null;
   /** View: centre (m) and metres per pixel. */
@@ -119,6 +137,17 @@ export class ScenarioEditor {
   }
 
   constructor(private readonly services: ScenarioEditorServices) {
+    this.crewDialog = new ScenarioCrewDialog({
+      designs: () => this.designs,
+      catalogue: () => services.catalogue(),
+      roster: () => services.roster(),
+      toast: (m, k) => services.toast(m, k),
+    });
+    this.importFile.addEventListener("change", () => {
+      const f = this.importFile.files?.[0];
+      this.importFile.value = "";
+      if (f) void this.importJson(f);
+    });
     this.map = svg("svg", { class: "sc-map", "data-testid": "scenario-map" }) as SVGSVGElement;
     this.palette = el("aside", { class: "sc-palette", "data-testid": "scenario-palette" });
     this.side = el("aside", { class: "sc-side", "data-testid": "scenario-props" });
@@ -145,6 +174,7 @@ export class ScenarioEditor {
       btn("Open…", "sc-open", () => void this.showOpen()),
       btn("Save in this browser", "sc-save", () => this.save()),
       btn("Export JSON file", "sc-export", () => this.exportJson()),
+      btn("Import JSON file…", "sc-import", () => this.importFile.click()),
     );
     file.addEventListener("click", (e) => {
       if ((e.target as HTMLElement).closest("button")) file.removeAttribute("open");
@@ -180,6 +210,7 @@ export class ScenarioEditor {
         () => this.launch("command"),
         "Strategy mode: command your (team 0) ships",
       ),
+      btn("Crew", "sc-crew", () => this.openCrew(), "Officers of every ship, all sides"),
       btn("? Help", "sc-help", () => services.showHelp(), "Controls (F1 or ?)"),
       btn("Ship editor", "sc-back", () => services.back()),
     );
@@ -197,6 +228,7 @@ export class ScenarioEditor {
       this.side,
       this.status,
       creditFoot("scenario-credit"),
+      this.importFile,
     );
     document.body.append(this.root, this.openDialog);
     this.bindMap();
@@ -780,6 +812,13 @@ export class ScenarioEditor {
             "sc-prop-angle",
           ),
         );
+        const crewBtn = el(
+          "button",
+          { "data-testid": "sc-prop-crew", title: "Officers of this ship" },
+          e.crew?.length ? `Crew: ${e.crew.length} officer(s)…` : "Crew: random at start…",
+        );
+        crewBtn.addEventListener("click", () => this.openCrew(r.index));
+        out.push(el("label", { class: "sc-field" }, crewBtn));
       } else if (r.kind === "well") {
         const wl = s.arena.gravityWells[r.index]!;
         out.push(
@@ -899,6 +938,12 @@ export class ScenarioEditor {
       ),
     );
     out.push(el("label", { class: "sc-field" }, "Objective", obj));
+    // Flight model of every ship (strategy, play and watch).
+    out.push(
+      flightModelSelect("sc-flight-model", s.flightModel ?? "newtonian", (m) =>
+        edit((t) => (t.flightModel = m)),
+      ),
+    );
     if (s.objective.type === "survive") {
       const o = s.objective;
       out.push(
@@ -934,6 +979,57 @@ export class ScenarioEditor {
   private save(): void {
     storeScenario(this.model.scenario);
     this.services.toast(`Saved “${this.model.scenario.name}” in this browser`);
+  }
+
+  private openCrew(focus?: number): void {
+    this.crewDialog.open(
+      () => this.model.scenario,
+      (i, crew) => {
+        this.model.edit((t) => {
+          const e = t.enemies[i];
+          if (!e) return;
+          if (crew?.length) e.crew = crew;
+          else delete e.crew;
+        });
+        this.render();
+      },
+      focus,
+    );
+  }
+
+  /** A scenario file opens in the editor; a ship design file goes to the library. */
+  private async importJson(f: File): Promise<void> {
+    let data: unknown;
+    try {
+      data = JSON.parse(await f.text());
+    } catch {
+      this.services.toast(`${f.name}: not a JSON file`, "error");
+      return;
+    }
+    const p = parseGameFile(data);
+    if (p.kind === "error") {
+      this.services.toast(`${f.name}: ${p.errors[0]}`, "error");
+      return;
+    }
+    if (p.kind === "scenario") {
+      this.model.load(p.scenario);
+      this.selected = null;
+      this.fit();
+      this.render();
+    } else {
+      await this.services.importDesigns([p.design]);
+      this.designs = await this.services.designs();
+      this.outlines.clear();
+      this.render();
+    }
+    const what =
+      p.kind === "scenario" ? `Opened “${p.scenario.name}”` : `Added “${p.design.name}” to the library`;
+    this.services.toast(
+      p.notes.length ? `${what} with changes: ${p.notes.slice(0, 3).join(" ")}` : what,
+      p.notes.length ? "error" : "info",
+    );
+    const missing = this.model.problems(this.designs, new Set(this.services.profiles));
+    if (p.kind === "scenario" && missing.length) this.services.toast(missing[0]!, "error");
   }
 
   private exportJson(): void {

@@ -6,8 +6,9 @@ import type { ShipClass } from "../ship/classes";
 /**
  * Officers (docs/officers.md): each has three positive and two negative traits that change ship
  * performance by a few percent. The position an officer holds emphasises the traits that matter to it
- * (a tactical officer's gunnery counts more, its helmsmanship less), and experience (levels 1–5) adds a
- * little to everything. A ship's modifiers are the sum over its officers.
+ * (a tactical officer's gunnery counts more, its helmsmanship less). Traits come in three strengths (small,
+ * medium, full). Experience (levels 1–5) trains one stat per level above the first. A ship's modifiers are
+ * the sum over its officers.
  */
 
 export type Stat =
@@ -107,8 +108,32 @@ export const OFF_FOCUS = 0.5;
 /** A pilot flies alone: off-focus stats still count fully. A captain oversees everything evenly. */
 const PILOT_OFF = 1;
 const CAPTAIN = 0.8;
-/** Experience: each level above 1 adds this share to every effect (level 5: ×1.4). */
-export const PER_LEVEL = 0.1;
+/** Trait strength 1–3 (small, medium, full) as a share of the trait's listed effect. */
+export const STRENGTH = [0, 1 / 3, 2 / 3, 1] as const;
+export const STRENGTH_LABEL = ["", "small", "medium", "full"] as const;
+/** Experience: every level above 1 trains one stat by this many percent (before post emphasis). */
+export const TRAINING_PCT = 3;
+
+/** Stats a post trains when an older file lists no training (captains: an even spread). */
+const CAPTAIN_TRAINING: readonly Stat[] = ["accuracy", "thrust", "cooling", "gunDamage"];
+
+/** The stats an officer's levels trained, one per level above 1 (older files: the post's own stats). */
+export function trainingOf(o: Pick<Officer, "level" | "position" | "training">): Stat[] {
+  const n = Math.min(5, Math.max(1, o.level)) - 1;
+  const known = (o.training ?? []).filter((s): s is Stat => (STATS as readonly string[]).includes(s));
+  if (o.training && known.length >= n) return known.slice(0, n);
+  const focus = POSITIONS[o.position]?.focus.length ? POSITIONS[o.position]!.focus : CAPTAIN_TRAINING;
+  const out = known.slice(0, n);
+  for (let k = out.length; k < n; k++) out.push(focus[k % focus.length]!);
+  return out;
+}
+
+/** A stat for a new level: the post's own stats three times as likely as any other. */
+export function levelUpStat(random: () => number, position: Position): Stat {
+  const focus = POSITIONS[position].focus;
+  const pool = [...STATS, ...focus, ...focus];
+  return pool[Math.floor(random() * pool.length)]!;
+}
 
 /** Positions a ship of this class has, in order. */
 export function crewSlots(cls: ShipClass): Position[] {
@@ -125,19 +150,21 @@ function emphasis(position: Position, stat: Stat): number {
   return focused ? FOCUS : OFF_FOCUS;
 }
 
-/** What an officer adds in a position (percent per stat, rounded to 0.1). */
-export function officerEffects(
-  o: Pick<Officer, "traits" | "level">,
-  position: Position,
-): Partial<Record<Stat, number>> {
-  const out: Partial<Record<Stat, number>> = {};
-  const lv = 1 + PER_LEVEL * (Math.min(5, Math.max(1, o.level)) - 1);
-  for (const id of o.traits) {
+export type OfficerStats = Pick<Officer, "traits" | "level" | "position" | "strength" | "training">;
+
+/** What an officer adds in a position (percent per stat, rounded to 0.1): traits by strength, plus training. */
+export function officerEffects(o: OfficerStats, position: Position): Partial<Record<Stat, number>> {
+  const sum: Partial<Record<Stat, number>> = {};
+  o.traits.forEach((id, i) => {
     const t = trait(id);
-    if (!t) continue;
+    if (!t) return;
+    const k = STRENGTH[o.strength?.[i] ?? 3] ?? 1;
     for (const [s, pct] of Object.entries(t.effects) as [Stat, number][])
-      out[s] = Math.round(((out[s] ?? 0) + pct * emphasis(position, s) * lv) * 10) / 10;
-  }
+      sum[s] = (sum[s] ?? 0) + pct * k * emphasis(position, s);
+  });
+  for (const s of trainingOf(o)) sum[s] = (sum[s] ?? 0) + TRAINING_PCT * emphasis(position, s);
+  const out: Partial<Record<Stat, number>> = {};
+  for (const [s, v] of Object.entries(sum) as [Stat, number][]) out[s] = Math.round(v * 10) / 10;
   return out;
 }
 
@@ -145,9 +172,7 @@ export type Mods = Readonly<Record<Stat, number>>;
 export const NO_MODS: Mods = Object.fromEntries(STATS.map((s) => [s, 1])) as Mods;
 
 /** A ship's multipliers from its crew (1 = no effect), each kept within ±30 %. */
-export function shipMods(
-  crew: readonly { officer: Pick<Officer, "traits" | "level">; position: Position }[],
-): Mods {
+export function shipMods(crew: readonly { officer: OfficerStats; position: Position }[]): Mods {
   const pct: Partial<Record<Stat, number>> = {};
   for (const c of crew)
     for (const [s, v] of Object.entries(officerEffects(c.officer, c.position)) as [Stat, number][])
@@ -243,6 +268,9 @@ export function randomOfficer(
     2,
   );
   const level = 1 + Math.min(4, Math.floor(-Math.log(1 - random() * 0.97) * 1.4));
+  // Trait strengths: small, medium or full, equally likely.
+  const strength = Array.from({ length: 5 }, () => 1 + Math.floor(random() * 3));
+  const training = Array.from({ length: level - 1 }, () => levelUpStat(random, position));
   const { name, origin } = generateName(random, names.style, names.names);
   return {
     id,
@@ -251,6 +279,8 @@ export function randomOfficer(
     position,
     level,
     traits: [...positives, ...negatives],
+    strength,
+    training,
     portrait: randomPortrait(random),
   };
 }

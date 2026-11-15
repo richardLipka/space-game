@@ -1,3 +1,4 @@
+import { missingPartsNote, resolveDesign } from "../ship/resolve";
 import type { ShipDesign } from "../../data/schemas/design";
 import type { Scenario } from "../../data/schemas/scenario";
 import type { AiProfile } from "../../data/schemas/ai";
@@ -61,6 +62,10 @@ export interface Battle {
   /** Allied AI ships from the scenario (team 0), e.g. the ship to protect. */
   readonly allyShips: Ship[];
   readonly protectId: string | null;
+  /** The ship spawned for each `scenario.enemies` entry (undefined where it could not be built). */
+  readonly scenarioShips: readonly (Ship | undefined)[];
+  /** What could not be loaded as written (unknown designs, parts or AI profiles) and what was done instead. */
+  readonly warnings: string[];
   status: BattleStatus;
   reason: string;
   /** Battle time when the status changed (s). */
@@ -99,15 +104,30 @@ export function startBattle(
   const enemyShips: Ship[] = [];
   const allyShips: Ship[] = [];
   let protectId: string | null = null;
-  const spawned: Ship[] = [];
-  for (const e of scenario.enemies) {
+  const spawned: (Ship | undefined)[] = [];
+  const warnings: string[] = [];
+  const fallbackProfile = opts.profiles.get("balanced") ?? [...opts.profiles.values()][0] ?? null;
+  for (const [i, e] of scenario.enemies.entries()) {
     const d = opts.designs.get(e.designId);
-    if (!d) throw new Error(`Scenario ${scenario.id}: unknown design "${e.designId}"`);
+    if (!d) {
+      // A design this game does not have (another player's library, a newer version): the ship is left out.
+      warnings.push(`Ship ${i + 1}: unknown design "${e.designId}" left out.`);
+      spawned.push(undefined);
+      continue;
+    }
     // "none": no pilot; the ship stays where it is placed (test platforms), its automatic weapons still fire.
-    const profile = e.aiProfile === "none" ? null : opts.profiles.get(e.aiProfile);
-    if (profile === undefined)
-      throw new Error(`Scenario ${scenario.id}: unknown AI profile "${e.aiProfile}"`);
-    const s = world.addShip(d, catalogue, {
+    let profile = e.aiProfile === "none" ? null : opts.profiles.get(e.aiProfile);
+    if (profile === undefined) {
+      warnings.push(`${d.name}: unknown AI "${e.aiProfile}", flies as ${fallbackProfile?.id ?? "no AI"}.`);
+      profile = fallbackProfile;
+    }
+    const resolved = resolveDesign(d, catalogue);
+    if (resolved.missing.length) warnings.push(missingPartsNote(d.name, resolved.missing));
+    if (!resolved.design) {
+      spawned.push(undefined);
+      continue;
+    }
+    const s = world.addShip(resolved.design, catalogue, {
       position: vec2(e.spawn.position[0], e.spawn.position[1]),
       angle: degToRad(e.spawn.angle),
       team: e.team,
@@ -127,15 +147,23 @@ export function startBattle(
   scenario.enemies.forEach((e, i) => {
     const charge = e.guard !== undefined ? spawned[e.guard] : undefined;
     if (!charge || e.guard === i) return;
-    const st = world.ai.get(spawned[i]!.id);
+    const own = spawned[i];
+    if (!own) return;
+    const st = world.ai.get(own.id);
     if (st) st.order = { kind: "guard", target: charge.id, radius: e.guardRadius ?? GUARD_RADIUS };
   });
-  if (scenario.objective.type === "protect" && !protectId)
-    throw new Error(
-      `Scenario ${scenario.id}: no team-0 ship with design "${scenario.objective.designId}" to protect`,
+  // Nothing to protect (its design is unknown): fight to destroy every enemy instead.
+  let goal = scenario;
+  if (scenario.objective.type === "protect" && !protectId) {
+    warnings.push(
+      `No ship to protect ("${scenario.objective.designId}"); the goal is to destroy every enemy.`,
     );
+    goal = { ...scenario, objective: { type: "destroyAll" } };
+  }
   return {
-    scenario,
+    scenario: goal,
+    scenarioShips: spawned,
+    warnings,
     world,
     playerShips,
     enemyShips,

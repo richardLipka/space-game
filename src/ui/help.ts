@@ -107,7 +107,11 @@ export const HELP: Record<
           ["Q / E", "rotate the selected ship, asteroid or spawn by 15°"],
           ["Delete / Backspace", "remove the selected item"],
           ["Ctrl+Z / Ctrl+Y", "undo / redo"],
-          ["Right panel", "arena size, budget, objective, seed; problems that would stop the battle"],
+          [
+            "Right panel",
+            "arena size, budget, objective, seed, flight model (Newtonian or arcade, for watch, play and command); problems that would stop the battle",
+          ],
+          ["Crew… (ship selected)", "officers of that ship"],
         ],
       ],
       [
@@ -123,7 +127,11 @@ export const HELP: Record<
         [
           [
             "File menu",
-            "new, open (bundled, tuning tests, saved, GitHub folder), save in the browser, export JSON",
+            "new, open (bundled, tuning tests, saved, GitHub folder), save in the browser, export JSON, import a JSON file (a scenario opens, a ship design goes to the library)",
+          ],
+          [
+            "Crew",
+            "officers of every ship, all sides: generate (names, trait strength and level fixed or random), copy from the roster, edit one, or leave random at start; saved with the scenario",
           ],
           ["Watch", "the AI flies every ship"],
           ["Play", "fly the ship open in the ship editor"],

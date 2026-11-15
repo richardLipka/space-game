@@ -1,3 +1,4 @@
+import { resolveDesign } from "./ship/resolve";
 import type { ShipDesign } from "../data/schemas/design";
 import { Rng } from "./core/rng";
 import { IdGenerator, compareIds } from "./core/ids";
@@ -180,6 +181,10 @@ export class World {
   }
 
   addShip(design: ShipDesign, catalogue: PartCatalogue, options: SpawnOptions = {}): Ship {
+    // Parts this catalogue does not have are left out (a file from a newer version); nothing left = error.
+    const resolved = resolveDesign(design, catalogue).design;
+    if (!resolved) throw new Error(`${design.name}: none of its parts exist in this version`);
+    design = resolved;
     const id = this.ids.next("ship");
     this.catalogues.set(id, catalogue);
     const ship = new Ship(id, design, instantiateParts(design, catalogue, options), options.team ?? 0);

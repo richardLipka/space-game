@@ -1,6 +1,8 @@
+import { lenient, repairCrew } from "../repair";
+import type { CrewEntry } from "../schemas/officer";
 import type { PartDef } from "../schemas/part";
 import type { ShipDesign } from "../schemas/design";
-import { validate, validateDesign, validatePart } from "../validate";
+import { validateDesign, validatePart } from "../validate";
 import { contentHash } from "../../sim/core/hash";
 import { PartCatalogue } from "../../sim/ship/catalogue";
 import { BUNDLE_FORMAT_VERSION, ShipExport, parseShareText } from "./bundle";
@@ -72,6 +74,8 @@ export interface ImportPlan {
   readonly designConflicts: string[];
   readonly warnings: string[];
   readonly author: string;
+  /** Officers each design carried (same order as `designs`); they join the roster on import. */
+  readonly crews: (CrewEntry[] | undefined)[];
 }
 
 export type AnalyzeResult = { ok: true; plan: ImportPlan } | { ok: false; errors: string[] };
@@ -123,9 +127,34 @@ export function analyzeImport(input: string | unknown, ctx: ImportContext): Anal
       ],
     };
   }
-  const r = validate(ShipExport, data);
+  // Officers travel with the design. They are taken out before validation and repaired on their own, so a
+  // crew from another version never blocks the ship; they go to the roster, not the library.
+  const rawCrews: unknown[] = [];
+  if (data && typeof data === "object" && Array.isArray((data as { designs?: unknown }).designs)) {
+    const designsRaw = (data as { designs: unknown[] }).designs;
+    data = {
+      ...(data as object),
+      designs: designsRaw.map((d) => {
+        if (!d || typeof d !== "object") return d;
+        const { crew, ...rest } = d as { crew?: unknown };
+        rawCrews.push(crew);
+        return rest;
+      }),
+    };
+  }
+  // A newer file may carry settings this version does not know: they are ignored (with a warning).
+  const r = lenient(ShipExport, data);
   if (!r.ok) return { ok: false, errors: r.errors };
-  const bundle = r.value;
+  const loadNotes = [...r.notes];
+  const bundle0 = r.value;
+  const crews: (CrewEntry[] | undefined)[] = bundle0.designs.map((_, i) => {
+    if (rawCrews[i] === undefined) return undefined;
+    const c = repairCrew(rawCrews[i], 31 + i);
+    loadNotes.push(...c.notes);
+    return c.crew;
+  });
+  let bundle = bundle0;
+
   if (bundle.format === "spacegame.scenario")
     return { ok: false, errors: ["Scenario import is not supported yet."] };
 
@@ -147,15 +176,22 @@ export function analyzeImport(input: string | unknown, ctx: ImportContext): Anal
   }
   if (errors.length) return { ok: false, errors };
 
-  // Core resolution.
+  // Core resolution: parts from a newer game version that this one lacks are left out of the ships.
   const missingCore = Object.keys(bundle.core.parts).filter((id) => !ctx.core.has(id));
   if (missingCore.length) {
-    return {
-      ok: false,
-      errors: [
-        `This ship uses parts from a newer game version that are missing here: ${missingCore.join(", ")}`,
-      ],
-    };
+    const gone = new Set(missingCore);
+    const designs = bundle.designs.map((d) => ({ ...d, parts: d.parts.filter((p) => !gone.has(p.partId)) }));
+    const empty = designs.filter((d) => d.parts.length === 0).map((d) => d.name);
+    if (empty.length)
+      return {
+        ok: false,
+        errors: [`${empty.join(", ")}: every part is from a newer game version (${missingCore.join(", ")}).`],
+      };
+    const parts = Object.fromEntries(Object.entries(bundle.core.parts).filter(([id]) => !gone.has(id)));
+    bundle = { ...bundle, designs, core: { ...bundle.core, parts } };
+    loadNotes.push(
+      `Parts from a newer game version are missing here and were left out: ${missingCore.join(", ")}. Check the ship before flying it.`,
+    );
   }
   const coreMismatches = Object.entries(bundle.core.parts)
     .filter(([id, hash]) => ctx.core.get(id).hash !== hash)
@@ -201,7 +237,7 @@ export function analyzeImport(input: string | unknown, ctx: ImportContext): Anal
   const designs = bundle.designs.map((d) => rewriteDesign(d, renamed));
   const designConflicts = designs.filter((d) => ctx.designs.has(d.id)).map((d) => d.id);
 
-  const warnings: string[] = [];
+  const warnings: string[] = [...loadNotes];
   if (coreMismatches.length) {
     warnings.push(
       `${coreMismatches.length} core part(s) changed since this ship was exported (${coreMismatches.join(", ")}); it may perform differently.`,
@@ -234,6 +270,7 @@ export function analyzeImport(input: string | unknown, ctx: ImportContext): Anal
       designConflicts,
       warnings,
       author,
+      crews,
     },
   };
 }

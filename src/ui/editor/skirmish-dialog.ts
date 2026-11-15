@@ -56,7 +56,8 @@ export class SkirmishDialog {
         const v = JSON.parse(raw) as SkirmishSetup;
         if (Array.isArray(v.sides) && v.sides.length === 2)
           return {
-            sides: [[...v.sides[0]], [...v.sides[1]]],
+            // Ship entries from an older or newer version: unknown pilots fly as aggressive AI, bad entries go.
+            sides: [cleanSide(v.sides[0]), cleanSide(v.sides[1])],
             distance: Number(v.distance) || 5000,
             flightModel:
               v.flightModel === "arcade" || v.flightModel === "newtonian"
@@ -275,4 +276,26 @@ export class SkirmishDialog {
     }
     return card;
   }
+}
+
+/** Stored skirmish ships made safe: objects with a design id, a known pilot type and numeric parameters. */
+function cleanSide(side: unknown): SkirmishShip[] {
+  if (!Array.isArray(side)) return [];
+  return side.flatMap((x): SkirmishShip[] => {
+    if (!x || typeof x !== "object" || typeof (x as SkirmishShip).designId !== "string") return [];
+    const ship = x as SkirmishShip;
+    const pilot =
+      ship.pilot === "player" || STANCES.some((t) => t.id === ship.pilot) ? ship.pilot : "aggressive";
+    const params = Object.fromEntries(
+      Object.entries(ship.params ?? {}).filter(([, v]) => typeof v === "number" && Number.isFinite(v)),
+    );
+    return [
+      {
+        designId: ship.designId,
+        pilot,
+        params,
+        ...(Number.isInteger(ship.guard) ? { guard: ship.guard } : {}),
+      },
+    ];
+  });
 }

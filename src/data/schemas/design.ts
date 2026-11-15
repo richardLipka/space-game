@@ -1,5 +1,6 @@
 import { Type, type Static } from "@sinclair/typebox";
 import { IsoDate, PartId, Uuidish } from "./common";
+import { CrewEntry } from "./officer";
 
 const strict = { additionalProperties: false } as const;
 
@@ -69,6 +70,11 @@ export const ShipDesign = Type.Object(
     /** Per-group fire range, target priority and name (groups 1–9). */
     weaponGroups: Type.Optional(Type.Record(Type.String({ pattern: "^[1-9]$" }), WeaponGroupSettings)),
     powerPriority: Type.Array(PowerGroup, { uniqueItems: true }),
+    /**
+     * Officers carried with the design in a ship file (export "ship profile"); on import they join the
+     * roster. Library designs keep their crew in the roster instead.
+     */
+    crew: Type.Optional(Type.Array(CrewEntry, { maxItems: 5 })),
   },
   strict,
 );

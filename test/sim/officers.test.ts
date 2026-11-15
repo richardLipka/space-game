@@ -11,7 +11,9 @@ import {
   FOCUS,
   OFF_FOCUS,
   officerEffects,
-  PER_LEVEL,
+  STRENGTH,
+  TRAINING_PCT,
+  trainingOf,
   randomOfficer,
   shipMods,
   TRAITS,
@@ -64,8 +66,35 @@ describe("officers", () => {
     expect(officerEffects(o, "tactical").thrust).toBeCloseTo(5 * OFF_FOCUS, 6);
     expect(officerEffects(o, "navigation").thrust).toBeCloseTo(5 * FOCUS, 6);
     expect(officerEffects(o, "navigation").gunDamage).toBeCloseTo(5 * OFF_FOCUS, 6);
-    const veteran = officer(o.traits, 5);
-    expect(officerEffects(veteran, "tactical").gunDamage).toBeCloseTo(5 * FOCUS * (1 + 4 * PER_LEVEL), 6);
+    // Each level above 1 trains exactly one stat.
+    const veteran = { ...officer(o.traits, 3), training: ["gunDamage", "turning"] as Officer["training"] };
+    const fx = officerEffects(veteran, "tactical");
+    expect(fx.gunDamage).toBeCloseTo((5 + TRAINING_PCT) * FOCUS, 6);
+    expect(fx.turning).toBeCloseTo((TRAINING_PCT - 4) * OFF_FOCUS, 6); // slow reflexes −4, trained +3
+    expect(fx.thrust).toBeCloseTo(5 * OFF_FOCUS, 6);
+  });
+
+  it("traits come in three strengths: small, medium and full", () => {
+    const o = officer(["gunnery-expert", "hot-rodder", "cool-head", "heavy-handed", "slow-reflexes"]);
+    for (const k of [1, 2, 3])
+      expect(officerEffects({ ...o, strength: [k, 3, 3, 3, 3] }, "tactical").gunDamage).toBeCloseTo(
+        5 * FOCUS * STRENGTH[k]!,
+        6,
+      );
+    // Random officers use all three.
+    const random = crewRng(3);
+    const seen = new Set<number>();
+    for (let i = 0; i < 50; i++)
+      for (const k of randomOfficer(random, "tactical", `x${i}`).strength!) seen.add(k);
+    expect([...seen].sort()).toEqual([1, 2, 3]);
+  });
+
+  it("older officers without training train their post's stats; a level up adds one stat", () => {
+    const o = officer(traits, 4);
+    expect(trainingOf(o)).toEqual(["gunDamage", "missileDamage", "pdDamage"]);
+    expect(trainingOf({ ...o, position: "captain" })).toHaveLength(3);
+    const r = randomOfficer(crewRng(9), "navigation", "n1");
+    expect(r.training).toHaveLength(r.level - 1);
   });
 
   it("a ship's modifiers sum its officers and stay within ±30 %", () => {

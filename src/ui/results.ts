@@ -25,7 +25,9 @@ export class ResultStore {
     try {
       const raw = localStorage.getItem(KEY);
       const list = raw ? (JSON.parse(raw) as ScenarioResult[]) : [];
-      return Array.isArray(list) ? list : [];
+      return Array.isArray(list)
+        ? list.filter((r) => !!r && typeof r === "object" && typeof r.scenarioId === "string")
+        : [];
     } catch {
       this.memory = [];
       return this.memory;

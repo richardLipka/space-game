@@ -2369,3 +2369,36 @@ label.portrait-row {
 .about .credit-link {
   color: var(--accent);
 }
+.roster-trait {
+  display: inline-flex;
+  gap: 2px;
+}
+.roster-strength {
+  width: 6.5em;
+}
+.roster-training {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.sc-crew-ship {
+  padding: 4px 0;
+  border-top: 1px dashed var(--panel-border);
+}
+.sc-crew-ship.focus {
+  outline: 1px solid var(--warn);
+}
+.sc-crew-cards {
+  justify-content: flex-start;
+  margin-top: 4px;
+}
+button.crew-card {
+  font: inherit;
+  color: var(--panel-fg);
+  cursor: pointer;
+  text-align: left;
+}
+button.crew-card:hover {
+  border-color: var(--accent);
+}

@@ -182,6 +182,11 @@ export class ImportDialog {
       this.services.toast("Import cancelled");
       return;
     }
+    // Officers carried by the ships join the roster at their posts.
+    plan.crews.forEach((crew, i) => {
+      const id = res.designIds[i];
+      if (crew?.length && id) this.services.adoptCrew(id, crew);
+    });
     await this.services.refreshCatalogue();
     const d = await this.services.library.getDesign(res.designIds[0]!);
     this.dialog.close();

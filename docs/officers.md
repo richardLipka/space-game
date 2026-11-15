@@ -18,7 +18,9 @@ Classes come from the ship's mass (`src/sim/ship/classes.ts`).
 
 Every officer has **three positive and two negative traits** (`TRAITS` in `src/sim/crew/officers.ts`). A
 trait adds a percentage to one or two stats: thrust, turning, gun damage, missile damage, point-defense
-damage, rate of fire, accuracy, cooling and reactor output.
+damage, rate of fire, accuracy, cooling and reactor output. Each trait has a **strength**: small (⅓ of the
+listed effect), medium (⅔) or full. Random officers get all three strengths equally often; the roster and
+the scenario crew dialog can set them.
 
 The post emphasises the stats it works on:
 
@@ -31,7 +33,10 @@ The post emphasises the stats it works on:
 | Engineering | cooling, reactor output, rate of fire | ×0.5 |
 | Operations | point-defense and missile damage, accuracy | ×0.5 |
 
-Experience is level 1–5, shown as gold rank chevrons on the portrait; each star above the first adds 10 % to all of the officer's effects (5 stars: ×1.4).
+Experience is level 1–5, shown as gold rank chevrons on the portrait. Each level above the first **trains
+one stat** by 3 % (before post emphasis): raising the level adds one trained stat (the post's own stats are
+three times as likely), lowering it removes the last one, and each can be changed in the roster. Officers
+saved before training existed train their post's stats.
 A ship's modifier for a stat is 1 + the sum of its officers' percentages, kept between 0.7 and 1.3.
 
 Where the modifiers act:
@@ -59,8 +64,23 @@ Crew (ship editor toolbar) opens the roster:
 
 The roster is kept in the browser (`localStorage`, key `space-game.roster.v1`).
 
-In a battle, your side (team 0) carries the crew the roster gives each design; posts left empty stay empty.
-Every other ship gets random officers seeded by the battle and the ship, so a battle replays the same.
+In a battle each ship's officers come from, in this order:
+
+1. the crew set for that ship in the scenario (scenario editor → **Crew**, saved in the scenario file)
+2. a crew the design carries (a ship file imported with its officers)
+3. for your side (team 0): the roster's crew of the design (posts left empty stay empty)
+4. for every other ship: random officers seeded by the battle and the ship, so a battle replays the same
+
+## Crews in files
+
+- **Ship files** (ship editor → Export) carry the design's crew from the roster as `crew`: a list of
+  `{ "position": …, "officer": { … } }`. Importing such a file adds the officers to the roster at the
+  design's posts (an officer whose id is taken by a different officer gets a new id).
+- **Scenario files** carry each ship's crew the same way (`enemies[].crew`), set in the scenario editor's
+  Crew dialog: generate officers with a naming style, a trait strength (or random) and a level (or random),
+  copy a design's crew from the roster, edit one officer, or leave a ship random at the start.
+- Officers that do not fit this version (unknown traits, too many traits, a bad level or portrait) are
+  repaired when loaded, not rejected; see [save-load.md](save-load.md).
 
 ## JSON
 

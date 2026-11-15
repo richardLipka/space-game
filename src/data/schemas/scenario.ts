@@ -1,5 +1,6 @@
 import { Type, type Static } from "@sinclair/typebox";
 import { NonNegativeNumber, PositiveNumber, Transform, Uuidish, Vec2Json } from "./common";
+import { CrewEntry } from "./officer";
 
 const strict = { additionalProperties: false } as const;
 
@@ -70,12 +71,16 @@ export const Scenario = Type.Object(
           /** Defensive AI: index (in `enemies`) of the ship this one guards, and the guard radius (m). */
           guard: Type.Optional(Type.Integer({ minimum: 0 })),
           guardRadius: Type.Optional(Type.Number({ exclusiveMinimum: 0 })),
+          /** Officers of this ship (scenario crew dialog); absent = the roster's (team 0) or random. */
+          crew: Type.Optional(Type.Array(CrewEntry, { maxItems: 5 })),
         },
         strict,
       ),
     ),
     objective: Objective,
     seed: Type.Integer(),
+    /** Flight model of every ship in the battle (absent = Newtonian). */
+    flightModel: Type.Optional(Type.Union([Type.Literal("newtonian"), Type.Literal("arcade")])),
     /** Order in the scenario list (lower first). */
     order: Type.Optional(Type.Integer()),
     /** Short tips shown before and during the battle (tutorial hints, plan M7 task 7). */

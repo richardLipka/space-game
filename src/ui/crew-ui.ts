@@ -1,13 +1,18 @@
 import type { ShipDesign } from "../data/schemas/design";
 import type { Officer, PortraitSpec, Position, Roster } from "../data/schemas/officer";
-import { validateNames, validateOfficer, validateRoster } from "../data/validate";
+import { validateNames } from "../data/validate";
+import { repairOfficer, repairRoster } from "../data/repair";
 import { generateName, MIXED } from "../sim/crew/names";
 import { designSection, orderSections } from "../data/designs/index";
 import {
   crewRng,
   crewSlots,
+  levelUpStat,
   officerEffects,
   POSITIONS,
+  STRENGTH_LABEL,
+  TRAINING_PCT,
+  trainingOf,
   randomPortrait,
   shipMods,
   STAT_LABEL,
@@ -289,14 +294,22 @@ export class RosterDialog {
       if (!f) return;
       try {
         const data = JSON.parse(await f.text());
-        // A roster file, or a single officer (added to the roster).
-        const asRoster = validateRoster(data);
-        if (asRoster.ok) this.save(asRoster.value);
-        else {
-          const one = validateOfficer(data);
-          if (!one.ok) throw new Error(asRoster.errors[0] ?? one.errors[0]);
-          this.save({ ...r, officers: [...r.officers.filter((x) => x.id !== one.value.id), one.value] });
+        // A roster file, or a single officer (added to the roster); whatever does not fit this version is
+        // repaired (unknown traits replaced, broken posts dropped) and reported.
+        let notes: string[];
+        if (data && typeof data === "object" && "officers" in data) {
+          const rep = repairRoster(data);
+          notes = rep.notes;
+          this.save(rep.roster);
+        } else {
+          const one = repairOfficer(data);
+          if (!one.officer) throw new Error(one.notes[0] ?? "not a roster or an officer");
+          const off = one.officer;
+          notes = one.notes;
+          this.save({ ...r, officers: [...r.officers.filter((x) => x.id !== off.id), off] });
         }
+        if (notes.length)
+          this.services.toast(`Imported with changes: ${notes.slice(0, 3).join(" ")}`, "error");
         this.services.toast("Roster imported");
       } catch (e) {
         this.services.toast(`Cannot import: ${e instanceof Error ? e.message : String(e)}`, "error");
@@ -365,91 +378,21 @@ export class RosterDialog {
   }
 
   private officerCard(r: Roster, o: Officer): HTMLElement {
-    const update = (patch: Partial<Officer>) =>
-      this.save({ ...r, officers: r.officers.map((x) => (x.id === o.id ? { ...x, ...patch } : x)) });
-    const face = el("button", {
-      class: "roster-portrait",
-      title: "Edit portrait",
-      "data-testid": `roster-portrait-${o.id}`,
+    return officerCard(o, {
+      portraits: this.portraits,
+      nameStyle: () => this.nameStyle,
+      update: (patch) =>
+        this.save({ ...r, officers: r.officers.map((x) => (x.id === o.id ? { ...x, ...patch } : x)) }),
+      remove: () => {
+        const crews = Object.fromEntries(
+          Object.entries(r.crews).map(([d, posts]) => [
+            d,
+            Object.fromEntries(Object.entries(posts).filter(([, id]) => id !== o.id)),
+          ]),
+        );
+        this.save({ ...r, officers: r.officers.filter((x) => x.id !== o.id), crews });
+      },
     });
-    face.innerHTML = portraitSvg(o.portrait, 56, o.level);
-    face.addEventListener("click", () =>
-      this.portraits.open(o.portrait, (p) => update({ portrait: p }), o.level),
-    );
-    const name = el("input", {
-      value: o.name,
-      class: "roster-name",
-      "aria-label": "Name",
-    }) as HTMLInputElement;
-    name.addEventListener("change", () => update({ name: name.value.trim() || o.name }));
-    const reroll = el(
-      "button",
-      { title: "New name in this officer's style", "data-testid": `roster-reroll-${o.id}` },
-      "⟳",
-    );
-    reroll.addEventListener("click", () => {
-      const desc = loadNames();
-      const style = o.origin && desc.styles.some((s) => s.id === o.origin) ? o.origin : this.nameStyle;
-      update(generateName(crewRng(Date.now()), style, desc));
-    });
-    const pos = el("select", { "aria-label": "Trained for" }) as HTMLSelectElement;
-    for (const p of Object.values(POSITIONS)) pos.append(el("option", { value: p.id }, p.label));
-    pos.value = o.position;
-    pos.addEventListener("change", () => update({ position: pos.value as Position }));
-    const lvl = el("select", { "aria-label": "Experience" }) as HTMLSelectElement;
-    for (let i = 1; i <= 5; i++) lvl.append(el("option", { value: String(i) }, `Level ${i}`));
-    lvl.value = String(o.level);
-    lvl.addEventListener("change", () => update({ level: Number(lvl.value) }));
-    // Traits: three positive, two negative.
-    const traits = el("div", { class: "roster-traits" });
-    o.traits.forEach((id, i) => {
-      const positive = i < 3;
-      const sel = el("select", {
-        class: positive ? "good" : "bad",
-        "aria-label": positive ? "Positive trait" : "Negative trait",
-      }) as HTMLSelectElement;
-      for (const t of TRAITS.filter((x) => x.positive === positive))
-        if (t.id === id || !o.traits.includes(t.id))
-          sel.append(
-            el(
-              "option",
-              { value: t.id, title: effectsText(t.effects) },
-              `${t.name} (${effectsText(t.effects)})`,
-            ),
-          );
-      sel.value = id;
-      sel.addEventListener("change", () =>
-        update({ traits: o.traits.map((x, k) => (k === i ? sel.value : x)) }),
-      );
-      traits.append(sel);
-    });
-    const del = el("button", { class: "danger", title: "Remove the officer" }, "✕");
-    del.addEventListener("click", () => {
-      const crews = Object.fromEntries(
-        Object.entries(r.crews).map(([d, posts]) => [
-          d,
-          Object.fromEntries(Object.entries(posts).filter(([, id]) => id !== o.id)),
-        ]),
-      );
-      this.save({ ...r, officers: r.officers.filter((x) => x.id !== o.id), crews });
-    });
-    const own = officerEffects(o, o.position);
-    return el(
-      "div",
-      { class: "roster-officer", "data-officer": o.id },
-      face,
-      el(
-        "div",
-        { class: "roster-officer-body" },
-        el("div", { class: "roster-line" }, name, reroll, pos, lvl, del),
-        traits,
-        el(
-          "div",
-          { class: "dim" },
-          `As ${POSITIONS[o.position].label.toLowerCase()}: ${effectsText(own, 6) || "no effect"}`,
-        ),
-      ),
-    );
   }
 }
 
@@ -509,4 +452,141 @@ export class CrewStrip {
       ),
     );
   }
+}
+
+// ---------- officer editor (roster, scenario crews) ----------
+
+export interface OfficerCardOptions {
+  readonly portraits: PortraitDialog;
+  /** Naming style for a new name when the officer's own is unknown. */
+  readonly nameStyle: () => string;
+  update(patch: Partial<Officer>): void;
+  remove?(): void;
+}
+
+/** The officer with a level changed: one trained stat added per level gained, the last ones dropped per level lost. */
+export function withLevel(
+  o: Officer,
+  level: number,
+  random: () => number = crewRng(Date.now()),
+): Partial<Officer> {
+  const training = trainingOf(o);
+  while (training.length < level - 1) training.push(levelUpStat(random, o.position));
+  return { level, training: training.slice(0, level - 1) };
+}
+
+/**
+ * One officer, editable: portrait (opens the portrait editor), name (⟳ draws a new one), trained post, level
+ * (each level trains one stat, changeable), traits with their strength (small, medium, full), and what the
+ * officer adds at the trained post.
+ */
+export function officerCard(o: Officer, opts: OfficerCardOptions): HTMLElement {
+  const update = opts.update;
+  const face = el("button", {
+    class: "roster-portrait",
+    title: "Edit portrait",
+    "data-testid": `roster-portrait-${o.id}`,
+  });
+  face.innerHTML = portraitSvg(o.portrait, 56, o.level);
+  face.addEventListener("click", () =>
+    opts.portraits.open(o.portrait, (p) => update({ portrait: p }), o.level),
+  );
+  const name = el("input", { value: o.name, class: "roster-name", "aria-label": "Name" }) as HTMLInputElement;
+  name.addEventListener("change", () => update({ name: name.value.trim() || o.name }));
+  const reroll = el(
+    "button",
+    { title: "New name in this officer's style", "data-testid": `roster-reroll-${o.id}` },
+    "⟳",
+  );
+  reroll.addEventListener("click", () => {
+    const desc = loadNames();
+    const style = o.origin && desc.styles.some((x) => x.id === o.origin) ? o.origin : opts.nameStyle();
+    update(generateName(crewRng(Date.now()), style, desc));
+  });
+  const pos = el("select", { "aria-label": "Trained for" }) as HTMLSelectElement;
+  for (const p of Object.values(POSITIONS)) pos.append(el("option", { value: p.id }, p.label));
+  pos.value = o.position;
+  pos.addEventListener("change", () => update({ position: pos.value as Position }));
+  const lvl = el("select", {
+    "aria-label": "Experience",
+    "data-testid": `officer-level-${o.id}`,
+  }) as HTMLSelectElement;
+  for (let i = 1; i <= 5; i++) lvl.append(el("option", { value: String(i) }, `Level ${i}`));
+  lvl.value = String(o.level);
+  lvl.addEventListener("change", () => update(withLevel(o, Number(lvl.value))));
+  // Traits: three positive, two negative, each with its strength.
+  const traits = el("div", { class: "roster-traits" });
+  const strength = o.strength ?? [3, 3, 3, 3, 3];
+  o.traits.forEach((id, i) => {
+    const positive = i < 3;
+    const sel = el("select", {
+      class: positive ? "good" : "bad",
+      "aria-label": positive ? "Positive trait" : "Negative trait",
+    }) as HTMLSelectElement;
+    for (const t of TRAITS.filter((x) => x.positive === positive))
+      if (t.id === id || !o.traits.includes(t.id))
+        sel.append(
+          el(
+            "option",
+            { value: t.id, title: effectsText(t.effects) },
+            `${t.name} (${effectsText(t.effects)})`,
+          ),
+        );
+    sel.value = id;
+    sel.addEventListener("change", () =>
+      update({ traits: o.traits.map((x, k) => (k === i ? sel.value : x)) }),
+    );
+    const st = el("select", {
+      class: "roster-strength",
+      "aria-label": "Strength",
+      title: "Strength of the trait: small (⅓), medium (⅔) or full",
+      "data-testid": `officer-strength-${o.id}-${i}`,
+    }) as HTMLSelectElement;
+    for (let k = 1; k <= 3; k++) st.append(el("option", { value: String(k) }, STRENGTH_LABEL[k]!));
+    st.value = String(strength[i] ?? 3);
+    st.addEventListener("change", () =>
+      update({ strength: strength.map((x, k) => (k === i ? Number(st.value) : x)) }),
+    );
+    traits.append(el("span", { class: "roster-trait" }, sel, st));
+  });
+  // Training: one stat per level above the first.
+  const training = el("div", { class: "roster-training" });
+  const trained = trainingOf(o);
+  if (trained.length) training.append(el("span", { class: "dim" }, "Trained: "));
+  trained.forEach((stat, i) => {
+    const sel = el("select", {
+      "aria-label": `Level ${i + 2} training`,
+      title: `What level ${i + 2} trained (+${TRAINING_PCT}% before post emphasis)`,
+    }) as HTMLSelectElement;
+    for (const x of STATS) sel.append(el("option", { value: x }, `+${STAT_LABEL[x].toLowerCase()}`));
+    sel.value = stat;
+    sel.addEventListener("change", () =>
+      update({ training: trained.map((x, k) => (k === i ? (sel.value as Stat) : x)) }),
+    );
+    training.append(sel);
+  });
+  const line = el("div", { class: "roster-line" }, name, reroll, pos, lvl);
+  if (opts.remove) {
+    const del = el("button", { class: "danger", title: "Remove the officer" }, "✕");
+    del.addEventListener("click", () => opts.remove!());
+    line.append(del);
+  }
+  const own = officerEffects(o, o.position);
+  return el(
+    "div",
+    { class: "roster-officer", "data-officer": o.id },
+    face,
+    el(
+      "div",
+      { class: "roster-officer-body" },
+      line,
+      traits,
+      training,
+      el(
+        "div",
+        { class: "dim" },
+        `As ${POSITIONS[o.position].label.toLowerCase()}: ${effectsText(own, 6) || "no effect"}`,
+      ),
+    ),
+  );
 }

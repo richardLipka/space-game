@@ -36,6 +36,20 @@ export const Position = Type.Union([
 ]);
 export type Position = Static<typeof Position>;
 
+/** Ship stats officers change (src/sim/crew/officers.ts). */
+export const StatId = Type.Union([
+  Type.Literal("thrust"),
+  Type.Literal("turning"),
+  Type.Literal("gunDamage"),
+  Type.Literal("missileDamage"),
+  Type.Literal("pdDamage"),
+  Type.Literal("fireRate"),
+  Type.Literal("accuracy"),
+  Type.Literal("cooling"),
+  Type.Literal("power"),
+]);
+export type StatId = Static<typeof StatId>;
+
 /**
  * An officer (docs/officers.md): three positive and two negative traits (ids from src/sim/crew/officers.ts),
  * an experience level from 1 to 5 and a portrait. Officers are kept in a roster (JSON) and assigned to the
@@ -51,11 +65,24 @@ export const Officer = Type.Object(
     position: Position,
     level: Type.Integer({ minimum: 1, maximum: 5 }),
     traits: Type.Array(Type.String({ minLength: 1 }), { minItems: 5, maxItems: 5 }),
+    /** Strength of each trait: 1 small, 2 medium, 3 full (absent = all full). */
+    strength: Type.Optional(
+      Type.Array(Type.Integer({ minimum: 1, maximum: 3 }), { minItems: 5, maxItems: 5 }),
+    ),
+    /**
+     * What each level above the first trained: one stat per level (length level − 1). Absent (older files):
+     * worked out from the post the officer is trained for.
+     */
+    training: Type.Optional(Type.Array(StatId, { maxItems: 4 })),
     portrait: PortraitSpec,
   },
   strict,
 );
 export type Officer = Static<typeof Officer>;
+
+/** An officer at a post, carried in a ship design or scenario file (the crew travels with the ship). */
+export const CrewEntry = Type.Object({ position: Position, officer: Officer }, strict);
+export type CrewEntry = Static<typeof CrewEntry>;
 
 /** The roster file: officers, and which officer holds which position on which ship design. */
 export const Roster = Type.Object(

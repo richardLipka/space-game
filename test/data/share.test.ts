@@ -182,13 +182,51 @@ describe("M2 import", () => {
     expect(await designsUsingPart(lib, `${ion.id}~2`)).toEqual(["carrier-1"]);
   });
 
-  it("2.25 missing core part (newer game) → rejected with the missing ids", () => {
+  it("2.25 missing core part (newer game) → imported without it, with a warning naming it", () => {
     const b = structuredClone(exportOf(fighter, srcFor([], []))) as ShipExport;
     b.core.parts["core:engine.warp"] = "0123456789abcdef";
     b.designs[0]!.parts.push({ uid: "w", partId: "core:engine.warp", x: 9, y: 9, angle: 0 });
     const a = analyzeImport(b, emptyCtx());
-    expect(a.ok).toBe(false);
-    if (!a.ok) expect(a.errors.join()).toContain("core:engine.warp");
+    expect(a.ok).toBe(true);
+    if (!a.ok) return;
+    expect(a.plan.warnings.join()).toContain("core:engine.warp");
+    expect(a.plan.designs[0]!.parts.some((p) => p.partId === "core:engine.warp")).toBe(false);
+    expect(a.plan.designs[0]!.parts).toHaveLength(fighter.parts.length);
+    // A ship made only of unknown parts cannot be imported.
+    const only = structuredClone(b);
+    only.designs[0]!.parts = [{ uid: "w", partId: "core:engine.warp", x: 0, y: 0, angle: 0 }];
+    const n = analyzeImport(only, emptyCtx());
+    expect(n.ok).toBe(false);
+  });
+
+  it("settings from a newer version are ignored; the crew travels with the ship and is repaired", () => {
+    const b = structuredClone(exportOf(fighter, srcFor([], []))) as ShipExport & Record<string, unknown>;
+    (b as Record<string, unknown>).futureField = { x: 1 };
+    (b.designs[0] as Record<string, unknown>).crew = [
+      {
+        position: "pilot",
+        officer: {
+          id: "o-1",
+          name: "Ada Quill",
+          position: "pilot",
+          level: 2,
+          traits: ["steady-hand", "time-traveller", "cool-head", "nervous", "wasteful"],
+          portrait: { head: 1 },
+        },
+      },
+      { position: "admiral", officer: {} },
+    ];
+    const a = analyzeImport(b, emptyCtx());
+    expect(a.ok, a.ok ? "" : a.errors.join()).toBe(true);
+    if (!a.ok) return;
+    expect(a.plan.warnings.join(" ")).toContain("futureField");
+    expect(a.plan.warnings.join(" ")).toContain("time-traveller");
+    expect(a.plan.designs[0]!.crew).toBeUndefined();
+    const crew = a.plan.crews[0]!;
+    expect(crew).toHaveLength(1);
+    expect(crew[0]!.officer.name).toBe("Ada Quill");
+    expect(crew[0]!.officer.traits).toHaveLength(5);
+    expect(crew[0]!.officer.traits).not.toContain("time-traveller");
   });
 
   it("2.26 core hash mismatch → warning; pin original keeps the exported definition", async () => {

@@ -115,8 +115,9 @@ test("B enters eject mode; clicking a part jettisons it as debris", async ({ pag
   const pt = (await game(page, (g) => g.screenOfPart("mag-k")))!;
   await page.mouse.click(box.x + pt.x, box.y + pt.y);
   await game(page, (g) => g.pause(false));
-  await expect.poll(() => game(page, (g) => g.debrisCount())).toBe(1);
-  expect(await game(page, (g) => g.partUids())).not.toContain("mag-k");
+  // The magazine leaves the ship as debris (escorts fighting nearby may add more pieces meanwhile).
+  await expect.poll(() => game(page, (g) => g.partUids())).not.toContain("mag-k");
+  expect(await game(page, (g) => g.debrisCount())).toBeGreaterThanOrEqual(1);
   // Pause again so the ship and its escorts hold still while hovering (slow CI runners lag behind).
   await game(page, (g) => g.pause(true));
   // The command module cannot be ejected.

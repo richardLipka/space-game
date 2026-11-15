@@ -1,5 +1,7 @@
 /** Browser entry: app shell with the ship editor (default) and the flight screen (test flight / sandbox). */
-import { crewBattle, loadRoster } from "./ui/roster";
+import { resolveDesign } from "./sim/ship/resolve";
+import { adoptCrew, crewBattle, crewEntries, loadRoster, rosterLoadNotes, saveRoster } from "./ui/roster";
+import type { Battle } from "./sim/scenario/battle";
 import { RosterDialog } from "./ui/crew-ui";
 import { preferredFlightModel } from "./ui/flight-model";
 import { Application } from "pixi.js";
@@ -14,7 +16,13 @@ import dronePdJson from "./data/designs/drone-pd.json";
 import droneDecoyJson from "./data/designs/drone-decoy.json";
 import sandboxJson from "./data/scenarios/m1-sandbox.json";
 import { makeCruiserDesign } from "./data/designs/generate";
-import { validateCatalogue, validateDesign, validateScenario, type ValidationResult } from "./data/validate";
+import {
+  validateCatalogue,
+  validateDesign,
+  validatePart,
+  validateScenario,
+  type ValidationResult,
+} from "./data/validate";
 import type { ShipDesign } from "./data/schemas/design";
 import type { PartDef } from "./data/schemas/part";
 import { IdbLibrary } from "./data/share/idb-library";
@@ -103,8 +111,12 @@ async function main(): Promise<void> {
 
   let userParts: PartDef[] = [];
   let catalogue = core;
+  let skippedParts = 0;
   const refreshCatalogue = async () => {
-    userParts = (await library.listParts()).map((p) => p.def);
+    // Stored user parts that this version cannot read are skipped (designs using them lose those parts).
+    const stored = (await library.listParts()).map((p) => p.def);
+    userParts = stored.filter((p) => validatePart(p).ok && !core.has(p.id));
+    skippedParts = stored.length - userParts.length;
     for (const d of await library.listDesigns()) if (d.drone) droneDesigns.set(d.id, d);
     catalogue = new PartCatalogue(core.version, [...core.all().map((p) => p.def), ...userParts]);
   };
@@ -134,6 +146,37 @@ async function main(): Promise<void> {
   const strategy = new StrategyScreen(app, theme, help);
   /** Officers (docs/officers.md): the player's crews from the roster, random ones for everyone else. */
   let roster = loadRoster();
+  /** Crews the scenario sets for its ships, by the id of the ship spawned for each entry. */
+  const scenarioCrews = (b: Battle) =>
+    new Map(
+      b.scenario.enemies.flatMap((e, i) => {
+        const ship = b.scenarioShips[i];
+        return ship && e.crew?.length ? [[ship.id, e.crew] as const] : [];
+      }),
+    );
+  /** Crews aboard, the scenario's flight model, and a warning for whatever could not be loaded as written. */
+  const prepareBattle = (b: Battle) => {
+    b.world.flightModel = b.scenario.flightModel ?? b.world.flightModel;
+    crewBattle(b.world, roster, { fixed: scenarioCrews(b) });
+    if (b.warnings.length)
+      toast(
+        `${b.warnings.slice(0, 3).join(" ")}${b.warnings.length > 3 ? ` (+${b.warnings.length - 3} more)` : ""}`,
+        "error",
+      );
+  };
+  /** A battle that cannot start says why instead of failing silently. */
+  const startFailed = (e: unknown) =>
+    toast(`Cannot start: ${e instanceof Error ? e.message : String(e)}`, "error");
+  // Battle starts run after the library loads (promises): a failure there becomes a message.
+  window.addEventListener("unhandledrejection", (e) => startFailed(e.reason));
+  if (skippedParts)
+    setTimeout(
+      () =>
+        toast(`${skippedParts} stored part(s) could not be read by this version and are skipped.`, "error"),
+      500,
+    );
+  if (rosterLoadNotes.length)
+    setTimeout(() => toast(`Roster repaired: ${rosterLoadNotes.slice(0, 2).join(" ")}`, "error"), 500);
   flight.themeName = () => THEMES[themeIndex]!;
 
   let mode: "editor" | "flight" | "scenario" | "strategy" = "editor";
@@ -198,7 +241,7 @@ async function main(): Promise<void> {
         profiles: AI_PROFILES,
         droneDesigns: [...droneDesigns.values()],
       });
-      crewBattle(battle.world, roster);
+      prepareBattle(battle);
       editor.hide();
       mode = "flight";
       flight.start({
@@ -250,7 +293,7 @@ async function main(): Promise<void> {
       });
       applySkirmishOrders(battle, sk, setup);
       battle.world.flightModel = setup.flightModel ?? "newtonian";
-      crewBattle(battle.world, roster);
+      prepareBattle(battle);
       const watch = battle.playerShips.length === 0;
       editor.hide();
       mode = "flight";
@@ -307,6 +350,11 @@ async function main(): Promise<void> {
     },
     showHelp: () => help.show("ship-editor"),
     openRoster: (id) => void rosterDialog.open(id),
+    crewForDesign: (d) => crewEntries(roster, d, catalogue),
+    adoptCrew: (id, crew) => {
+      roster = adoptCrew(roster, id, crew);
+      saveRoster(roster);
+    },
   };
   const rosterDialog = new RosterDialog({
     roster: () => roster,
@@ -328,7 +376,7 @@ async function main(): Promise<void> {
         profiles: AI_PROFILES,
         droneDesigns: [...droneDesigns.values()],
       });
-      crewBattle(battle.world, roster);
+      prepareBattle(battle);
       scenarioEditor.hide();
       editor.hide();
       flight.stop();
@@ -355,8 +403,16 @@ async function main(): Promise<void> {
   const scenarioEditor = new ScenarioEditor({
     designs: allDesigns,
     importDesigns: async (ds) => {
-      for (const d of ds) await library.putDesign({ ...d, section: d.section ?? "Imported" });
+      for (const { crew, ...d } of ds) {
+        // Officers that come with a ship join the roster at its posts; the library keeps the bare design.
+        if (crew?.length) {
+          roster = adoptCrew(roster, d.id, crew);
+          saveRoster(roster);
+        }
+        await library.putDesign({ ...d, section: d.section ?? "Imported" });
+      }
     },
+    roster: () => roster,
     profiles: [...AI_PROFILES.keys()],
     catalogue: () => catalogue,
     watch: (s) => {
@@ -379,7 +435,8 @@ async function main(): Promise<void> {
   });
 
   const lastId = safeStorage.get(LAST_DESIGN_KEY);
-  const initial = (lastId && (await library.getDesign(lastId))) || fighter;
+  const lastDesign = lastId ? await library.getDesign(lastId).catch(() => undefined) : undefined;
+  const initial = lastDesign && resolveDesign(lastDesign, catalogue).design ? lastDesign : fighter;
   const editor = new EditorScreen(app, theme, canvas, services, initial);
   editor.show();
   requestAnimationFrame(() => editor.fitView());

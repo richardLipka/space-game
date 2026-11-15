@@ -135,6 +135,8 @@ const officerErrors = (o: Officer): string[] => {
   const pos = ts.filter((t) => t!.positive).length;
   if (pos !== 3) errs.push(`${o.name}: needs 3 positive and 2 negative traits (has ${pos} positive)`);
   if (new Set(o.traits).size !== o.traits.length) errs.push(`${o.name}: a trait is listed twice`);
+  if (o.training && o.training.length !== o.level - 1)
+    errs.push(`${o.name}: level ${o.level} needs ${o.level - 1} trained stat(s), has ${o.training.length}`);
   return errs;
 };
 /** Name descriptor files (docs/officers.md): the schema, and every style id once. */
