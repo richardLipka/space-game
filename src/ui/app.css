@@ -92,7 +92,8 @@ body {
 .ed-dialog button,
 .editor summary,
 .sc-editor button,
-.sc-editor summary {
+.sc-editor summary,
+.st-root button {
   font: inherit;
   color: var(--panel-fg);
   background: var(--button-bg);
@@ -105,11 +106,13 @@ body {
 .ed-dialog button:hover,
 .editor summary:hover,
 .sc-editor button:hover,
-.sc-editor summary:hover {
+.sc-editor summary:hover,
+.st-root button:hover {
   background: var(--button-hover);
 }
 .editor button.on,
-.sc-editor button.on {
+.sc-editor button.on,
+.st-root button.on {
   border-color: var(--warn);
   color: var(--warn);
 }
@@ -310,7 +313,8 @@ body {
   text-overflow: ellipsis;
 }
 .editor select,
-.sc-editor select {
+.sc-editor select,
+.st-root select {
   font: inherit;
   color: var(--panel-fg);
   background: var(--button-bg);
@@ -1792,9 +1796,6 @@ body {
   padding: 6px 10px;
   flex-wrap: wrap;
 }
-.st-bar button.on {
-  outline: 2px solid var(--accent);
-}
 .st-title {
   font-weight: 600;
 }
@@ -2055,4 +2056,50 @@ body {
 }
 .st-bar-fill.alert {
   background: var(--danger, #ff4f7b);
+}
+
+/* Strategy: path editing handles, wait orders, the order list */
+.st-handle {
+  fill: var(--panel-bg);
+  stroke: #7dffb0;
+  stroke-width: 2;
+}
+.st-handle.insert {
+  fill: #5fb4ff;
+  fill-opacity: 0.6;
+  stroke: none;
+}
+.st-order.wait {
+  stroke: #ffd24a;
+  stroke-dasharray: 2 4;
+}
+.st-point.wait {
+  fill: none;
+  stroke: #ffd24a;
+  stroke-width: 2;
+}
+.st-queue {
+  margin: 2px 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.st-queue li {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 3px;
+}
+.st-queue li.current span {
+  color: #7dffb0;
+}
+.st-root .st-queue button {
+  padding: 0 6px;
+  line-height: 1.4;
+}
+.st-root button:disabled {
+  opacity: 0.35;
+  cursor: default;
 }

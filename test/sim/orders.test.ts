@@ -54,6 +54,26 @@ describe("strategy orders (move, patrol, queue)", () => {
     expect(st.order?.kind).toBe("patrol");
   });
 
+  it("timed action: B waits until A has arrived, then departs", () => {
+    const w = new World({ seed: 1 });
+    const a = w.addShip(wasp, cat, { position: vec2(0, 0) });
+    const b = w.addShip(wasp, cat, { position: vec2(0, 400) });
+    const sa = w.setAi(a.id, aiProfile("balanced"));
+    const sb = w.setAi(b.id, aiProfile("balanced"));
+    sa.order = { kind: "move", point: vec2(2500, 0) };
+    sb.order = { kind: "wait", ship: a.id, point: vec2(0, 400) };
+    sb.queue.push({ kind: "move", point: vec2(-1500, 400) });
+    w.run(60 * 10);
+    // A is still on its way: B holds.
+    expect(sa.order?.kind).toBe("move");
+    expect(sb.order?.kind).toBe("wait");
+    expect(length(sub(at(w, b.id), vec2(0, 400)))).toBeLessThan(100);
+    w.run(60 * 80);
+    expect(sa.order?.kind).toBe("hold");
+    expect(["move", "hold"]).toContain(sb.order?.kind as string);
+    expect(at(w, b.id).x).toBeLessThan(-300);
+  });
+
   it("an attack order ends when the target is defeated and the next order starts", () => {
     const { w, s, st } = setup();
     const t = w.addShip(BUNDLED_DESIGNS.get("platform-target")!, cat, { position: vec2(1500, 0), team: 1 });

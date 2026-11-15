@@ -216,9 +216,26 @@ export const HELP: Record<
           ["A, then click an enemy", "attack"],
           ["P, then click waypoints", "patrol the path; Enter, P, a double click or a right click starts it"],
           ["P, then drag a box", "patrol round that area"],
+          [
+            "W, then click one of your ships",
+            "wait: hold until that ship has arrived (no move orders left), then go on with the queue. With Shift it is queued: e.g. move, wait for A, then attack: when A arrives, B attacks",
+          ],
           ["H", "hold where the ships are"],
           ["S", "stop: drop every order and hold"],
           ["AI type (panel)", "change how the selected ships fight"],
+        ],
+      ],
+      [
+        "Editing orders",
+        [
+          [
+            "Drag a point of a selected ship's order",
+            "move a move, hold or wait point, or a patrol waypoint",
+          ],
+          ["Drag a “+” between patrol waypoints", "add a waypoint there"],
+          ["Double click a patrol waypoint", "remove it (a patrol keeps at least two)"],
+          ["↑ / ↓ in the details card", "run an order earlier or later"],
+          ["✕ in the details card", "remove a queued order; on the current one, skip to the next"],
         ],
       ],
       [
@@ -242,6 +259,8 @@ export const HELP: Record<
           ["Red line", "attack target"],
           ["Grey line", "follow or guard"],
           ["Square", "hold point"],
+          ["Yellow dotted line", "wait: to the ship being waited for"],
+          ["Handles", "points of the selected ships' orders that can be dragged"],
           ["Faint lines", "orders of ships not selected"],
         ],
       ],

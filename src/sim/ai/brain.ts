@@ -39,7 +39,13 @@ export type Order =
   /** Strategy mode: fly to `point`, then hold there (engaging armed enemies near it). */
   | { readonly kind: "move"; readonly point: Vec2 }
   /** Strategy mode: fly round `points` in a loop, engaging armed enemies near the path. */
-  | { readonly kind: "patrol"; readonly points: readonly Vec2[] };
+  | { readonly kind: "patrol"; readonly points: readonly Vec2[] }
+  /**
+   * Strategy mode, timed actions: hold at `point` until ship `ship` has arrived (no move orders left, or it
+   * is gone); then the next order starts. "When A arrives, B departs or attacks" is B: wait for A, then
+   * move or attack.
+   */
+  | { readonly kind: "wait"; readonly ship: string; readonly point: Vec2 };
 
 export const AI_TUNING = {
   /** Seconds between behaviour and target evaluations. */
@@ -210,7 +216,7 @@ function chooseTarget(world: World, ship: Ship, st: AiState, me: Pose): string |
   const anchor =
     order?.kind === "follow" && world.hasShip(order.leader)
       ? world.physics.getWorldCenter(order.leader)
-      : order?.kind === "hold" || order?.kind === "move" || order?.kind === "patrol"
+      : order?.kind === "hold" || order?.kind === "move" || order?.kind === "patrol" || order?.kind === "wait"
         ? orderPoint(st)
         : guarded
           ? world.physics.getWorldCenter(guarded.target)
@@ -297,7 +303,12 @@ function scoreBehaviours(
     if (st.profile.stance === "retreating" && dist < R * AI_TUNING.withdrawReach)
       s.retreat = Math.max(s.retreat ?? 0, w.retreat * 3);
   } else if (st.order?.kind === "follow" || st.order?.kind === "guard") s.follow = 0.5;
-  else if (st.order?.kind === "hold" || st.order?.kind === "move" || st.order?.kind === "patrol")
+  else if (
+    st.order?.kind === "hold" ||
+    st.order?.kind === "move" ||
+    st.order?.kind === "patrol" ||
+    st.order?.kind === "wait"
+  )
     s.station = 0.5;
   // A move order goes first: the ship flies there before it fights (it still fires on the way).
   if (st.order?.kind === "move") s.station = 2;
@@ -313,7 +324,7 @@ function scoreBehaviours(
 /** Where a hold, move or patrol order is taking the ship, if it is one. */
 export function orderPoint(st: AiState): Vec2 | null {
   const o = st.order;
-  if (o?.kind === "hold" || o?.kind === "move") return o.point;
+  if (o?.kind === "hold" || o?.kind === "move" || o?.kind === "wait") return o.point;
   if (o?.kind === "patrol" && o.points.length) return o.points[st.patrolIndex % o.points.length]!;
   return null;
 }
@@ -341,7 +352,19 @@ function advanceOrders(world: World, ship: Ship, st: AiState, me: Pose): void {
   } else if (o.kind === "patrol" && o.points.length) {
     if (length(sub(orderPoint(st)!, me.pos)) < arrive)
       st.patrolIndex = (st.patrolIndex + 1) % o.points.length;
+  } else if (o.kind === "wait") {
+    if (arrived(world, o.ship)) nextOrder(st, me.pos);
   } else if (o.kind === "hold" && st.queue.length) nextOrder(st, me.pos);
+}
+
+/** A ship has arrived (for wait orders): it has no move orders left, or it is gone or defeated. */
+export function arrived(world: World, shipId: string): boolean {
+  if (!world.hasShip(shipId)) return true;
+  const s = world.getShip(shipId);
+  if (s.defeated || s.inert) return true;
+  const st = world.ai.get(shipId);
+  if (!st) return true;
+  return st.order?.kind !== "move" && !st.queue.some((o) => o.kind === "move");
 }
 
 function evaluate(world: World, ship: Ship, st: AiState, me: Pose): void {

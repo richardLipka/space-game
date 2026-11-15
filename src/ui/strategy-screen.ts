@@ -19,7 +19,16 @@ const TIME_SCALES = [0.25, 0.5, 1, 2, 4, 8] as const;
 /** Default AI type for ships the player commands that had no pilot yet (test platforms). */
 const DEFAULT_PROFILE = "balanced";
 
-type Mode = "select" | "move" | "attack" | "patrol";
+type Mode = "select" | "move" | "attack" | "patrol" | "wait";
+
+/** A point of an order that can be dragged on the map: ship, order (-1 = current, else queue index), point. */
+interface HandleRef {
+  readonly ship: string;
+  readonly slot: number;
+  readonly point: number;
+  /** A patrol midpoint: pressing it inserts a waypoint after `point`. */
+  readonly insert?: boolean;
+}
 
 export interface StrategySetup {
   readonly world: World;
@@ -63,6 +72,8 @@ export function describeOrder(o: Order | null, world: World): string {
       return `following ${ship(o.leader)}`;
     case "guard":
       return `guarding ${ship(o.target)}`;
+    case "wait":
+      return `waiting for ${ship(o.ship)} to arrive`;
   }
 }
 
@@ -94,6 +105,8 @@ export class StrategyScreen {
   private drag: { x0: number; y0: number; x: number; y: number; button: number; moved: boolean } | null =
     null;
   private readonly keys = new Set<string>();
+  /** Order point being dragged on the map. */
+  private dragHandle: HandleRef | null = null;
   private panelKey = "";
   private bannerShown = false;
   /** Details of the selected ship (schematic, systems, supply), kept across panel rebuilds. */
@@ -120,6 +133,13 @@ export class StrategyScreen {
       this.plan.el,
       this.detailText,
     );
+    // Queue editing buttons in the card (the card is rebuilt a few times a second, so one listener).
+    this.detailText.addEventListener("click", (e) => {
+      const b = (e.target as HTMLElement).closest("button[data-act]") as HTMLButtonElement | null;
+      const list = b?.closest("ol[data-ship]") as HTMLElement | null;
+      if (!b || !list) return;
+      this.editQueue(list.dataset.ship!, Number(b.dataset.slot), b.dataset.act as "up" | "down" | "del");
+    });
     this.root = el(
       "div",
       { class: "st-root", "data-testid": "strategy", hidden: "" },
@@ -234,12 +254,23 @@ export class StrategyScreen {
         /* synthetic or already released pointer */
       }
       this.drag = { x0: p.x, y0: p.y, x: p.x, y: p.y, button: e.button, moved: false };
+      // Pressing an order point of a selected ship starts dragging it (a "+" midpoint adds a waypoint).
+      if (e.button === 0 && this.mode === "select") {
+        const h = this.handleAt(p.x, p.y);
+        if (h) this.dragHandle = h.ref.insert ? this.insertWaypoint(h.ref) : h.ref;
+      }
     });
     this.input.addEventListener("pointermove", (e) => {
       const d = this.drag;
       if (!d) return;
       const p = local(e);
       if (Math.hypot(p.x - d.x0, p.y - d.y0) > 5) d.moved = true;
+      if (this.dragHandle) {
+        this.setHandlePoint(this.dragHandle, this.camera.screenToWorld(p));
+        d.x = p.x;
+        d.y = p.y;
+        return;
+      }
       // Right or middle drag pans the map.
       if (d.button !== 0 && d.moved) this.camera.pan(p.x - d.x, p.y - d.y);
       d.x = p.x;
@@ -250,6 +281,10 @@ export class StrategyScreen {
       this.drag = null;
       if (!d || !this.setup) return;
       const p = local(e);
+      if (this.dragHandle) {
+        this.dragHandle = null;
+        return;
+      }
       if (d.button === 0) {
         if (this.mode === "patrol") {
           if (d.moved) this.patrolArea(d.x0, d.y0, p.x, p.y, e.shiftKey);
@@ -258,6 +293,8 @@ export class StrategyScreen {
           this.orderAt(p.x, p.y, e.shiftKey, "move");
         } else if (this.mode === "attack") {
           this.orderAt(p.x, p.y, e.shiftKey, "attack");
+        } else if (this.mode === "wait") {
+          this.waitFor(p.x, p.y, e.shiftKey);
         } else if (d.moved) this.boxSelect(d.x0, d.y0, p.x, p.y, e.shiftKey);
         else this.clickSelect(p.x, p.y, e.shiftKey);
       } else if (d.button === 2 && !d.moved) {
@@ -265,8 +302,12 @@ export class StrategyScreen {
         else this.orderAt(p.x, p.y, e.shiftKey);
       }
     });
-    this.input.addEventListener("dblclick", () => {
-      if (this.mode === "patrol" && this.patrolPoints.length >= 2) this.finishPatrol(false);
+    this.input.addEventListener("dblclick", (e) => {
+      if (this.mode === "patrol" && this.patrolPoints.length >= 2) return this.finishPatrol(false);
+      // Double click on a patrol waypoint removes it (a patrol keeps at least two).
+      const p = local(e);
+      const h = this.handleAt(p.x, p.y);
+      if (h && !h.ref.insert) this.removeWaypoint(h.ref);
     });
     this.input.addEventListener(
       "wheel",
@@ -316,6 +357,9 @@ export class StrategyScreen {
           for (const s of this.mine) if (!s.defeated) this.selected.add(s.id);
           e.preventDefault();
         } else this.setMode("attack");
+        break;
+      case "KeyW":
+        this.setMode("wait");
         break;
       case "KeyM":
         this.setMode("move");
@@ -388,6 +432,145 @@ export class StrategyScreen {
       const c = this.camera.worldToScreen(this.scene!.shipCenter(s, this.setup!.world, this.alpha));
       if (c.x >= lx && c.x <= hx && c.y >= ly && c.y <= hy) this.selected.add(s.id);
     }
+  }
+
+  // ---------- editing orders ----------
+  /** Order of a ship by slot (-1 = current, else queue index). */
+  private orderOf(st: AiState, slot: number): Order | null {
+    return slot < 0 ? st.order : (st.queue[slot] ?? null);
+  }
+
+  private setOrder(st: AiState, slot: number, o: Order): void {
+    if (slot < 0) st.order = o;
+    else st.queue[slot] = o;
+    st.nextEval = 0;
+  }
+
+  /** Drag handles of the selected ships' orders, in screen space. */
+  private handles(): { ref: HandleRef; at: Vec2 }[] {
+    const w = this.setup?.world;
+    if (!w) return [];
+    const out: { ref: HandleRef; at: Vec2 }[] = [];
+    const at = (p: Vec2) => this.camera.worldToScreen(p);
+    for (const id of [...this.selected].sort()) {
+      const st = w.ai.get(id);
+      if (!st) continue;
+      for (let slot = -1; slot < st.queue.length; slot++) {
+        const o = this.orderOf(st, slot);
+        if (!o) continue;
+        if (o.kind === "move" || o.kind === "hold" || o.kind === "wait")
+          out.push({ ref: { ship: id, slot, point: 0 }, at: at(o.point) });
+        else if (o.kind === "patrol")
+          o.points.forEach((p, i) => {
+            out.push({ ref: { ship: id, slot, point: i }, at: at(p) });
+            const q = o.points[(i + 1) % o.points.length]!;
+            out.push({
+              ref: { ship: id, slot, point: i, insert: true },
+              at: at({ x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 }),
+            });
+          });
+      }
+    }
+    return out;
+  }
+
+  private handleAt(x: number, y: number): { ref: HandleRef; at: Vec2 } | null {
+    let best: { ref: HandleRef; at: Vec2 } | null = null;
+    let bestD = 9;
+    for (const h of this.handles()) {
+      const d = Math.hypot(h.at.x - x, h.at.y - y);
+      // Real points win over "+" midpoints at the same spot.
+      if (d < bestD || (best?.ref.insert && !h.ref.insert && d <= bestD)) {
+        best = h;
+        bestD = d;
+      }
+    }
+    return best;
+  }
+
+  /** Moves an order point (path editing): a move, hold or wait point, or a patrol waypoint. */
+  setHandlePoint(ref: HandleRef, p: Vec2): void {
+    const st = this.setup?.world.ai.get(ref.ship);
+    const o = st ? this.orderOf(st, ref.slot) : null;
+    if (!st || !o) return;
+    if (o.kind === "move" || o.kind === "hold" || o.kind === "wait")
+      this.setOrder(st, ref.slot, { ...o, point: p });
+    else if (o.kind === "patrol")
+      this.setOrder(st, ref.slot, { ...o, points: o.points.map((q, i) => (i === ref.point ? p : q)) });
+  }
+
+  /** Inserts a patrol waypoint after `ref.point` (at the midpoint) and returns its handle. */
+  insertWaypoint(ref: HandleRef): HandleRef | null {
+    const st = this.setup?.world.ai.get(ref.ship);
+    const o = st ? this.orderOf(st, ref.slot) : null;
+    if (!st || o?.kind !== "patrol") return null;
+    const a = o.points[ref.point]!;
+    const b = o.points[(ref.point + 1) % o.points.length]!;
+    const points = [...o.points];
+    points.splice(ref.point + 1, 0, { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+    this.setOrder(st, ref.slot, { ...o, points });
+    return { ship: ref.ship, slot: ref.slot, point: ref.point + 1 };
+  }
+
+  removeWaypoint(ref: HandleRef): void {
+    const st = this.setup?.world.ai.get(ref.ship);
+    const o = st ? this.orderOf(st, ref.slot) : null;
+    if (!st || o?.kind !== "patrol" || o.points.length <= 2) return;
+    this.setOrder(st, ref.slot, { ...o, points: o.points.filter((_, i) => i !== ref.point) });
+    if (ref.slot < 0) st.patrolIndex %= o.points.length - 1;
+  }
+
+  /** Queue editing from the details card: move an order up or down, or delete it (-1 = current). */
+  editQueue(shipId: string, slot: number, act: "up" | "down" | "del"): void {
+    const w = this.setup?.world;
+    const st = w?.ai.get(shipId);
+    if (!w || !st) return;
+    if (act === "del") {
+      if (slot < 0) nextOrder(st, w.physics.getWorldCenter(shipId));
+      else st.queue.splice(slot, 1);
+    } else {
+      const to = act === "up" ? slot - 1 : slot + 1;
+      if (slot < 0 || to >= st.queue.length) return;
+      if (to < 0) {
+        // Up from the first queued order: it becomes the current one, the current one goes next.
+        const cur = st.order;
+        st.order = st.queue[0]!;
+        if (cur) st.queue[0] = cur;
+        else st.queue.shift();
+        st.patrolIndex = 0;
+      } else [st.queue[slot], st.queue[to]] = [st.queue[to]!, st.queue[slot]!];
+    }
+    st.nextEval = 0;
+    this.detailsAge = 1; // refresh the card now
+  }
+
+  /** Where a ship's orders leave it: the last move, hold or wait point (a wait order holds there). */
+  private endPoint(id: string): Vec2 {
+    const w = this.setup!.world;
+    const st = w.ai.get(id);
+    const all = st ? [st.order, ...st.queue] : [];
+    for (let i = all.length - 1; i >= 0; i--) {
+      const o = all[i];
+      if (o && (o.kind === "move" || o.kind === "hold" || o.kind === "wait")) return o.point;
+      if (o?.kind === "patrol") return o.points[0]!;
+    }
+    return w.physics.getWorldCenter(id);
+  }
+
+  /**
+   * Timed action: the selected ships wait (holding) until the clicked own ship has arrived, then go on with
+   * the orders queued after the wait. With Shift the wait is queued, so: move, wait for A, then attack.
+   */
+  private waitFor(x: number, y: number, queue: boolean): void {
+    const team = this.mine[0]?.team ?? 0;
+    const a = this.shipAt(x, y, (s) => s.team === team);
+    if (!a) return;
+    const w = this.setup!.world;
+    this.selected.delete(a.id);
+    const points = new Map(
+      [...this.selected].map((id) => [id, queue ? this.endPoint(id) : w.physics.getWorldCenter(id)]),
+    );
+    this.give((s) => ({ kind: "wait", ship: a.id, point: points.get(s.id)! }), queue);
   }
 
   /** Orders for every selected ship: replace its orders, or append to its queue with `queue`. */
@@ -531,6 +714,13 @@ export class StrategyScreen {
           );
           for (const p of pts) dot(p, `st-point patrol${cls}`, 3);
           from = first;
+        } else if (o.kind === "wait") {
+          const p = at(o.point);
+          if (current) line(from, p, `st-order move${cls}`);
+          dot(p, `st-point wait${cls}`, 5);
+          if (w.hasShip(o.ship))
+            line(p, at(this.scene!.shipCenter(w.getShip(o.ship), w, this.alpha)), `st-order wait${cls}`);
+          from = p;
         } else {
           const id = o.kind === "attack" ? o.target : o.kind === "follow" ? o.leader : o.target;
           if (!w.hasShip(id)) return;
@@ -542,6 +732,16 @@ export class StrategyScreen {
       if (st.order) draw(st.order, true, st);
       for (const q of st.queue) draw(q, false, st);
     }
+    // Drag handles on the selected ships' order points; "+" midpoints insert patrol waypoints.
+    for (const h of this.handles())
+      this.overlay.append(
+        svg("circle", {
+          cx: h.at.x,
+          cy: h.at.y,
+          r: h.ref.insert ? 4 : 6,
+          class: h.ref.insert ? "st-handle insert" : "st-handle",
+        }),
+      );
     // Patrol being drawn, and the selection box.
     if (this.patrolPoints.length) {
       const pts = this.patrolPoints.map(at);
@@ -595,11 +795,12 @@ export class StrategyScreen {
     );
     const hint: Record<Mode, string> = {
       select:
-        "Click or drag to select · right click: move / attack enemy / follow own ship · Shift queues · M move · A attack · P patrol · H hold · S stop",
+        "Click or drag to select · right click: move / attack enemy / follow own ship · Shift queues · M move · A attack · P patrol · W wait for · H hold · S stop · drag order points to edit paths",
       move: "Move: click the destination (Shift queues) · Esc cancels",
       attack: "Attack: click an enemy ship (Shift queues) · Esc cancels",
       patrol:
         "Patrol: click waypoints, then Enter, P, a double click or a right click to start · or drag an area · Esc cancels",
+      wait: "Wait for: click one of your ships; the selected ships hold until it arrives, then go on (Shift queues) · Esc cancels",
     };
     this.status.textContent = hint[this.mode];
     this.panelKey = "";
@@ -617,8 +818,18 @@ export class StrategyScreen {
     out.push(this.details);
     out.push(el("h3", {}, `Your ships (${live.length})`));
     if (!sel.length) out.push(el("p", { class: "dim" }, "Click a ship, drag a box, or Ctrl+A to select."));
+    const modeOf: Record<string, Mode> = {
+      "st-move": "move",
+      "st-attack": "attack",
+      "st-patrol": "patrol",
+      "st-wait": "wait",
+    };
     const orderBtn = (label: string, id: string, f: () => void, title: string) => {
-      const b = el("button", { "data-testid": id, title }, label);
+      const b = el(
+        "button",
+        { "data-testid": id, title, class: modeOf[id] === this.mode ? "on" : "" },
+        label,
+      );
       b.addEventListener("click", f);
       return b;
     };
@@ -634,6 +845,12 @@ export class StrategyScreen {
             "st-patrol",
             () => this.setMode("patrol"),
             "P, then click waypoints or drag an area",
+          ),
+          orderBtn(
+            "Wait for",
+            "st-wait",
+            () => this.setMode("wait"),
+            "W, then click one of your ships: hold until it arrives, then go on (Shift queues)",
           ),
           orderBtn(
             "Hold",
@@ -710,7 +927,9 @@ export class StrategyScreen {
     if (!s) return;
     this.plan.update(s, null, w.physics.getBodyState(s.id).angle);
     this.detailsAge += dt;
-    if (this.detailsAge < 0.2 && this.detailText.dataset.ship === s.id && !this.plan.hoverUid) return;
+    // Slower while the pointer is on the card, so its buttons are not rebuilt under a click.
+    const every = this.details.matches(":hover") ? 1 : 0.2;
+    if (this.detailsAge < every && this.detailText.dataset.ship === s.id) return;
     this.detailsAge = 0;
     this.detailText.dataset.ship = s.id;
     const esc = (t: string) => t.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
@@ -727,9 +946,25 @@ export class StrategyScreen {
     const target = st?.targetId && w.hasShip(st.targetId) ? name(w.getShip(st.targetId)) : null;
     const others =
       this.selected.size > 1 ? ` <span class="dim">(1 of ${this.selected.size} selected)</span>` : "";
-    const queue = st?.queue.length
-      ? `<div class="dim">then: ${st.queue.map((o) => esc(describeOrder(o, w))).join(" → ")}</div>`
+    // Orders with editing buttons: up, down, delete (handled by a click listener on the card).
+    const orders = st
+      ? [st.order, ...st.queue]
+          .map((o, i) => {
+            const slot = i - 1;
+            if (!o) return "";
+            const btn = (act: string, label: string, title: string, off = false) =>
+              `<button data-act="${act}" data-slot="${slot}" title="${title}"${off ? " disabled" : ""}>${label}</button>`;
+            return (
+              `<li class="${slot < 0 ? "current" : ""}"><span>${slot < 0 ? "now" : `${slot + 1}.`} ${esc(describeOrder(o, w))}</span>` +
+              btn("up", "↑", "earlier", slot < 0) +
+              btn("down", "↓", "later", slot < 0 || slot >= st.queue.length - 1) +
+              btn("del", "✕", slot < 0 ? "skip to the next order" : "remove") +
+              `</li>`
+            );
+          })
+          .join("")
       : "";
+    const queue = orders ? `<ol class="st-queue" data-ship="${s.id}">${orders}</ol>` : "";
     const ammo = ammoSummary(s)
       .map((a) => {
         const f = a.capacity > 0 ? a.left / a.capacity : 0;
@@ -743,7 +978,7 @@ export class StrategyScreen {
     this.detailText.innerHTML =
       `<h3>${esc(s.design.name)}</h3>${others}` +
       `<div>hull <b class="${cls(hull)}">${pct(hull)}</b> · ${st ? `${esc(st.profile.name)} · ${st.behaviour}${target ? ` → ${esc(target)}` : ""}` : "no AI"}</div>` +
-      `<div>${esc(describeOrder(st?.order ?? null, w))}</div>${queue}` +
+      queue +
       `<div class="st-systems">${systemsHtml(s)}</div>` +
       `<div class="st-readout">${partReadout(s, this.plan.hoverUid)}</div>` +
       `<div class="st-gauges">` +
