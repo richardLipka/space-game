@@ -1,17 +1,6 @@
+import { bearingOf, FIREPOWER, liveFirepower } from "./firepower";
 import type { AiProfile } from "../../data/schemas/ai";
-import {
-  type Vec2,
-  add,
-  angleOf,
-  cross,
-  degToRad,
-  length,
-  normalize,
-  rotate,
-  scale,
-  sub,
-  vec2,
-} from "../core/vec2";
+import { type Vec2, add, angleOf, cross, length, normalize, rotate, scale, sub, vec2 } from "../core/vec2";
 import { compareIds } from "../core/ids";
 import { intercept } from "../combat/lead";
 import type { GroupMode } from "../combat/weapons";
@@ -33,11 +22,19 @@ export type Behaviour =
 export type Order =
   | { readonly kind: "follow"; readonly leader: string }
   | { readonly kind: "attack"; readonly target: string }
-  | { readonly kind: "hold"; readonly point: Vec2 }
+  /** `facing`: world direction the attack front should point while holding (rad). */
+  | { readonly kind: "hold"; readonly point: Vec2; readonly facing?: number }
   /** Defensive AI: stay with `target` and engage enemies within `radius` of it. */
   | { readonly kind: "guard"; readonly target: string; readonly radius: number }
   /** Strategy mode: fly to `point`, then hold there (engaging armed enemies near it). */
-  | { readonly kind: "move"; readonly point: Vec2 }
+  | {
+      readonly kind: "move";
+      readonly point: Vec2;
+      /** World direction the attack front points on arrival (rad); kept while holding there. */
+      readonly facing?: number;
+      /** On the way, turn the attack front towards this point when the main engine is not needed. */
+      readonly aimAt?: Vec2;
+    }
   /** Strategy mode: fly round `points` in a loop, engaging armed enemies near the path. */
   | { readonly kind: "patrol"; readonly points: readonly Vec2[] }
   /**
@@ -244,30 +241,26 @@ function chooseTarget(world: World, ship: Ship, st: AiState, me: Pose): string |
   return best;
 }
 
-/** Heading (rad) at which the most usable turrets can bear on `bearing`, nearest the current heading. */
-function bestBroadside(ship: Ship, bearing: number, current: number): number | null {
-  const turrets = ship.weapons.filter(
-    (w) => w.def.mount === "turret" && w.def.kind !== "pd" && w.def.kind !== "missile" && w.part.hp > 0,
-  );
-  if (turrets.length === 0) return null;
+/**
+ * Heading (rad) that turns the ship's strongest firepower (weapons as they are now, see firepower.ts) on
+ * `bearing`: of the directions within `FIREPOWER.tie` of the best, the one needing the least turn, so a
+ * symmetric ship uses the nearer broadside. Null without working weapons.
+ */
+function bestHeading(ship: Ship, bearing: number, current: number): number | null {
+  const { profile } = liveFirepower(ship);
+  const max = Math.max(...profile);
+  if (max <= 0) return null;
   let best: number | null = null;
-  let bestCount = -1;
   let bestTurn = Infinity;
-  for (let deg = -180; deg < 180; deg += 15) {
-    const h = degToRad(deg);
-    let count = 0;
-    for (const w of turrets) {
-      const rel = wrap(bearing - (h + w.part.angle));
-      const [a0, a1] = (w.def.arc ?? [-180, 180]).map(degToRad) as [number, number];
-      if (rel >= a0 && rel <= a1 && !w.blocked.some(([a, b]) => rel >= a && rel <= b)) count++;
-    }
+  profile.forEach((d, i) => {
+    if (d < max * FIREPOWER.tie) return;
+    const h = wrap(bearing - bearingOf(i));
     const turn = Math.abs(wrap(h - current));
-    if (count > bestCount || (count === bestCount && turn < bestTurn)) {
+    if (turn < bestTurn) {
       best = h;
-      bestCount = count;
       bestTurn = turn;
     }
-  }
+  });
   return best;
 }
 
@@ -345,7 +338,7 @@ function advanceOrders(world: World, ship: Ship, st: AiState, me: Pose): void {
   const arrive = Math.max(AI_TUNING.arriveDistance, ship.layout.boundingRadius * 3);
   if (o.kind === "move" && length(sub(o.point, me.pos)) < arrive) {
     if (st.queue.length) nextOrder(st, me.pos);
-    else st.order = { kind: "hold", point: o.point };
+    else st.order = { kind: "hold", point: o.point, ...(o.facing !== undefined ? { facing: o.facing } : {}) };
   } else if (o.kind === "attack") {
     const t = world.hasShip(o.target) ? world.getShip(o.target) : null;
     if (!t || t.defeated || t.inert) nextOrder(st, me.pos);
@@ -377,7 +370,8 @@ function evaluate(world: World, ship: Ship, st: AiState, me: Pose): void {
   st.targetRadius = st.targetId ? Math.max(1, world.getShip(st.targetId).layout.boundingRadius * 0.6) : 3;
   const tPos = st.targetId ? world.physics.getWorldCenter(st.targetId) : null;
   const dist = tPos ? length(sub(tPos, me.pos)) : null;
-  st.broadsideAngle = tPos ? bestBroadside(ship, angleOf(sub(tPos, me.pos)), me.angle) : null;
+  // Present the strongest side of the weapons as they are now (turrets lost change it).
+  st.broadsideAngle = tPos ? bestHeading(ship, angleOf(sub(tPos, me.pos)), me.angle) : null;
   const scores = scoreBehaviours(ship, st, caps, dist, incomingMissiles(world, ship, me).length);
   st.scores = scores;
   let best: Behaviour = st.behaviour;
@@ -511,15 +505,25 @@ function behaviourSteering(
       const point = orderPoint(st);
       if (!point) break;
       // Patrols keep moving: they aim through the waypoint at cruising speed instead of stopping on it.
-      const patrol = st.order?.kind === "patrol";
+      const o = st.order;
+      const patrol = o?.kind === "patrol";
       const off = sub(point, me.pos);
       const desiredVel =
         patrol && length(off) > 1e-6 ? scale(normalize(off), p.maxSpeed * 0.6) : seek(point, vec2(0, 0));
-      return {
-        desiredVel,
-        faceAngle: length(off) > 50 ? angleOf(off) : me.angle,
-        mayBurn: true,
-      };
+      // Turning the attack front: towards the leg's aim point on the way, to the ordered facing near the
+      // end. The steering still turns away to burn when the engines need it (mayBurn).
+      const front = liveFirepower(ship).front;
+      const near = length(off) < Math.max(AI_TUNING.arriveDistance * 3, ship.layout.boundingRadius * 10);
+      let face: number = length(off) > 50 ? angleOf(off) : me.angle;
+      if (o?.kind === "move" && o.aimAt && !near) face = angleOf(sub(o.aimAt, me.pos)) - front;
+      else if (
+        (o?.kind === "move" || o?.kind === "hold") &&
+        o.facing !== undefined &&
+        (near || o.kind === "hold")
+      )
+        face = o.facing - front;
+      else if (o?.kind === "hold") face = me.angle;
+      return { desiredVel, faceAngle: face, mayBurn: true };
     }
     default:
       break;

@@ -1,3 +1,4 @@
+import { bearingOf, designFirepower } from "../sim/ai/firepower";
 import { Container, Graphics, type Application } from "pixi.js";
 import type { EditorModel } from "../editor/model";
 import type { RuntimePartDef } from "../sim/ship/catalogue";
@@ -21,6 +22,8 @@ export interface EditorOverlays {
   connections: boolean;
   /** Connection graph: parts as nodes, connections as edges, with the resources each edge carries. */
   graph: boolean;
+  /** Firepower by direction (DPS of the weapons that bear) around the ship, with the attack front. */
+  firepower: boolean;
 }
 
 export interface EditorViewState {
@@ -154,6 +157,39 @@ export class EditorView {
     const design = model.design;
     if (design.parts.length === 0) return;
     const layout = model.layout;
+
+    if (ov.firepower) {
+      // Polar plot: radius grows with the damage per second the ship can put out in that direction.
+      const fp = designFirepower(design, model.catalogue);
+      const centre = computeMassProps(instantiateParts(design, model.catalogue)).center;
+      const r0 =
+        Math.max(
+          2,
+          ...[...layout.outlines.values()].flat().map((v) => Math.hypot(v.x - centre.x, v.y - centre.y)),
+        ) * 1.1;
+      const max = Math.max(...fp.profile);
+      if (max > 0) {
+        const pts = fp.profile.map((d, i) => {
+          const a = bearingOf(i);
+          const r = r0 * (1 + 0.9 * (d / max));
+          return { x: centre.x + Math.cos(a) * r, y: centre.y + Math.sin(a) * r };
+        });
+        poly(g, pts, this.theme.resolve("overlay-firepower"), z);
+        const ring = this.theme.resolve("overlay-firepower-ring");
+        g.circle(centre.x, centre.y, r0);
+        g.stroke({ width: ring.strokeWidth / z, color: ring.stroke, alpha: ring.strokeAlpha });
+        // Attack front: an arrow out to the edge of the plot.
+        const s = this.theme.resolve("overlay-attack-front");
+        const tip = add(centre, rotate({ x: r0 * 2.1, y: 0 }, fp.front));
+        const base = add(centre, rotate({ x: r0 * 0.4, y: 0 }, fp.front));
+        const h = r0 * 0.25;
+        g.moveTo(base.x, base.y).lineTo(tip.x, tip.y);
+        const l = add(tip, rotate({ x: -h, y: h * 0.6 }, fp.front));
+        const rr = add(tip, rotate({ x: -h, y: -h * 0.6 }, fp.front));
+        g.moveTo(l.x, l.y).lineTo(tip.x, tip.y).lineTo(rr.x, rr.y);
+        stroke(g, s, z);
+      }
+    }
 
     if (ov.networks) {
       const comps = components(design, layout);

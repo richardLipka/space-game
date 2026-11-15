@@ -40,7 +40,14 @@ export const HELP: Record<
           ["F", "fit the ship in view"],
           ["M", "mirror mode: every placement gets its mirror twin"],
           ["G", "connection graph"],
-          ["Overlays menu", "centre of mass, thrust, turret arcs, networks, exposed edges, connections"],
+          [
+            "Overlays menu",
+            "centre of mass, thrust, turret arcs, networks, exposed edges, connections, firepower",
+          ],
+          [
+            "Firepower & attack front overlay",
+            "damage per second the weapons can put out in each direction (from their arcs), and an arrow on the strongest side: the attack front, saved with the design and shown in the stats",
+          ],
           ["T", "next colour theme"],
         ],
       ],
@@ -81,6 +88,7 @@ export const HELP: Record<
             "Click a ship in the gallery",
             "pick it (team and AI type above the gallery); click on the map to place it",
           ],
+          ["Press and drag when placing a ship", "turn it: the drag sets which way its attack front points"],
           ["AI “No AI”", "the ship stays where it is placed; its automatic weapons still fire"],
           ["Asteroid / Black hole / Player spawn", "pick the tool, then click on the map"],
           ["Esc", "back to Select / move"],
@@ -209,10 +217,17 @@ export const HELP: Record<
         "Orders",
         [
           ["Right click on the map", "move there (several ships spread around the point)"],
+          [
+            "Right press and drag",
+            "move to the press point; the drag sets which way the attack front points on arrival",
+          ],
           ["Right click on an enemy", "attack it"],
           ["Right click on your ship", "follow it"],
           ["Shift + any order", "queue it after the current orders instead of replacing them"],
-          ["M, then click", "move"],
+          [
+            "M, then click, then click again",
+            "move there, then point the attack front towards the second click (Enter or right click: no facing)",
+          ],
           ["A, then click an enemy", "attack"],
           ["P, then click waypoints", "patrol the path; Enter, P, a double click or a right click starts it"],
           ["P, then drag a box", "patrol round that area"],
@@ -236,6 +251,10 @@ export const HELP: Record<
           ["Double click a patrol waypoint", "remove it (a patrol keeps at least two)"],
           ["↑ / ↓ in the details card", "run an order earlier or later"],
           ["✕ in the details card", "remove a queued order; on the current one, skip to the next"],
+          [
+            "◎ on a move in the details card, then click",
+            "aim that leg of the route: on the way the attack front turns to the point, whenever the main engine is not needed (◎✕ stops it)",
+          ],
         ],
       ],
       [
@@ -259,6 +278,16 @@ export const HELP: Record<
           ["Red line", "attack target"],
           ["Grey line", "follow or guard"],
           ["Square", "hold point"],
+          ["Red arrow at a point", "facing: where the attack front points on arrival"],
+          ["Orange dashed line", "aim of a route leg"],
+          [
+            "Symbols far out",
+            "ship class: drone, fighter, corvette, frigate, destroyer, cruiser, battlecruiser, battleship; a dot marks missile ships, a bar carriers",
+          ],
+          [
+            "Plot round the ship schematic",
+            "where its weapons are strongest now (lost turrets change it) and its attack front",
+          ],
           ["Yellow dotted line", "wait: to the ship being waited for"],
           ["Handles", "points of the selected ships' orders that can be dragged"],
           ["Faint lines", "orders of ships not selected"],

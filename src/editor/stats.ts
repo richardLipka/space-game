@@ -1,3 +1,4 @@
+import { classOfMass, roleOf, type ShipClass, type ShipRole } from "../sim/ship/classes";
 import type { ShipDesign } from "../data/schemas/design";
 import { deltaV, effectiveIsp, fuelFlow, weaponHeatRate, weaponPowerDemand } from "../data/balance/model";
 import type { PowerGroup } from "../data/schemas/design";
@@ -11,7 +12,7 @@ import { aabbOf } from "../sim/core/geometry";
 import type { Vec2 } from "../sim/core/vec2";
 import { layoutOf } from "./placement";
 
-export type ShipClass = "drone" | "fighter" | "frigate" | "cruiser";
+export type { ShipClass } from "../sim/ship/classes";
 
 export interface DesignStats {
   readonly partCount: number;
@@ -48,13 +49,14 @@ export interface DesignStats {
   /** Longest extent (m) and derived class (spec §2.1). */
   readonly length: number;
   readonly shipClass: ShipClass;
+  /** Main armament: guns, missiles, drones (carrier) or none (support). */
+  readonly role: ShipRole;
 }
 
 export const BASE_HEAT_CAPACITY = HEAT.baseCapacity;
 
-export function shipClassFor(length: number): ShipClass {
-  return length < 5 ? "drone" : length < 15 ? "fighter" : length < 60 ? "frigate" : "cruiser";
-}
+/** Ship class by mass (see src/sim/ship/classes.ts). */
+export const shipClassFor = classOfMass;
 
 export function turnTime(angle: number, alpha: number, maxOmega: number = FLIGHT.maxOmega): number {
   if (!(alpha > 0)) return Infinity;
@@ -136,7 +138,6 @@ export function designStats(
   const alpha = Math.min(caps.torqueCcw, caps.torqueCw) / mp.inertia;
   const box = aabbOf([...layout.outlines.values()].flat());
   const length = Math.max(box.maxX - box.minX, box.maxY - box.minY);
-  void defs;
   const hull = hullDissipation(layout.exposedHullLength());
   return {
     partCount: parts.length,
@@ -163,6 +164,7 @@ export function designStats(
     },
     ammo,
     length,
-    shipClass: shipClassFor(length),
+    shipClass: classOfMass(mp.mass, !!design.drone),
+    role: roleOf(defs),
   };
 }

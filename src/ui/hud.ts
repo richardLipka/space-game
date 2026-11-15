@@ -238,12 +238,12 @@ export class Hud {
   private readonly gBatt = gauge("BATT", "battery");
   private readonly modes = el("div", { class: "ck-modes" });
 
-  private readonly ownPlan = new ShipPlan();
+  private readonly ownPlan = Object.assign(new ShipPlan(), { showFirepower: true });
   private readonly ownHull = el("span", { "data-testid": "own-hull" });
   private readonly ownSystems = el("div", { class: "ck-systems" });
   private readonly ownReadout = el("div", { class: "ck-readout" });
 
-  private readonly targetPlan = new ShipPlan();
+  private readonly targetPlan = Object.assign(new ShipPlan(), { showFirepower: true });
   private readonly targetPanel: HTMLElement;
   private readonly targetName = el("span", { "data-testid": "target" });
   private readonly targetData = el("div", { class: "ck-target-data" });

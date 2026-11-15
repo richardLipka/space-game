@@ -1,3 +1,5 @@
+import { describeBearing, designFirepower } from "../../sim/ai/firepower";
+import { CLASS_LABEL } from "../../sim/ship/classes";
 import { flightModelSelect, preferredFlightModel, rememberFlightModel } from "../flight-model";
 import { SkirmishDialog } from "./skirmish-dialog";
 import type { SkirmishSetup } from "../../sim/scenario/skirmish";
@@ -162,6 +164,7 @@ export class EditorScreen {
     exposed: false,
     connections: false,
     graph: false,
+    firepower: false,
   };
   private readonly overlayBoxes = new Map<keyof EditorOverlays, HTMLInputElement>();
   private readonly importDialog: ImportDialog;
@@ -271,6 +274,7 @@ export class EditorScreen {
       exposed: "Exposed edges",
       connections: "Connections",
       graph: "Connection graph (G)",
+      firepower: "Firepower & attack front",
     })) {
       const cb = el("input", { type: "checkbox", "data-testid": `overlay-${k}` }) as HTMLInputElement;
       cb.checked = this.overlays[k as keyof EditorOverlays];
@@ -532,7 +536,12 @@ export class EditorScreen {
     } else {
       row("Parts", String(s.partCount), "parts");
       row("Cost", String(s.cost), "cost");
-      row("Class", `${s.shipClass} · ${s.length.toFixed(1)} m`, "class");
+      row("Class", `${CLASS_LABEL[s.shipClass]} · ${s.role} · ${s.length.toFixed(1)} m`, "class");
+      row(
+        "Attack front",
+        describeBearing(designFirepower(this.model.design, this.model.catalogue).front),
+        "attack-front",
+      );
       row("Mass", fmt.mass(s.mass), "mass");
       row("Inertia", `${s.inertia.toExponential(2)} kg·m²`, "inertia");
       row("Accel fwd / back", `${s.accel.fwd.toFixed(1)} / ${s.accel.back.toFixed(1)} m/s²`, "accel-fb");
@@ -952,7 +961,11 @@ export class EditorScreen {
   }
 
   private savableDesign(): ShipDesign | null {
-    const r = validateDesign(this.model.design);
+    // The attack front (strongest firing direction, degrees from the nose) goes with the design.
+    const front = Math.round(
+      (designFirepower(this.model.design, this.model.catalogue).front * 180) / Math.PI,
+    );
+    const r = validateDesign({ ...this.model.design, attackFront: front });
     if (!r.ok) {
       this.services.toast(
         this.model.design.parts.length === 0 ? "Add at least one part first." : `Cannot save: ${r.errors[0]}`,

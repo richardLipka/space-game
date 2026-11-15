@@ -1,3 +1,4 @@
+import { CLASS_SYMBOL, classOfShip } from "../sim/ship/classes";
 import { Application, Container, Graphics } from "pixi.js";
 import type { World } from "../sim/world";
 import type { Ship } from "../sim/ship/ship-entity";
@@ -440,9 +441,23 @@ export class Scene {
     const icon = this.theme.resolve(`icon-ship team-${ship.team}`);
     if (v.radius * z < icon.minSize) {
       v.root.visible = false;
+      // Class symbol, turned with the ship (screen y is down, so the angle flips).
       const c = camera.worldToScreen(this.shipCenter(ship, world, alpha));
-      this.screenG.circle(c.x, c.y, icon.minSize);
+      const { cls, role } = classOfShip(ship);
+      const sym = CLASS_SYMBOL[cls];
+      const k = sym.size * (icon.minSize / 6);
+      const ca = Math.cos(-pose.angle);
+      const sa = Math.sin(-pose.angle);
+      this.screenG.poly(
+        sym.points.flatMap(([x, y]) => [c.x + (x * ca - -y * sa) * k, c.y + (x * sa + -y * ca) * k]),
+        true,
+      );
+      if (icon.fillAlpha > 0) this.screenG.fill({ color: icon.fill, alpha: icon.fillAlpha });
       strokeStyled(this.screenG, icon, 1);
+      // Missile ships carry a dot, carriers a bar, inside the symbol.
+      if (role === "missile") this.screenG.circle(c.x, c.y, Math.max(1.2, k * 0.22));
+      else if (role === "carrier") this.screenG.rect(c.x - k * 0.35, c.y - k * 0.12, k * 0.7, k * 0.24);
+      if (role === "missile" || role === "carrier") strokeStyled(this.screenG, icon, 1);
       return;
     }
     v.root.visible = true;

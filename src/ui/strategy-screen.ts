@@ -1,3 +1,4 @@
+import { describeBearing, liveFirepower } from "../sim/ai/firepower";
 import type { Application } from "pixi.js";
 import { AI_PROFILES } from "../data/ai/index";
 import { Camera } from "../render/camera";
@@ -19,7 +20,7 @@ const TIME_SCALES = [0.25, 0.5, 1, 2, 4, 8] as const;
 /** Default AI type for ships the player commands that had no pilot yet (test platforms). */
 const DEFAULT_PROFILE = "balanced";
 
-type Mode = "select" | "move" | "attack" | "patrol" | "wait";
+type Mode = "select" | "move" | "attack" | "patrol" | "wait" | "facing" | "aim";
 
 /** A point of an order that can be dragged on the map: ship, order (-1 = current, else queue index), point. */
 interface HandleRef {
@@ -107,12 +108,18 @@ export class StrategyScreen {
   private readonly keys = new Set<string>();
   /** Order point being dragged on the map. */
   private dragHandle: HandleRef | null = null;
+  /** Pointer position (screen), for the facing arrow being set. */
+  private cursor: Vec2 = { x: 0, y: 0 };
+  /** M mode, second click: the move point waiting for its facing (world), and whether it queues. */
+  private pendingMove: { point: Vec2; queue: boolean } | null = null;
+  /** Aim mode: the move order (ship, slot) whose aim point the next click sets. */
+  private aimRef: { ship: string; slot: number } | null = null;
   private panelKey = "";
   private bannerShown = false;
   /** Details of the selected ship (schematic, systems, supply), kept across panel rebuilds. */
   private readonly details: HTMLElement;
   private readonly detailText: HTMLElement;
-  private readonly plan = new ShipPlan();
+  private readonly plan = Object.assign(new ShipPlan(), { showFirepower: true });
   private detailsAge = 0;
 
   constructor(
@@ -138,7 +145,13 @@ export class StrategyScreen {
       const b = (e.target as HTMLElement).closest("button[data-act]") as HTMLButtonElement | null;
       const list = b?.closest("ol[data-ship]") as HTMLElement | null;
       if (!b || !list) return;
-      this.editQueue(list.dataset.ship!, Number(b.dataset.slot), b.dataset.act as "up" | "down" | "del");
+      const act = b.dataset.act!;
+      const ref = { ship: list.dataset.ship!, slot: Number(b.dataset.slot) };
+      if (act === "aim") {
+        this.setMode("aim");
+        this.aimRef = ref;
+      } else if (act === "noaim") this.setAim(ref, null);
+      else this.editQueue(ref.ship, ref.slot, act as "up" | "down" | "del");
     });
     this.root = el(
       "div",
@@ -261,6 +274,7 @@ export class StrategyScreen {
       }
     });
     this.input.addEventListener("pointermove", (e) => {
+      this.cursor = local(e);
       const d = this.drag;
       if (!d) return;
       const p = local(e);
@@ -271,8 +285,10 @@ export class StrategyScreen {
         d.y = p.y;
         return;
       }
-      // Right or middle drag pans the map.
-      if (d.button !== 0 && d.moved) this.camera.pan(p.x - d.x, p.y - d.y);
+      // Middle drag pans the map; so does a right drag with nothing selected (with ships selected it sets
+      // the facing of a move order instead).
+      if ((d.button === 1 || (d.button === 2 && !this.selected.size)) && d.moved)
+        this.camera.pan(p.x - d.x, p.y - d.y);
       d.x = p.x;
       d.y = p.y;
     });
@@ -290,16 +306,35 @@ export class StrategyScreen {
           if (d.moved) this.patrolArea(d.x0, d.y0, p.x, p.y, e.shiftKey);
           else this.patrolPoints.push(this.camera.screenToWorld(p));
         } else if (this.mode === "move") {
-          this.orderAt(p.x, p.y, e.shiftKey, "move");
+          // First click: where to; second click: which way the attack front then points.
+          this.pendingMove = { point: this.camera.screenToWorld(p), queue: e.shiftKey };
+          this.mode = "facing";
+          this.renderBar();
+        } else if (this.mode === "facing" && this.pendingMove) {
+          const at = this.camera.worldToScreen(this.pendingMove.point);
+          this.moveTo(this.pendingMove.point, this.pendingMove.queue, Math.atan2(-(p.y - at.y), p.x - at.x));
+          this.pendingMove = null;
+        } else if (this.mode === "aim" && this.aimRef) {
+          this.setAim(this.aimRef, this.camera.screenToWorld(p));
         } else if (this.mode === "attack") {
           this.orderAt(p.x, p.y, e.shiftKey, "attack");
         } else if (this.mode === "wait") {
           this.waitFor(p.x, p.y, e.shiftKey);
         } else if (d.moved) this.boxSelect(d.x0, d.y0, p.x, p.y, e.shiftKey);
         else this.clickSelect(p.x, p.y, e.shiftKey);
+      } else if (d.button === 2 && d.moved && this.selected.size) {
+        // Right press on the destination and drag: the drag sets which way the attack front points there.
+        this.moveTo(
+          this.camera.screenToWorld({ x: d.x0, y: d.y0 }),
+          e.shiftKey,
+          Math.atan2(-(p.y - d.y0), p.x - d.x0),
+        );
       } else if (d.button === 2 && !d.moved) {
         if (this.mode === "patrol" && this.patrolPoints.length) this.finishPatrol(e.shiftKey);
-        else this.orderAt(p.x, p.y, e.shiftKey);
+        else if (this.mode === "facing" && this.pendingMove) {
+          this.moveTo(this.pendingMove.point, this.pendingMove.queue);
+          this.pendingMove = null;
+        } else this.orderAt(p.x, p.y, e.shiftKey);
       }
     });
     this.input.addEventListener("dblclick", (e) => {
@@ -370,6 +405,10 @@ export class StrategyScreen {
         break;
       case "Enter":
         if (this.mode === "patrol" && this.patrolPoints.length >= 2) this.finishPatrol(e.shiftKey);
+        else if (this.mode === "facing" && this.pendingMove) {
+          this.moveTo(this.pendingMove.point, this.pendingMove.queue);
+          this.pendingMove = null;
+        }
         break;
       case "KeyH":
         this.give(
@@ -411,6 +450,8 @@ export class StrategyScreen {
   private setMode(m: Mode): void {
     this.mode = m;
     this.patrolPoints = [];
+    if (m !== "facing") this.pendingMove = null;
+    if (m !== "aim") this.aimRef = null;
     this.renderBar();
   }
 
@@ -610,15 +651,35 @@ export class StrategyScreen {
       this.give(() => ({ kind: "follow", leader: own.id }), queue);
       return;
     }
-    const p = this.camera.screenToWorld({ x, y });
+    this.moveTo(this.camera.screenToWorld({ x, y }), queue);
+  }
+
+  /**
+   * Move order for the selection; several ships spread on a small ring round the point instead of piling
+   * onto it. `facing`: world direction their attack fronts then point (rad).
+   */
+  private moveTo(p: Vec2, queue: boolean, facing?: number): void {
     const n = this.selected.size;
-    // Ships spread on a small ring around the point instead of piling onto it.
+    const f = facing !== undefined ? { facing } : {};
     this.give((s, i) => {
-      if (n === 1) return { kind: "move", point: p };
+      if (n === 1) return { kind: "move", point: p, ...f };
       const a = (i / n) * Math.PI * 2;
       const r = 40 + n * 12;
-      return { kind: "move", point: { x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r } };
+      return { kind: "move", point: { x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r }, ...f };
     }, queue);
+  }
+
+  /** Aim of one move order (a leg of the route): its attack front turns to this point on the way. */
+  setAim(ref: { ship: string; slot: number }, at: Vec2 | null): void {
+    const st = this.setup?.world.ai.get(ref.ship);
+    const o = st ? this.orderOf(st, ref.slot) : null;
+    if (!st || o?.kind !== "move") return;
+    const { aimAt: _old, ...rest } = o;
+    void _old;
+    this.setOrder(st, ref.slot, at ? { ...rest, aimAt: at } : rest);
+    this.aimRef = null;
+    this.setMode("select");
+    this.detailsAge = 1;
   }
 
   private finishPatrol(queue: boolean): void {
@@ -684,6 +745,19 @@ export class StrategyScreen {
     const at = (p: Vec2) => this.camera.worldToScreen(p);
     const line = (a: Vec2, b: Vec2, cls: string) =>
       this.overlay.append(svg("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: cls }));
+    // Arrow from a screen point towards a world direction (y flips on screen).
+    const arrow = (p: Vec2, dir: number, cls: string, len = 34) => {
+      const t = { x: p.x + Math.cos(dir) * len, y: p.y - Math.sin(dir) * len };
+      const h = (a: number) => ({ x: t.x - Math.cos(dir + a) * 9, y: t.y + Math.sin(dir + a) * 9 });
+      const l = h(0.5);
+      const r = h(-0.5);
+      this.overlay.append(
+        svg("polyline", {
+          points: `${p.x},${p.y} ${t.x},${t.y} ${l.x},${l.y} ${t.x},${t.y} ${r.x},${r.y}`,
+          class: cls,
+        }),
+      );
+    };
     const dot = (p: Vec2, cls: string, r = 4) =>
       this.overlay.append(svg("circle", { cx: p.x, cy: p.y, r, class: cls }));
     for (const s of this.mine) {
@@ -704,6 +778,13 @@ export class StrategyScreen {
           const p = at(o.point);
           if (o.kind === "move" || current) line(from, p, `st-order move${cls}`);
           dot(p, `st-point ${o.kind}${cls}`);
+          if (o.facing !== undefined) arrow(p, o.facing, `st-facing${cls}`);
+          if (o.kind === "move" && o.aimAt) {
+            const mid = { x: (from.x + p.x) / 2, y: (from.y + p.y) / 2 };
+            const t = at(o.aimAt);
+            line(mid, t, `st-order aim${cls}`);
+            dot(t, `st-point aim${cls}`, 5);
+          }
           from = p;
         } else if (o.kind === "patrol") {
           const pts = o.points.map(at);
@@ -742,6 +823,24 @@ export class StrategyScreen {
           class: h.ref.insert ? "st-handle insert" : "st-handle",
         }),
       );
+    // Facing being set: from the chosen point (M mode) or the right press (drag) towards the pointer.
+    const from0 =
+      this.mode === "facing" && this.pendingMove
+        ? at(this.pendingMove.point)
+        : this.drag && this.drag.button === 2 && this.drag.moved && this.selected.size
+          ? { x: this.drag.x0, y: this.drag.y0 }
+          : null;
+    if (from0) {
+      const to = this.drag?.moved ? { x: this.drag.x, y: this.drag.y } : this.cursor;
+      dot(from0, "st-point move", 5);
+      if (Math.hypot(to.x - from0.x, to.y - from0.y) > 4)
+        arrow(
+          from0,
+          Math.atan2(-(to.y - from0.y), to.x - from0.x),
+          "st-facing",
+          Math.max(34, Math.hypot(to.x - from0.x, to.y - from0.y)),
+        );
+    }
     // Patrol being drawn, and the selection box.
     if (this.patrolPoints.length) {
       const pts = this.patrolPoints.map(at);
@@ -796,11 +895,14 @@ export class StrategyScreen {
     const hint: Record<Mode, string> = {
       select:
         "Click or drag to select · right click: move / attack enemy / follow own ship · Shift queues · M move · A attack · P patrol · W wait for · H hold · S stop · drag order points to edit paths",
-      move: "Move: click the destination (Shift queues) · Esc cancels",
+      move: "Move: click the destination, then the facing (Shift queues) · Esc cancels",
       attack: "Attack: click an enemy ship (Shift queues) · Esc cancels",
       patrol:
         "Patrol: click waypoints, then Enter, P, a double click or a right click to start · or drag an area · Esc cancels",
       wait: "Wait for: click one of your ships; the selected ships hold until it arrives, then go on (Shift queues) · Esc cancels",
+      facing:
+        "Move: click which way the attack front should point there · Enter or right click: no facing · Esc cancels",
+      aim: "Aim: click the point the attack front turns to on this leg of the route · Esc cancels",
     };
     this.status.textContent = hint[this.mode];
     this.panelKey = "";
@@ -959,6 +1061,11 @@ export class StrategyScreen {
               btn("up", "↑", "earlier", slot < 0) +
               btn("down", "↓", "later", slot < 0 || slot >= st.queue.length - 1) +
               btn("del", "✕", slot < 0 ? "skip to the next order" : "remove") +
+              (o.kind === "move"
+                ? o.aimAt
+                  ? btn("noaim", "◎✕", "stop aiming on this leg")
+                  : btn("aim", "◎", "aim: click a point the attack front turns to on this leg")
+                : "") +
               `</li>`
             );
           })
@@ -979,6 +1086,7 @@ export class StrategyScreen {
       `<h3>${esc(s.design.name)}</h3>${others}` +
       `<div>hull <b class="${cls(hull)}">${pct(hull)}</b> · ${st ? `${esc(st.profile.name)} · ${st.behaviour}${target ? ` → ${esc(target)}` : ""}` : "no AI"}</div>` +
       queue +
+      `<div>attack front <b>${esc(describeBearing(liveFirepower(s).front))}</b></div>` +
       `<div class="st-systems">${systemsHtml(s)}</div>` +
       `<div class="st-readout">${partReadout(s, this.plan.hoverUid)}</div>` +
       `<div class="st-gauges">` +

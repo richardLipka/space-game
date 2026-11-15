@@ -184,6 +184,12 @@ body {
 .ed-overlays[open] > label:nth-of-type(6) {
   top: 156px;
 }
+.ed-overlays[open] > label:nth-of-type(7) {
+  top: 182px;
+}
+.ed-overlays[open] > label:nth-of-type(8) {
+  top: 208px;
+}
 .ed-name,
 .sc-name {
   font: inherit;
@@ -314,7 +320,10 @@ body {
 }
 .editor select,
 .sc-editor select,
-.st-root select {
+.st-root select,
+.ed-dialog select,
+.ed-dialog input,
+.ed-dialog textarea {
   font: inherit;
   color: var(--panel-fg);
   background: var(--button-bg);
@@ -2102,4 +2111,41 @@ body {
 .st-root button:disabled {
   opacity: 0.35;
   cursor: default;
+}
+
+/* Firepower round the ship plans (HUD, strategy): where the weapons are strongest now */
+.ck-plan .fp {
+  fill: #ffb347;
+  fill-opacity: 0.12;
+  stroke: #ffb347;
+  stroke-opacity: 0.7;
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+.ck-plan .fp-front {
+  fill: none;
+  stroke: #ff4f7b;
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Strategy: facing arrows and leg aims */
+.st-facing {
+  fill: none;
+  stroke: #ff4f7b;
+  stroke-width: 2;
+}
+.st-facing.faint,
+.st-order.aim.faint,
+.st-point.aim.faint {
+  opacity: 0.3;
+}
+.st-order.aim {
+  stroke: #ff9a3c;
+  stroke-dasharray: 3 3;
+}
+.st-point.aim {
+  fill: none;
+  stroke: #ff9a3c;
+  stroke-width: 2;
 }

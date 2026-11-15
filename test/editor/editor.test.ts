@@ -1,3 +1,4 @@
+import { classOfMass } from "../../src/sim/ship/classes";
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
 import { performance } from "node:perf_hooks";
@@ -347,7 +348,7 @@ describe("M2 editor model", () => {
     expect(s.mass).toBe(mp.mass);
     expect(s.inertia).toBe(mp.inertia);
     expect(s.accel.fwd).toBe(caps.fwd / mp.mass);
-    expect(s.shipClass).toBe("frigate");
+    expect(s.shipClass).toBe(classOfMass(mp.mass));
     expect(s.fuel.deltaV).toBeGreaterThan(0);
   });
 });

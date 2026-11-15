@@ -566,3 +566,25 @@
   --fill: #ffb347;
   --fill-alpha: 0.12;
 }
+
+.overlay-firepower {
+  --stroke: #ffb347;
+  --stroke-width: 1.5;
+  --fill: #ffb347;
+  --fill-alpha: 0.1;
+  --glow: #ff9020;
+  --glow-width: 5;
+  --glow-alpha: 0.25;
+}
+.overlay-firepower-ring {
+  --stroke: #ffb347;
+  --stroke-width: 1;
+  --stroke-alpha: 0.3;
+}
+.overlay-attack-front {
+  --stroke: #ff4f7b;
+  --stroke-width: 2.5;
+  --glow: #ff2050;
+  --glow-width: 7;
+  --glow-alpha: 0.3;
+}

@@ -1,3 +1,4 @@
+import { designFirepower } from "../sim/ai/firepower";
 import type { ShipDesign } from "../data/schemas/design";
 import type { Scenario } from "../data/schemas/scenario";
 import { SCENARIOS } from "../data/scenarios/index";
@@ -95,6 +96,26 @@ export class ScenarioEditor {
   } | null = null;
   private placing = { design: "fleet-wasp", team: 1, ai: "balanced", asteroid: 60 };
   private readonly outlines = new Map<string, number[][][]>();
+  /** A ship just placed, being turned by dragging (start point in world metres). */
+  private aiming: { ref: ItemRef; x: number; y: number } | null = null;
+  private readonly fronts = new Map<string, number>();
+
+  /** A design's attack front (degrees from the nose): saved with it, or worked out from its weapons. */
+  private attackFrontDeg(designId: string): number {
+    const cached = this.fronts.get(designId);
+    if (cached !== undefined) return cached;
+    const d = this.designs.get(designId);
+    let deg = d?.attackFront ?? 0;
+    if (d && d.attackFront === undefined) {
+      try {
+        deg = (designFirepower(d, this.services.catalogue()).front * 180) / Math.PI;
+      } catch {
+        deg = 0;
+      }
+    }
+    this.fronts.set(designId, deg);
+    return deg;
+  }
 
   constructor(private readonly services: ScenarioEditorServices) {
     this.map = svg("svg", { class: "sc-map", "data-testid": "scenario-map" }) as SVGSVGElement;
@@ -258,6 +279,8 @@ export class ScenarioEditor {
       const hit = this.tool === "select" || e.button !== 0 ? this.hit(wx, wy) : null;
       if (e.button === 0 && this.tool !== "select") {
         this.selected = this.place(wx, wy);
+        // A placed ship can be turned by dragging: the drag sets which way its attack front points.
+        if (this.selected.kind === "ship") this.aiming = { ref: this.selected, x: wx, y: wy };
         this.render();
         return;
       }
@@ -270,6 +293,20 @@ export class ScenarioEditor {
       this.render();
     });
     this.map.addEventListener("pointermove", (e) => {
+      if (this.aiming && e.buttons & 1) {
+        const [wx, wy] = this.toWorld(e.clientX, e.clientY);
+        const a = this.aiming;
+        if (Math.hypot(wx - a.x, wy - a.y) > 6 * this.view.mpp) {
+          const e2 = this.model.scenario.enemies[a.ref.index];
+          if (e2) {
+            const front = this.attackFrontDeg(e2.designId);
+            const dir = (Math.atan2(wy - a.y, wx - a.x) * 180) / Math.PI;
+            e2.spawn.angle = Math.round((((dir - front) % 360) + 360) % 360);
+            this.render();
+          }
+        }
+        return;
+      }
       const d = this.drag;
       if (!d) {
         const [wx, wy] = this.toWorld(e.clientX, e.clientY);
@@ -287,6 +324,7 @@ export class ScenarioEditor {
       this.render();
     });
     const end = () => {
+      this.aiming = null;
       if (this.drag?.ref && !this.drag.moved) this.model.undo(); // a click, not a move: drop the checkpoint
       this.drag = null;
     };
@@ -350,7 +388,7 @@ export class ScenarioEditor {
   private hint(): string {
     switch (this.tool) {
       case "ship":
-        return "Click to place the ship. Esc: back to select.";
+        return "Click to place the ship; drag to turn its attack front that way. Esc: back to select.";
       case "asteroid":
         return "Click to place an asteroid.";
       case "well":

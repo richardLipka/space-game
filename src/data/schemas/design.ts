@@ -55,6 +55,11 @@ export const ShipDesign = Type.Object(
     author: Type.Optional(Type.String({ maxLength: 80 })),
     description: Type.Optional(Type.String({ maxLength: 2000 })),
     drone: Type.Optional(Type.Boolean()),
+    /**
+     * Attack front: the direction (degrees from the nose, positive to port) in which the ship's weapons are
+     * strongest, worked out from their arcs when the design is saved. The AI turns it to the enemy.
+     */
+    attackFront: Type.Optional(Type.Number({ minimum: -180, maximum: 180 })),
     /** Library section the design is listed under ("Playable", "Experimental", or any name). */
     section: Type.Optional(Type.String({ minLength: 1, maxLength: 40 })),
     createdAt: IsoDate,

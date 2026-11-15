@@ -1,3 +1,4 @@
+import { bearingOf, liveFirepower } from "../../sim/ai/firepower";
 import type { Ship } from "../../sim/ship/ship-entity";
 import type { PartInstance } from "../../sim/ship/ship";
 
@@ -62,6 +63,18 @@ export class ShipPlan {
   private readonly polys = new Map<string, { el: SVGPolygonElement; cls: string }>();
   /** Part under the mouse, if any. */
   hoverUid: string | null = null;
+  /**
+   * Draw the live firepower profile round the plan (DPS of the weapons that bear, per direction) and the
+   * attack front, so the best side to turn to the enemy shows as weapons are lost.
+   */
+  showFirepower = false;
+  /** A path, not a polygon: the plan has exactly one polygon per part. */
+  private readonly fpPoly = document.createElementNS(SVG_NS, "path");
+  private readonly fpFront = document.createElementNS(SVG_NS, "polyline");
+  private fpKey = "";
+  /** Radius of the ship outline round the plan centre, and the plan centre in the ship frame. */
+  private radius = 1;
+  private centre = { x: 0, y: 0 };
 
   constructor() {
     this.el = document.createElementNS(SVG_NS, "svg");
@@ -86,6 +99,7 @@ export class ShipPlan {
     }
     const key = `${ship.id}|${ship.parts.map((p) => p.uid).join()}`;
     if (key !== this.key) this.build(ship, key);
+    if (this.showFirepower) this.updateFirepower(ship);
     // SVG y points down, so a counter-clockwise heading is a negative SVG rotation.
     const ak = (-(angle * 180) / Math.PI).toFixed(1);
     if (ak !== this.angleKey) {
@@ -101,6 +115,40 @@ export class ShipPlan {
         poly.el.setAttribute("class", cls);
       }
     }
+  }
+
+  /** The profile as a polygon round the outline (ship frame → SVG, like the parts) and the front arrow. */
+  private updateFirepower(ship: Ship): void {
+    const { profile, front } = liveFirepower(ship);
+    const key = `${profile.join(",")}|${front}`;
+    if (key === this.fpKey) return;
+    this.fpKey = key;
+    const max = Math.max(...profile);
+    const r0 = this.radius * 1.05;
+    const pt = (a: number, r: number) => {
+      // The profile is round the ship's centre of mass; the plan is centred on its outline.
+      const x = ship.massProps.center.x + Math.cos(a) * r - this.centre.x;
+      const y = ship.massProps.center.y + Math.sin(a) * r - this.centre.y;
+      return `${x.toFixed(2)},${(-y).toFixed(2)}`;
+    };
+    this.fpPoly.setAttribute(
+      "d",
+      max > 0 ? `M${profile.map((d, k) => pt(bearingOf(k), r0 * (1 + 0.75 * (d / max)))).join("L")}Z` : "",
+    );
+    const tip = r0 * 1.8;
+    const h = r0 * 0.18;
+    this.fpFront.setAttribute(
+      "points",
+      max > 0
+        ? [
+            pt(front, r0 * 0.5),
+            pt(front, tip),
+            pt(front + Math.atan2(h, tip - h), Math.hypot(tip - h, h)),
+            pt(front, tip),
+            pt(front - Math.atan2(h, tip - h), Math.hypot(tip - h, h)),
+          ].join(" ")
+        : "",
+    );
   }
 
   /**
@@ -142,12 +190,22 @@ export class ShipPlan {
       this.el.replaceChildren();
       return;
     }
-    const half = r * 1.04 + 0.3;
+    this.radius = r;
+    this.centre = { x: cx, y: cy };
+    this.fpKey = "";
+    // Room round the outline for the firepower plot.
+    const half = (this.showFirepower ? r * 1.9 : r * 1.04) + 0.3;
     this.el.setAttribute(
       "viewBox",
       `${(-half).toFixed(2)} ${(-half).toFixed(2)} ${(2 * half).toFixed(2)} ${(2 * half).toFixed(2)}`,
     );
-    this.group.replaceChildren(...nodes);
+    this.fpPoly.setAttribute("class", "fp");
+    this.fpFront.setAttribute("class", "fp-front");
+    this.group.replaceChildren(
+      ...(this.showFirepower ? [this.fpPoly] : []),
+      ...nodes,
+      ...(this.showFirepower ? [this.fpFront] : []),
+    );
     this.el.replaceChildren(this.group);
   }
 }
