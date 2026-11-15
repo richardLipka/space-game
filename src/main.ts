@@ -1,4 +1,5 @@
 /** Browser entry: app shell with the ship editor (default) and the flight screen (test flight / sandbox). */
+import { installDialogChrome } from "./ui/dialog-chrome";
 import { resolveDesign } from "./sim/ship/resolve";
 import { adoptCrew, crewBattle, crewEntries, loadRoster, rosterLoadNotes, saveRoster } from "./ui/roster";
 import type { Battle } from "./sim/scenario/battle";
@@ -66,6 +67,7 @@ function randomId(): string {
 }
 
 async function main(): Promise<void> {
+  installDialogChrome();
   const canvas = document.getElementById("view") as HTMLCanvasElement;
   const hudEl = document.getElementById("hud")!;
   const app = new Application();

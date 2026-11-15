@@ -498,6 +498,7 @@ export class Scene {
       if (a.kind === "gyro") return;
       throttle.set(a.partUid, Math.max(throttle.get(a.partUid) ?? 0, ship.throttles[i] ?? 0));
     });
+    for (const p of ship.burstEngines) if (ship.bursting(p.uid)) throttle.set(p.uid, 1);
     const eng = this.theme.resolve("fx-thrust kind-engine");
     const rcs = this.theme.resolve("fx-thrust kind-thruster");
     for (const p of ship.parts) {
@@ -523,6 +524,13 @@ export class Scene {
         const len = 1.5 * t * rcs.scale;
         g.moveTo(c.x, c.y).lineTo(c.x + dir.x * len, c.y + dir.y * len);
         strokeStyled(g, rcs, z);
+      } else if (def.def.burst && def.burstDir) {
+        // Burst engine: a short, long flame out of the nozzle while it fires.
+        const dir = scale(toShipDir(p, def.burstDir), -1);
+        const c = partCentroid(p);
+        const len = 6 * t * eng.scale;
+        g.moveTo(c.x, c.y).lineTo(c.x + dir.x * len, c.y + dir.y * len);
+        strokeStyled(g, { ...eng, strokeWidth: eng.strokeWidth * 2.5, glowWidth: eng.glowWidth * 1.6 }, z);
       }
     }
   }
@@ -569,6 +577,7 @@ export class Scene {
         p.def.def.reactor ||
         p.def.def.engine ||
         p.def.def.thruster ||
+        p.def.def.burst ||
         p.def.def.gyro ||
         p.def.def.weapon
       );

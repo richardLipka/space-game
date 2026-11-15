@@ -29,6 +29,7 @@ function symmetricAbout(def: RuntimePartDef, beta: number): boolean {
   const vectors: Vec2[] = [];
   if (def.engineThrustDir) vectors.push(def.engineThrustDir);
   if (def.thrusterDir) vectors.push(def.thrusterDir);
+  if (def.burstDir) vectors.push(def.burstDir);
   const w = def.def.weapon;
   if (w) {
     vectors.push({ x: 1, y: 0 }); // mount axis

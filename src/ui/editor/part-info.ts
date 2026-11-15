@@ -1,3 +1,4 @@
+import { burstKind } from "../../sim/flight/burst";
 import type { PartDef } from "../../data/schemas/part";
 import { weaponDps, weaponHeatRate } from "../../data/balance/model";
 import { fmt } from "./dom";
@@ -37,6 +38,23 @@ export function partInfoRows(d: PartDef): [string, string][] {
     rows.push(["Thrust", kN(d.thruster.thrust)]);
     rows.push(["Isp", `${d.thruster.isp} s`]);
     rows.push(["Heat at full", fmt.watts(d.thruster.heatAtMax)]);
+  }
+  if (d.burst) {
+    const kind = {
+      left: "sideways",
+      right: "sideways",
+      forward: "forward",
+      back: "retro (against velocity)",
+    };
+    rows.push(["Burst thrust", kN(d.burst.thrust)]);
+    rows.push(["Burst", `${d.burst.duration} s, every ${d.burst.duration + d.burst.cooldown} s`]);
+    rows.push(["Impulse", `${kN(d.burst.thrust * d.burst.duration)}·s`]);
+    rows.push([
+      "Pushes",
+      `${kind[burstKind({ x: d.burst.direction[0], y: d.burst.direction[1] })]}, through the centre of mass`,
+    ]);
+    rows.push(["Isp", `${d.burst.isp} s`]);
+    rows.push(["Heat at full", fmt.watts(d.burst.heatAtMax)]);
   }
   if (d.reactor) {
     rows.push(["Output", fmt.watts(d.reactor.maxOutput)]);

@@ -23,12 +23,17 @@ export const PortraitSpec = Type.Object(
     extras: Type.Optional(Type.Array(Index, { maxItems: 8 })),
     /** Space suit: a helmet ring round the head instead of the uniform's collar. */
     suit: Type.Boolean(),
+    /**
+     * Part layout version. 2: cigar, monocle and eyepatch are accessories. Without it the indices are read
+     * the old way (eyes and mouth) and moved over (`migratePortrait`).
+     */
+    v: Type.Optional(Type.Integer({ minimum: 1, maximum: 99 })),
   },
   strict,
 );
 export type PortraitSpec = Static<typeof PortraitSpec>;
 /** The portrait parts picked by a single index (not the suit flag or the extra accessories). */
-export type PortraitPart = Exclude<keyof PortraitSpec, "suit" | "extras">;
+export type PortraitPart = Exclude<keyof PortraitSpec, "suit" | "extras" | "v">;
 
 export const Position = Type.Union([
   Type.Literal("pilot"),

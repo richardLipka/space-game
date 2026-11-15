@@ -20,6 +20,9 @@ import {
   type PropulsionModel,
 } from "../flight/propulsion";
 import { type Vec2, ZERO } from "../core/vec2";
+import { burstKind, burstPush } from "../flight/burst";
+import { fuelFlow } from "../../data/balance/model";
+import { toShipDir } from "./ship";
 import { compareIds } from "../core/ids";
 import { computeNetworks, type Networks } from "../systems/networks";
 import { allocatePower, POWER_GROUPS, type PowerConsumer } from "../systems/power";
@@ -174,6 +177,10 @@ export class Ship {
   private reactorOutput = new Map<string, number>();
   /** Last throttle per part uid (drives next tick's propulsion power demand and heat). */
   private lastThrottle = new Map<string, number>();
+  /** Burst engines firing now: seconds left per part uid (insertion order = firing order). */
+  private readonly burstActive = new Map<string, number>();
+  /** Burst engines that cannot fire yet: seconds left per part uid. */
+  private readonly burstCooldown = new Map<string, number>();
   /** Weapons currently drawing power (set by combat from M4; tests may set it directly). */
   readonly activeWeapons = new Set<string>();
 
@@ -368,6 +375,7 @@ export class Ship {
     const producesHeat =
       (d.engine?.heatAtMax ?? 0) > 0 ||
       (d.thruster?.heatAtMax ?? 0) > 0 ||
+      (d.burst?.heatAtMax ?? 0) > 0 ||
       (d.gyro?.heat ?? 0) > 0 ||
       !!d.reactor;
     if (producesHeat) f *= heatThrottle(this.heatLevel);
@@ -528,9 +536,82 @@ export class Ship {
     );
     this.lastDesired = desired;
     this.lastWrench = arcade ?? wrenchOf(acts, u);
-    if (this.intent.speedKill || this.intent.match)
-      this.intent = { ...this.intent, speedKill: undefined, match: undefined };
+    if (this.burstActive.size || this.burstCooldown.size || this.intent.burst) {
+      const b = this.burstForce(ctx);
+      if (b.x !== 0 || b.y !== 0)
+        this.lastWrench = { ...this.lastWrench, fx: this.lastWrench.fx + b.x, fy: this.lastWrench.fy + b.y };
+    }
+    if (this.intent.speedKill || this.intent.match || this.intent.burst)
+      this.intent = { ...this.intent, speedKill: undefined, match: undefined, burst: undefined };
     return this.lastWrench;
+  }
+
+  /** Burst engines aboard (intact or not). */
+  get burstEngines(): PartInstance[] {
+    return this.parts.filter((p) => p.def.def.burst);
+  }
+
+  /** Seconds until a burst engine can fire again (0 = ready). */
+  burstReadyIn(uid: string): number {
+    return this.burstCooldown.get(uid) ?? 0;
+  }
+
+  /** True while the burst engine is firing. */
+  bursting(uid: string): boolean {
+    return this.burstActive.has(uid);
+  }
+
+  /**
+   * Burst engines (src/sim/flight/burst.ts): starts the ones the intent asks for, then sums the push of every
+   * engine still firing, through the centre of mass (ship frame). Burns fuel; heat follows the throttle.
+   */
+  private burstForce(ctx: { angle: number; velocity: Vec2; dt: number }): Vec2 {
+    const dt = ctx.dt;
+    for (const [uid, t] of [...this.burstCooldown]) {
+      if (t - dt <= 1e-9) this.burstCooldown.delete(uid);
+      else this.burstCooldown.set(uid, t - dt);
+    }
+    const kind = this.intent.burst;
+    if (kind) {
+      for (const p of this.parts) {
+        const d = p.def.def.burst;
+        if (!d || !p.def.burstDir || !isIntact(p) || !this.isCommanded(p.uid)) continue;
+        if (this.burstCooldown.has(p.uid) || this.burstActive.has(p.uid)) continue;
+        if (this.fuelInNetwork(this.networkOf(p.uid)) <= 0) continue;
+        if (burstKind(toShipDir(p, p.def.burstDir)) !== kind) continue;
+        this.burstActive.set(p.uid, d.duration);
+        this.burstCooldown.set(p.uid, d.duration + d.cooldown);
+      }
+    }
+    let x = 0;
+    let y = 0;
+    const reference = this.referenceVelocity();
+    for (const [uid, left] of [...this.burstActive]) {
+      const p = this.byUid.get(uid);
+      const d = p?.def.def.burst;
+      if (!p || !d || !p.def.burstDir || !isIntact(p) || !this.isCommanded(uid)) {
+        this.burstActive.delete(uid);
+        continue;
+      }
+      const full = d.thrust * hpFactor(p) * this.partFactor(uid);
+      const kg = fuelFlow(full, d.isp) * dt;
+      const net = this.networkOf(uid);
+      const share = kg > 0 && net !== undefined ? this.consumeFuelFromNetwork(net, kg) / kg : 0;
+      const dir = toShipDir(p, p.def.burstDir);
+      const push = burstPush(burstKind(dir), dir, full * share, {
+        angle: ctx.angle,
+        velocity: ctx.velocity,
+        reference,
+        mass: this.massProps.mass,
+        dt,
+      });
+      x += push.x;
+      y += push.y;
+      this.lastThrottle.set(uid, share);
+      if (left - dt <= 1e-9 || share <= 0) this.burstActive.delete(uid);
+      else this.burstActive.set(uid, left - dt);
+    }
+    return { x, y };
   }
 
   /**
@@ -560,7 +641,10 @@ export class Ship {
       const d = p.def.def;
       const t = this.lastThrottle.get(p.uid) ?? 0;
       const reactor = d.reactor ? (this.reactorOutput.get(p.uid) ?? 0) * d.reactor.heatPerWatt : 0;
-      const propulsion = ((d.engine?.heatAtMax ?? 0) + (d.thruster?.heatAtMax ?? 0)) * t * throttle;
+      const propulsion =
+        ((d.engine?.heatAtMax ?? 0) + (d.thruster?.heatAtMax ?? 0) + (d.burst?.heatAtMax ?? 0)) *
+        t *
+        throttle;
       const gyro = d.gyro && d.gyro.heat > 0 ? d.gyro.heat * t * throttle : 0;
       let weapon = 0;
       if (d.weapon && this.activeWeapons.has(p.uid)) {
@@ -705,6 +789,8 @@ export class Ship {
       this.byUid.delete(p.uid);
       this.activeWeapons.delete(p.uid);
       this.lastThrottle.delete(p.uid);
+      this.burstActive.delete(p.uid);
+      this.burstCooldown.delete(p.uid);
       this.powerFactors.delete(p.uid);
       this.reactorOutput.delete(p.uid);
     }
@@ -1057,6 +1143,10 @@ export class Ship {
         ammo: p.ammo,
       })),
       throttles: this.throttles,
+      // Only ships with burst engines carry it (keeps the replay hashes of everything else).
+      ...(this.burstActive.size || this.burstCooldown.size
+        ? { burst: [[...this.burstActive], [...this.burstCooldown]] }
+        : {}),
     };
   }
 }

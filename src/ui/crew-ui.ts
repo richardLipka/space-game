@@ -1,3 +1,4 @@
+import { listSearch } from "./dialog-chrome";
 import type { ShipDesign } from "../data/schemas/design";
 import type { Officer, PortraitSpec, Position, Roster } from "../data/schemas/officer";
 import { validateNames } from "../data/validate";
@@ -7,6 +8,10 @@ import { designSection, orderSections } from "../data/designs/index";
 import {
   crewRng,
   crewSlots,
+  MAX_LEVEL,
+  migratePortrait,
+  promote,
+  promotionOptions,
   levelUpStat,
   officerEffects,
   POSITIONS,
@@ -27,6 +32,7 @@ import { CLASS_LABEL } from "../sim/ship/classes";
 import type { PartCatalogue } from "../sim/ship/catalogue";
 import type { CrewMember, Ship } from "../sim/ship/ship-entity";
 import { el } from "./editor/dom";
+import { hullFraction } from "./hud/ship-plan";
 import {
   accessoriesOf,
   chevronsSvg,
@@ -77,7 +83,7 @@ export class PortraitDialog {
   }
 
   open(spec: PortraitSpec, onApply: (p: PortraitSpec) => void, level?: number): void {
-    this.spec = { ...spec };
+    this.spec = migratePortrait(spec);
     this.level = level;
     this.onApply = onApply;
     this.render();
@@ -206,10 +212,14 @@ export interface RosterServices {
 export class RosterDialog {
   private readonly dialog: HTMLDialogElement;
   private readonly portraits = new PortraitDialog();
+  private readonly promotions = new PromotionDialog();
+  private readonly officerDialog = new OfficerDialog(() => this.nameStyle);
   private designs: ShipDesign[] = [];
   private designId = "";
   /** Naming style for generated officers ("mixed" or a style id). */
   private nameStyle = MIXED;
+  /** Officer search text (kept while the dialog rebuilds). */
+  private query = "";
 
   private names() {
     return { style: this.nameStyle, names: loadNames() };
@@ -286,6 +296,23 @@ export class RosterDialog {
         });
         const face = el("span", { class: "roster-face" });
         if (holder) face.innerHTML = portraitSvg(holder.portrait, 36, holder.level);
+        const edit = el(
+          "button",
+          { "data-testid": `roster-edit-${position}`, title: "Edit this officer" },
+          "Edit…",
+        ) as HTMLButtonElement;
+        edit.disabled = !holder;
+        edit.addEventListener("click", () => {
+          if (!holder) return;
+          this.officerDialog.open(
+            holder,
+            (o) => {
+              const cur = this.services.roster();
+              this.save({ ...cur, officers: cur.officers.map((x) => (x.id === o.id ? o : x)) });
+            },
+            `${POSITIONS[position].label}: ${design.name}`,
+          );
+        });
         ship.append(
           el(
             "div",
@@ -293,6 +320,7 @@ export class RosterDialog {
             face,
             el("b", {}, POSITIONS[position].label),
             sel,
+            edit,
             el("span", { class: "dim" }, holder ? effectsText(officerEffects(holder, position)) : ""),
           ),
         );
@@ -426,7 +454,17 @@ export class RosterDialog {
       el("div", { class: "roster-top" }, el("label", {}, "Ship ", pick), genAll),
       el("div", { class: "roster-top" }, el("label", {}, "Names ", style), namesImp, namesFile, namesReset),
       ship,
-      el("h3", {}, `Officers (${r.officers.length})`),
+      el(
+        "div",
+        { class: "roster-top" },
+        el("h3", {}, `Officers (${r.officers.length})`),
+        listSearch(list, {
+          testid: "roster-search",
+          placeholder: "Search name, post, trait…",
+          value: this.query,
+          onChange: (q) => (this.query = q),
+        }),
+      ),
       list,
       el("div", { class: "actions" }, add, exp, imp, file, clear, close),
     );
@@ -435,6 +473,7 @@ export class RosterDialog {
   private officerCard(r: Roster, o: Officer): HTMLElement {
     return officerCard(o, {
       portraits: this.portraits,
+      promotions: this.promotions,
       nameStyle: () => this.nameStyle,
       update: (patch) =>
         this.save({ ...r, officers: r.officers.map((x) => (x.id === o.id ? { ...x, ...patch } : x)) }),
@@ -453,7 +492,13 @@ export class RosterDialog {
 
 // ---------- crew strip (strategy and flight) ----------
 
-/** The officers of a ship along the bottom of the screen: portrait, post, experience and what they add. */
+/** Hull fraction below which the crew strip shows every officer in a space suit. */
+export const SUIT_BELOW = 0.5;
+
+/**
+ * The officers of a ship along the bottom of the screen: portrait, post, experience and what they add. Below
+ * half hull ({@link SUIT_BELOW}) they are all drawn in space suits.
+ */
 export class CrewStrip {
   readonly el: HTMLElement;
   private key = "";
@@ -464,14 +509,18 @@ export class CrewStrip {
 
   update(ship: Ship | null): void {
     const crew: readonly CrewMember[] = ship?.crew ?? [];
-    const key = ship ? `${ship.id}|${crew.map((c) => c.officer.id).join(",")}` : "";
+    // Below half hull the whole crew is in space suits.
+    const suited = !!ship && hullFraction(ship) < SUIT_BELOW;
+    const key = ship ? `${ship.id}|${suited ? "s" : ""}|${crew.map((c) => c.officer.id).join(",")}` : "";
     if (key === this.key) return;
     this.key = key;
     this.el.hidden = !crew.length;
+    this.el.classList.toggle("crew-suited", suited);
     if (!crew.length || !ship) return this.el.replaceChildren();
     const cards = crew.map((c) => {
       const face = el("span", { class: "crew-face" });
-      face.innerHTML = portraitSvg(c.officer.portrait, 40, c.officer.level);
+      const portrait = suited ? { ...c.officer.portrait, suit: true } : c.officer.portrait;
+      face.innerHTML = portraitSvg(portrait, 40, c.officer.level);
       const fx = officerEffects(c.officer, c.position);
       const traitNames = c.officer.traits.map((id) => trait(id)?.name ?? id);
       return el(
@@ -513,6 +562,8 @@ export class CrewStrip {
 
 export interface OfficerCardOptions {
   readonly portraits: PortraitDialog;
+  /** With it, a "Level up…" button promotes the officer through the dialog. */
+  readonly promotions?: PromotionDialog;
   /** Naming style for a new name when the officer's own is unknown. */
   readonly nameStyle: () => string;
   update(patch: Partial<Officer>): void;
@@ -621,6 +672,17 @@ export function officerCard(o: Officer, opts: OfficerCardOptions): HTMLElement {
     training.append(sel);
   });
   const line = el("div", { class: "roster-line" }, name, reroll, pos, lvl);
+  if (opts.promotions && o.level < MAX_LEVEL) {
+    const up = el(
+      "button",
+      { "data-testid": `officer-promote-${o.id}`, title: "Gain a level and pick what it trains" },
+      "▲ Level up…",
+    );
+    up.addEventListener("click", () =>
+      opts.promotions!.open(o, (p) => update({ level: p.level, training: p.training })),
+    );
+    line.append(up);
+  }
   if (opts.remove) {
     const del = el("button", { class: "danger", title: "Remove the officer" }, "✕");
     del.addEventListener("click", () => opts.remove!());
@@ -629,7 +691,16 @@ export function officerCard(o: Officer, opts: OfficerCardOptions): HTMLElement {
   const own = officerEffects(o, o.position);
   return el(
     "div",
-    { class: "roster-officer", "data-officer": o.id },
+    {
+      class: "roster-officer",
+      "data-officer": o.id,
+      "data-search": [
+        o.name,
+        POSITIONS[o.position].label,
+        `level ${o.level}`,
+        ...o.traits.map((id) => trait(id)?.name ?? id),
+      ].join(" "),
+    },
     face,
     el(
       "div",
@@ -644,4 +715,152 @@ export function officerCard(o: Officer, opts: OfficerCardOptions): HTMLElement {
       ),
     ),
   );
+}
+
+// ---------- promotion and officer dialogs ----------
+
+/**
+ * Promotion (campaigns, the roster): an officer gains a level and you pick what it trains. Each stat shows
+ * what it adds at the officer's post; the post's own stats count more. `onPromote` gets the promoted officer.
+ */
+export class PromotionDialog {
+  private readonly dialog: HTMLDialogElement;
+
+  constructor() {
+    this.dialog = el("dialog", {
+      class: "ed-dialog promotion-dialog",
+      "data-testid": "promotion-dialog",
+    }) as HTMLDialogElement;
+    document.body.append(this.dialog);
+  }
+
+  open(o: Officer, onPromote: (promoted: Officer) => void, position: Position = o.position): void {
+    const post = POSITIONS[position];
+    const head = el("div", { class: "promotion-head" });
+    const face = el("span", { class: "promotion-face" });
+    face.innerHTML = portraitSvg(o.portrait, 72, Math.min(MAX_LEVEL, o.level + 1));
+    head.append(face);
+    if (o.level >= MAX_LEVEL) {
+      head.append(el("p", {}, el("b", {}, o.name), ` is at level ${MAX_LEVEL}, the highest.`));
+      const ok = el("button", { "data-testid": "promotion-cancel" }, "Close");
+      ok.addEventListener("click", () => this.dialog.close());
+      this.dialog.replaceChildren(el("h2", {}, "Promotion"), head, el("div", { class: "actions" }, ok));
+      if (!this.dialog.open) this.dialog.showModal();
+      return;
+    }
+    const options = promotionOptions(position);
+    let chosen: Stat = options[0]!.stat;
+    const now = el("p", { class: "dim" });
+    const after = el("p", { "data-testid": "promotion-after" });
+    const update = () => {
+      now.textContent = `Now (level ${o.level}): ${effectsText(officerEffects(o, position), 9) || "no effect"}`;
+      const next = promote(o, chosen)!;
+      after.textContent = `After (level ${next.level}): ${effectsText(officerEffects(next, position), 9) || "no effect"}`;
+      for (const r of list.querySelectorAll<HTMLInputElement>("input[type=radio]"))
+        r.checked = r.value === chosen;
+    };
+    const list = el("div", { class: "promotion-options", role: "radiogroup", "aria-label": "Training" });
+    for (const opt of options) {
+      const radio = el("input", {
+        type: "radio",
+        name: "promotion-stat",
+        value: opt.stat,
+        "data-testid": `promotion-${opt.stat}`,
+      }) as HTMLInputElement;
+      radio.addEventListener("change", () => {
+        chosen = opt.stat;
+        update();
+      });
+      list.append(
+        el(
+          "label",
+          { class: `promotion-option${opt.focus ? " focus" : ""}` },
+          radio,
+          ` +${opt.gain.toFixed(1)}% ${STAT_LABEL[opt.stat].toLowerCase()}`,
+          opt.focus ? el("span", { class: "dim" }, ` · ${post.label.toLowerCase()} stat`) : "",
+        ),
+      );
+    }
+    const random = el(
+      "button",
+      {
+        "data-testid": "promotion-random",
+        title: "As levels are gained in battle: the post's stats are likelier",
+      },
+      "Random",
+    );
+    random.addEventListener("click", () => {
+      chosen = levelUpStat(crewRng(Date.now()), position);
+      update();
+    });
+    const ok = el("button", { class: "primary", "data-testid": "promotion-ok" }, "Promote");
+    ok.addEventListener("click", () => {
+      this.dialog.close();
+      onPromote(promote(o, chosen)!);
+    });
+    const cancel = el("button", { "data-testid": "promotion-cancel" }, "Cancel");
+    cancel.addEventListener("click", () => this.dialog.close());
+    head.append(
+      el(
+        "div",
+        {},
+        el("b", {}, o.name),
+        el("p", { class: "dim" }, `${post.label}, level ${o.level} → ${o.level + 1}`),
+        el("p", {}, `The new level trains one stat (+${TRAINING_PCT}% before the post's emphasis):`),
+      ),
+    );
+    this.dialog.replaceChildren(
+      el("h2", {}, "Promotion"),
+      head,
+      list,
+      now,
+      after,
+      el("div", { class: "actions" }, random, ok, cancel),
+    );
+    update();
+    if (!this.dialog.open) this.dialog.showModal();
+  }
+}
+
+/**
+ * One officer in a dialog (campaigns, the roster's posts): portrait, name, post, level, traits and training are
+ * edited on a copy; Apply hands it back, Cancel or ✕ drops the changes. Level up… opens the promotion dialog.
+ */
+export class OfficerDialog {
+  private readonly dialog: HTMLDialogElement;
+  private readonly portraits = new PortraitDialog();
+  private readonly promotions = new PromotionDialog();
+
+  constructor(private readonly nameStyle: () => string = () => MIXED) {
+    this.dialog = el("dialog", {
+      class: "ed-dialog roster-dialog",
+      "data-testid": "officer-edit",
+    }) as HTMLDialogElement;
+    document.body.append(this.dialog);
+  }
+
+  open(o: Officer, onSave: (o: Officer) => void, title = "Officer"): void {
+    let work = structuredClone(o);
+    const render = () => {
+      const card = officerCard(work, {
+        portraits: this.portraits,
+        promotions: this.promotions,
+        nameStyle: this.nameStyle,
+        update: (patch) => {
+          work = { ...work, ...patch };
+          render();
+        },
+      });
+      const apply = el("button", { class: "primary", "data-testid": "officer-edit-apply" }, "Apply");
+      apply.addEventListener("click", () => {
+        this.dialog.close();
+        onSave(work);
+      });
+      const cancel = el("button", { "data-testid": "officer-edit-cancel" }, "Cancel");
+      cancel.addEventListener("click", () => this.dialog.close());
+      this.dialog.replaceChildren(el("h2", {}, title), card, el("div", { class: "actions" }, apply, cancel));
+    };
+    render();
+    if (!this.dialog.open) this.dialog.showModal();
+  }
 }

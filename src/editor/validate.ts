@@ -183,7 +183,7 @@ export function validateDesignLayout(
   // Resource sources (per connected structure; networks proper arrive in M3).
   const main = new Set(comps[0] ?? []);
   const inMain = (uid: string) => main.has(uid);
-  const engines = uidsWhere((d) => !!d.engine || !!d.thruster);
+  const engines = uidsWhere((d) => !!d.engine || !!d.thruster || !!d.burst);
   const tanks = uidsWhere((d) => !!d.fuelTank).filter(inMain);
   if (engines.length > 0 && tanks.length === 0) {
     issues.push({

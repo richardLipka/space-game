@@ -105,6 +105,7 @@ export function designStats(
       demand.propulsion += d.thruster.powerDraw;
       heatGen += d.thruster.heatAtMax;
     }
+    if (d.burst) heatGen += d.burst.heatAtMax;
     demand.gyro += (d.gyro?.powerDraw ?? 0) + (d.command?.powerDraw ?? 0);
     heatGen += d.gyro?.heat ?? 0;
     if (d.reactor) {

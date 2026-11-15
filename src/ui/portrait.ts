@@ -1,5 +1,5 @@
 import type { PortraitPart, PortraitSpec } from "../data/schemas/officer";
-import { PORTRAIT_COUNTS } from "../sim/crew/officers";
+import { migratePortrait, PORTRAIT_COUNTS } from "../sim/crew/officers";
 
 /**
  * Schematic officer portraits (docs/officers.md): flat SVG drawn from interchangeable parts, each picked by
@@ -90,17 +90,15 @@ export const PART_LABELS: Record<PortraitPart, readonly string[]> = {
     "With brows",
     "Narrow",
     "Brass goggles",
-    "Monocle",
     "Mechanical eye",
     "Spectacles",
-    "Eyepatch",
     "Visor",
     "Pince-nez",
     "Tired",
     "Wide-eyed",
     "Welding goggles",
   ],
-  mouth: ["Neutral", "Smile", "Frown", "Open", "Smirk", "Grin", "Pursed", "Speaker grille", "Cigar"],
+  mouth: ["Neutral", "Smile", "Frown", "Open", "Smirk", "Grin", "Pursed", "Speaker grille"],
   facialHair: [
     "None",
     "Handlebar moustache",
@@ -171,6 +169,9 @@ export const PART_LABELS: Record<PortraitPart, readonly string[]> = {
     "Circuit tattoo",
     "Piston shoulder",
     "Bandage",
+    "Cigar",
+    "Monocle",
+    "Eyepatch",
   ],
 };
 
@@ -259,13 +260,18 @@ function hair(i: number, c: string): string {
   }
 }
 
+/** Eyes drawing by the layout-1 index the switch below still uses (monocle 4 and eyepatch 7 left). */
+const EYES_DRAWN = [0, 1, 2, 3, 5, 6, 8, 9, 10, 11, 12];
+
 function eyes(i: number): string {
+  return eyesDrawn(at(EYES_DRAWN, i));
+}
+
+function eyesDrawn(i: number): string {
   const pupils = `<circle cx="43" cy="44" r="1.8" fill="${LINE}"/><circle cx="57" cy="44" r="1.8" fill="${LINE}"/>`;
   switch (((i % 13) + 13) % 13) {
     case 0:
       return pupils;
-    case 7:
-      return `<circle cx="43" cy="44" r="1.8" fill="${LINE}"/><path d="M33 33 L68 51" stroke="${LINE}" stroke-width="1"/><ellipse cx="57" cy="44" rx="5.5" ry="4.5" fill="#1d1d22"/>`;
     case 8:
       return `<rect x="34" y="40" width="32" height="8" rx="3.5" fill="#2a2f36" stroke="${LINE}"/><rect x="36" y="42.5" width="28" height="3" rx="1.5" fill="#ff5a3b"/>`;
     case 9:
@@ -282,8 +288,6 @@ function eyes(i: number): string {
       return `<path d="M39 44 L47 44 M53 44 L61 44" stroke="${LINE}" stroke-width="2" fill="none"/><path d="M39 40 L47 41 M53 41 L61 40" stroke="${LINE}" stroke-width="1.4" fill="none"/>`;
     case 3:
       return `<g stroke="${LINE}" stroke-width="1"><rect x="34" y="40.5" width="32" height="3" fill="${BRASS_DARK}"/><circle cx="43" cy="44" r="5.5" fill="${BRASS}"/><circle cx="57" cy="44" r="5.5" fill="${BRASS}"/><circle cx="43" cy="44" r="3.4" fill="#7fe0c8"/><circle cx="57" cy="44" r="3.4" fill="#7fe0c8"/></g>`;
-    case 4:
-      return `${pupils}<circle cx="57" cy="44" r="4.5" fill="none" stroke="${BRASS}" stroke-width="1.4"/><path d="M61 46 Q66 56 63 66" stroke="${BRASS}" stroke-width="0.8" fill="none"/>`;
     case 5:
       return `<circle cx="43" cy="44" r="1.8" fill="${LINE}"/><g stroke="${LINE}" stroke-width="0.8"><circle cx="57" cy="44" r="5.5" fill="${STEEL}"/><circle cx="57" cy="44" r="3" fill="#ff3b3b"/>${[
         0, 60, 120, 180, 240, 300,
@@ -310,7 +314,6 @@ function mouth(i: number): string {
     `${line("M42 55.5 Q50 63 58 55.5 Z", "#ffffff")}<path d="M43 56.5 L57 56.5" stroke="${LINE}" stroke-width="0.6"/>`,
     line("M48 57 Q50 55 52 57 Q50 59 48 57 Z", "#7a3b3b"),
     `<rect x="43" y="54" width="14" height="7" rx="1.5" fill="${STEEL}" stroke="${LINE}"/><path d="M45 55.5 L55 55.5 M45 57.5 L55 57.5 M45 59.5 L55 59.5" stroke="${LINE}" stroke-width="0.8"/>`,
-    `${line("M44 57 L54 57")}<rect x="54" y="55.6" width="12" height="3" rx="1" fill="#6b4a2b" stroke="${LINE}" stroke-width="0.6"/><circle cx="66.5" cy="57.1" r="1.4" fill="#ff7a2b"/>`,
   ];
   return at(shapes, i);
 }
@@ -476,7 +479,13 @@ function collar(i: number, cloth: string): string {
 }
 
 function accessory(i: number): string {
-  switch (((i % 15) + 15) % 15) {
+  switch (((i % 18) + 18) % 18) {
+    case 15: // cigar, in the corner of the mouth
+      return `<rect x="54" y="55.6" width="12" height="3" rx="1" fill="#6b4a2b" stroke="${LINE}" stroke-width="0.6"/><path d="M57 55.6 L57 58.6" stroke="#b83b3b" stroke-width="1.2"/><circle cx="66.5" cy="57.1" r="1.4" fill="#ff7a2b"/><path d="M67 54 Q69 50 67 47 Q65 44 68 41" stroke="#c8ccd2" stroke-width="0.7" fill="none" opacity="0.7"/>`;
+    case 16: // monocle on a chain
+      return `<circle cx="57" cy="44" r="4.5" fill="#bfe6ff" fill-opacity="0.25" stroke="${BRASS}" stroke-width="1.4"/><path d="M61 46 Q66 56 63 66" stroke="${BRASS}" stroke-width="0.8" fill="none"/>`;
+    case 17: // eyepatch
+      return `<path d="M33 33 L68 51" stroke="${LINE}" stroke-width="1"/><ellipse cx="57" cy="44" rx="5.5" ry="4.5" fill="#1d1d22"/>`;
     case 9:
       return `<path d="M67 84 Q63 98 54 100 M69 86 Q65 104 56 106" stroke="${BRASS}" stroke-width="1.4" fill="none"/><circle cx="54" cy="100" r="1.2" fill="${BRASS}"/><circle cx="56" cy="106" r="1.2" fill="${BRASS}"/>`;
     case 10:
@@ -543,6 +552,7 @@ export function chevronsSvg(level: number, height = 18): string {
  * officer's experience sit at the lower left.
  */
 export function portraitSvg(spec: PortraitSpec, size = 96, level?: number): string {
+  spec = migratePortrait(spec);
   const skin = at(SKIN, spec.skin);
   const hairC = at(HAIR, spec.hairColor);
   const cloth = at(CLOTH, spec.uniformColor);

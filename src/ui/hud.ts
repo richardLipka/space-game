@@ -1,3 +1,5 @@
+import { burstKind } from "../sim/flight/burst";
+import { toShipDir } from "../sim/ship/ship";
 import type { Ship } from "../sim/ship/ship-entity";
 import type { World } from "../sim/world";
 import { capabilities } from "../sim/flight/propulsion";
@@ -106,6 +108,25 @@ VIEW      Shift+C camera · wheel zoom · middle-drag pan (free cam) · Shift+T 
 MODELS    Newtonian: thrust adds speed, brake by burning the other way. Arcade (pick it before a test flight
           or a skirmish): hold W to fly up to the top speed, release to stop, turning turns where you fly
 TIME      +/- or [ ] time scale (×1 at start) · Space pause · ? help · Esc editor`;
+
+/** Burst engines (Shift+W/A/S/D): which ways are ready, or the shortest wait. */
+function burstChip(ship: Ship): string {
+  const engines = ship.burstEngines.filter((p) => p.hp > 0);
+  if (!engines.length) return "";
+  const ready = new Set<string>();
+  let wait = Infinity;
+  for (const p of engines) {
+    const t = ship.burstReadyIn(p.uid);
+    if (t <= 0) ready.add(burstKind(toShipDir(p, p.def.burstDir!)));
+    else wait = Math.min(wait, t);
+  }
+  const arrows = (["forward", "left", "back", "right"] as const)
+    .filter((k) => ready.has(k))
+    .map((k) => ({ forward: "▲", left: "◀", back: "▼", right: "▶" })[k])
+    .join("");
+  const firing = engines.some((p) => ship.bursting(p.uid));
+  return `<span class="ck-chip${firing ? " on" : ""}" data-testid="burst" title="Burst engines: Shift+W forward, Shift+A left, Shift+D right, Shift+S retro (against the velocity)">BURST <b>${firing ? "firing" : arrows || `${wait.toFixed(1)} s`}</b></span>`;
+}
 
 /** Sets text, class or HTML only when it changed (the HUD is refreshed every frame). */
 const cache = new WeakMap<Element, { t?: string; c?: string; h?: string; s?: string }>();
@@ -523,6 +544,7 @@ export class Hud {
         (ship.hasIonEngines
           ? `<span class="ck-chip${ship.driveMode === "all" ? "" : " on"}" data-testid="drive-mode" title="I: all engines, ion only, chemical only">DRIVE <b>${ship.driveMode}</b></span>`
           : "") +
+        burstChip(ship) +
         (ship.radiatorExposure.size > 0
           ? `<span class="ck-chip${ship.radiatorsExtended ? " on" : ""}">RADIATORS <b>${ship.radiatorsExtended ? "out" : "in"}</b></span>`
           : ""),

@@ -247,6 +247,56 @@
       }
     },
     {
+      "id": "core:burst.s",
+      "rev": 1,
+      "source": "core",
+      "name": "Burst engine S",
+      "category": "propulsion",
+      "outline": [
+        [-0.5, -0.5],
+        [0.5, -0.5],
+        [0.5, 0.5],
+        [-0.5, 0.5]
+      ],
+      "edges": ["function", "snap", "snap", "snap"],
+      "mass": 200,
+      "hp": 790,
+      "cost": 30,
+      "burst": {
+        "thrust": 118000,
+        "isp": 300,
+        "direction": [0, 1],
+        "duration": 0.5,
+        "cooldown": 6,
+        "heatAtMax": 286000
+      }
+    },
+    {
+      "id": "core:burst.l",
+      "rev": 1,
+      "source": "core",
+      "name": "Burst engine L",
+      "category": "propulsion",
+      "outline": [
+        [-1, -1],
+        [1, -1],
+        [1, 1],
+        [-1, 1]
+      ],
+      "edges": ["function", "snap", "snap", "snap"],
+      "mass": 800,
+      "hp": 3160,
+      "cost": 110,
+      "burst": {
+        "thrust": 715000,
+        "isp": 300,
+        "direction": [0, 1],
+        "duration": 0.5,
+        "cooldown": 8,
+        "heatAtMax": 1740000
+      }
+    },
+    {
       "id": "core:tank.fuel.s",
       "rev": 1,
       "source": "core",

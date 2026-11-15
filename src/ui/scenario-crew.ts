@@ -5,7 +5,7 @@ import { MIXED } from "../sim/crew/names";
 import { crewRng, crewSlots, officerEffects, POSITIONS, randomOfficer } from "../sim/crew/officers";
 import { CLASS_LABEL } from "../sim/ship/classes";
 import type { PartCatalogue } from "../sim/ship/catalogue";
-import { effectsText, officerCard, PortraitDialog, withLevel } from "./crew-ui";
+import { effectsText, officerCard, PortraitDialog, PromotionDialog, withLevel } from "./crew-ui";
 import { el } from "./editor/dom";
 import { portraitSvg } from "./portrait";
 import { crewEntries, designClass, loadNames } from "./roster";
@@ -30,6 +30,7 @@ export class ScenarioCrewDialog {
   private readonly dialog: HTMLDialogElement;
   private readonly officerDialog: HTMLDialogElement;
   private readonly portraits = new PortraitDialog();
+  private readonly promotions = new PromotionDialog();
   private get: () => Scenario = () => {
     throw new Error("closed");
   };
@@ -256,6 +257,7 @@ export class ScenarioCrewDialog {
       if (!entry) return this.officerDialog.close();
       const card = officerCard(entry.officer, {
         portraits: this.portraits,
+        promotions: this.promotions,
         nameStyle: () => this.nameStyle,
         update: (patch) => {
           this.set(

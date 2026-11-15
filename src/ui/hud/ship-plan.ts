@@ -26,6 +26,7 @@ export function hullFraction(ship: Ship): number {
 const SYSTEMS: readonly (readonly [string, (p: PartInstance) => boolean])[] = [
   ["ENG", (p) => !!p.def.def.engine],
   ["RCS", (p) => !!p.def.def.thruster],
+  ["BST", (p) => !!p.def.def.burst],
   ["PWR", (p) => !!p.def.def.reactor],
   ["WPN", (p) => !!p.def.def.weapon],
   ["RAD", (p) => p.def.def.category === "thermal"],

@@ -1,3 +1,4 @@
+import { listSearch } from "../dialog-chrome";
 import type { ShipDesign } from "../../data/schemas/design";
 import { designSection, orderSections, SECTIONS } from "../../data/designs/index";
 import { designsUsingPart } from "../../data/share/library";
@@ -20,6 +21,7 @@ export class LibraryDialog {
       "dialog",
       { class: "ed-dialog", "data-testid": "library-dialog" },
       el("h2", {}, "Library"),
+      listSearch(this.list, { testid: "library-search", placeholder: "Search designs and parts…" }),
       this.list,
       el("div", { class: "actions" }, close),
     ) as HTMLDialogElement;
@@ -93,7 +95,11 @@ export class LibraryDialog {
     });
     return el(
       "div",
-      { class: "lib-item", "data-design": d.id },
+      {
+        class: "lib-item",
+        "data-design": d.id,
+        "data-search": `${d.name} ${section}${d.drone ? " drone" : ""}`,
+      },
       el("span", { class: "name" }, d.name, d.drone ? " (drone)" : ""),
       el("span", { class: "dim" }, `${d.parts.length} parts · cost ${cost} · ${d.modifiedAt.slice(0, 10)}`),
       move,
@@ -112,7 +118,7 @@ export class LibraryDialog {
       this.list.append(
         el(
           "div",
-          { class: "lib-item" },
+          { class: "lib-item", "data-search": `${p.def.name} ${p.def.id}` },
           el("span", { class: "name" }, p.def.name),
           el(
             "span",

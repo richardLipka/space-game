@@ -40,6 +40,7 @@ export function sanityErrors(def: PartDef): string[] {
   at("cost", def.cost, SANITY.maxCost);
   if (def.engine) at("engine.thrust", def.engine.thrust, SANITY.maxThrust);
   if (def.thruster) at("thruster.thrust", def.thruster.thrust, SANITY.maxThrust);
+  if (def.burst) at("burst.thrust", def.burst.thrust, SANITY.maxThrust);
   if (def.gyro) at("gyro.torque", def.gyro.torque, SANITY.maxTorque);
   if (def.command) at("command.gyroTorque", def.command.gyroTorque, SANITY.maxTorque);
   if (def.reactor) at("reactor.maxOutput", def.reactor.maxOutput, SANITY.maxPower);

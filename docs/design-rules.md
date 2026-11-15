@@ -69,3 +69,21 @@ How the current values were reached:
 
 The GA adds the squared misses of these rules to its loss (`rules` in the config: `weight` 2, `runs` 20
 per salvo test), so a long run cannot trade them away.
+
+## Burst engines
+
+Burst engines (`core:burst.s`, `core:burst.l`; propulsion) give a short, strong push: half a second at about
+five times the thrust of a main engine of the same size, then a cooldown (6 s small, 8 s large). They burn
+fuel at a poor Isp (300 s) and make heat while firing.
+
+- **Gimballed:** the push always goes through the centre of mass, wherever the engine is mounted, so a burst
+  never turns the ship.
+- **Direction:** the way the engine pushes, set by how it is placed (nozzle outward). Side engines jolt the
+  ship sideways and rear ones push it forward. An engine at the front with its nozzle forward fires a
+  **retro burst** against the ship's velocity (relative to a matched target), never more than stops it.
+- **Keys:** Shift+A / Shift+D left / right, Shift+W forward, Shift+S retro. The helm's BURST chip shows which
+  ways are ready, or the wait.
+- **AI:** a ship with side burst engines jolts across the path of a missile about to hit it.
+
+Code: `src/sim/flight/burst.ts`, `Ship.burstForce` in `src/sim/ship/ship-entity.ts`; thrust and Isp come from
+the balance model (`BALANCE.burst`).

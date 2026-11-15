@@ -2416,3 +2416,66 @@ label.portrait-style {
   display: grid;
   grid-template-columns: 7.5em 1fr;
 }
+
+/* Close button in the top-right corner of every modal dialog (src/ui/dialog-chrome.ts) */
+dialog > .dialog-x {
+  position: sticky;
+  top: 0;
+  float: right;
+  z-index: 3;
+  margin: -6px -6px 4px 8px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 15px;
+  line-height: 26px;
+  text-align: center;
+  color: var(--panel-fg);
+  background: var(--button-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+dialog > .dialog-x:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* Search box above long lists */
+[data-search][hidden],
+.lib-list details[hidden] {
+  display: none !important;
+}
+.list-search {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 4px 0 8px;
+  padding: 4px 8px;
+}
+.roster-top .list-search {
+  width: auto;
+  flex: 1;
+  margin: 0;
+}
+
+/* Promotion dialog */
+.promotion-dialog {
+  width: min(520px, 94vw);
+}
+.promotion-head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.promotion-head p {
+  margin: 2px 0;
+}
+.promotion-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 2px 10px;
+  margin: 8px 0;
+}
+.promotion-option.focus {
+  color: var(--accent);
+}

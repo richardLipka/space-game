@@ -37,6 +37,15 @@ Experience is level 1–5, shown as gold rank chevrons on the portrait. Each lev
 one stat** by 3 % (before post emphasis): raising the level adds one trained stat (the post's own stats are
 three times as likely), lowering it removes the last one, and each can be changed in the roster. Officers
 saved before training existed train their post's stats.
+
+**Promotion** (`promote()` and `promotionOptions()` in `src/sim/crew/officers.ts`, ready for campaigns): an
+officer gains one level and you pick the stat it trains. The **Level up…** button on an officer (roster,
+scenario crews, officer dialog) opens the promotion dialog, which lists every stat with what it adds at the
+officer's post (the post's own stats first), the officer's effects now and after, and **Random** (a pick
+weighted like levels gained in battle). Officers at level 5 cannot be promoted.
+
+The **officer dialog** (`OfficerDialog` in `src/ui/crew-ui.ts`; the roster's **Edit…** next to each post)
+edits one officer on a copy: Apply keeps the changes, Cancel or ✕ drops them.
 A ship's modifier for a stat is 1 + the sum of its officers' percentages, kept between 0.7 and 1.3.
 
 Where the modifiers act:
@@ -61,6 +70,7 @@ Crew (ship editor toolbar) opens the roster:
 - **Names**: the naming style of new officers (mixed, English, German, Japanese); **Import names…** loads
   your own name descriptor, **Default names** goes back to the bundled one
 - **Export JSON** / **Import JSON**: the whole roster, or one officer to add
+- **Search** above the officers filters by name, post, level or trait
 
 The roster is kept in the browser (`localStorage`, key `space-game.roster.v1`).
 
@@ -144,15 +154,23 @@ for enemy crews.
 ## Portraits
 
 `src/ui/portrait.ts` draws a face as SVG from the portrait indices: head shape, skin, hair or helmet (flight
-helmet, top hat, brass helmet), hair colour, eyes (goggles, monocle, mechanical eye, spectacles), mouth,
-moustache or beard, neckwear, uniform and its colour, collar and an accessory (epaulettes, cog medal,
-headset, pipe, scar, brass gear, watch chain, cog earring). A space suit puts a helmet bubble round the
+helmet, top hat, brass helmet), hair colour, eyes (goggles, mechanical eye, spectacles, visor), mouth,
+moustache or beard, neckwear, uniform and its colour, collar and accessories (epaulettes, cog medal,
+headset, pipe, cigar, monocle, eyepatch, scar, brass gear, watch chain, cog earring, gas mask, …). A space suit puts a helmet bubble round the
 head. Three **uniform styles** come with their own cap and collar: British colonial navy (white tunic, white
 peaked cap, stand collar, black and gold shoulder boards), modern (dark uniform with metal stripes, soft cap
 with a metal badge, collar tabs) and Kaisermarine (dark double-breasted tunic, tall gold-embroidered collar,
 peaked cap with cockade). Any number of accessories can be worn together: `accessory` plus the optional
 `extras` list.
 
+The cigar (once a mouth), the monocle and the eyepatch (once eyes) are accessories since portrait layout 2
+(`PortraitSpec.v`), so they go with any eyes and mouth and with other accessories. A portrait without `v` is
+moved over when it is loaded or drawn (`migratePortrait()`): the moved items become accessories and the
+remaining eyes are renumbered.
+
+When a ship's hull falls below 50 %, the crew strip draws every officer of that ship in a space suit
+(`SUIT_BELOW` in `src/ui/crew-ui.ts`). The stored portraits are not changed.
+
 The portrait dialog (click a portrait in the roster) steps through each part with ◀/▶ or picks it from a
-list, applies a uniform style in one go, ticks accessories on and off, toggles the suit and randomises. Every part has 7–15 options (`PART_LABELS`; `PORTRAIT_COUNTS` in `src/sim/crew/officers.ts`
+list, applies a uniform style in one go, ticks accessories on and off, toggles the suit and randomises. Every part has 7–18 options (`PART_LABELS`; `PORTRAIT_COUNTS` in `src/sim/crew/officers.ts`
 holds the counts for random portraits).

@@ -19,7 +19,12 @@ export interface ControlIntent {
    * of `thrust`.
    */
   readonly desiredVelocity?: Vec2 | undefined;
+  /** One-shot: fire the burst engines that push this way ("back" = retro burst against the velocity). */
+  readonly burst?: BurstKind | undefined;
 }
+
+/** Which burst engines fire: by the way they push the ship. */
+export type BurstKind = "left" | "right" | "forward" | "back";
 
 export const IDLE_INTENT: ControlIntent = { thrust: ZERO, rotate: 0 };
 

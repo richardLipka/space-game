@@ -1,3 +1,4 @@
+import { listSearch } from "./dialog-chrome";
 import { ScenarioCrewDialog } from "./scenario-crew";
 import type { Roster } from "../data/schemas/officer";
 import { flightModelSelect } from "./flight-model";
@@ -95,6 +96,8 @@ export class ScenarioEditor {
   private readonly openDialog: HTMLDialogElement;
   private designs = new Map<string, ShipDesign>();
   private readonly crewDialog: ScenarioCrewDialog;
+  /** Search text of the open dialog (kept while it is reopened). */
+  private openQuery = "";
   private readonly importFile = el("input", {
     type: "file",
     accept: ".json,application/json",
@@ -1076,7 +1079,7 @@ export class ScenarioEditor {
       b.addEventListener("click", () => pick(s, copy));
       return el(
         "div",
-        { class: "lib-item" },
+        { class: "lib-item", "data-search": `${s.name} ${s.description ?? ""}${extra}` },
         el("span", { class: "name" }, s.name),
         el(
           "span",
@@ -1131,7 +1134,13 @@ export class ScenarioEditor {
     for (const s of SCENARIOS) list.append(row(s, true));
     const close = el("button", { "data-testid": "sc-open-close" }, "Close");
     close.addEventListener("click", () => d.close());
-    d.replaceChildren(el("h2", {}, "Open scenario"), list, el("div", { class: "actions" }, close));
+    const search = listSearch(list, {
+      testid: "sc-open-search",
+      placeholder: "Search scenarios…",
+      value: this.openQuery,
+      onChange: (q) => (this.openQuery = q),
+    });
+    d.replaceChildren(el("h2", {}, "Open scenario"), search, list, el("div", { class: "actions" }, close));
     if (!d.open) d.showModal();
   }
 }

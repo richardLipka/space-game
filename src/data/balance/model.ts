@@ -144,6 +144,11 @@ export const BALANCE = {
     thrustPerVolume: 12_000,
     isp: 512,
   },
+  /** Burst engines: thrust as a multiple of a main engine of the same volume, and a poor Isp. */
+  burst: {
+    thrustShare: 5,
+    isp: 300,
+  },
   ion: {
     /** Thrust as a share of a chemical engine of the same volume. */
     thrustShare: 0.15,
@@ -240,6 +245,7 @@ export type ComponentClass = keyof (typeof BALANCE)["density"];
 export function componentClass(p: PartDef): ComponentClass {
   if (p.command) return "command";
   if (p.engine) return p.engine.ion ? "ionEngine" : "engine";
+  if (p.burst) return "engine";
   if (p.thruster) return "thruster";
   if (p.gyro) return "gyro";
   if (p.reactor) return "reactor";
@@ -502,6 +508,10 @@ export function derivePart(part: PartDef, B: Balance = BALANCE): PartDef {
       isp: B.thruster.isp,
       heatAtMax: nice(burnHeat(thrust, B.thruster.isp, B)),
     };
+  }
+  if (p.burst) {
+    const thrust = nice(chemicalThrust(V, B) * B.burst.thrustShare * out);
+    p.burst = { ...p.burst, thrust, isp: B.burst.isp, heatAtMax: nice(burnHeat(thrust, B.burst.isp, B)) };
   }
   if (p.magazine) {
     const type = p.magazine.ammoType;

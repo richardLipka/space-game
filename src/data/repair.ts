@@ -6,6 +6,7 @@ import {
   crewRng,
   PORTRAIT_COUNTS,
   POSITIONS,
+  migratePortrait,
   randomPortrait,
   trainingOf,
   trait,
@@ -117,6 +118,9 @@ export function repairOfficer(raw: unknown, seed = 1): { officer: Officer | null
     : [];
   if (extras.length) portrait.extras = extras;
   else delete portrait.extras;
+  if (Number.isInteger(rp.v) && (rp.v as number) >= 1 && (rp.v as number) <= 99) portrait.v = rp.v as number;
+  else if (Object.keys(rp).length) delete portrait.v; // stored before layouts had a version
+  const migrated = migratePortrait(portrait);
   const training = trainingOf({
     level,
     position,
@@ -131,7 +135,7 @@ export function repairOfficer(raw: unknown, seed = 1): { officer: Officer | null
     traits: ordered.map((k) => k.id),
     strength: ordered.map((k) => k.strength),
     training,
-    portrait,
+    portrait: migrated,
   };
   const check = validateOfficer(officer);
   if (!check.ok) return { officer: null, notes: [`${label}: cannot be read (${check.errors[0]}); skipped.`] };

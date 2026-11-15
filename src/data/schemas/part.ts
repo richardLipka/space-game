@@ -147,6 +147,25 @@ export const PartDef = Type.Object(
         strict,
       ),
     ),
+    /**
+     * Burst engine: a short, strong push through the centre of mass (gimballed, so no turning) along
+     * `direction`, then a cooldown. One that pushes backwards (nozzle to the front) pushes against the
+     * ship's velocity instead: a retro burst.
+     */
+    burst: Type.Optional(
+      Type.Object(
+        {
+          thrust: PositiveNumber,
+          isp: PositiveNumber,
+          direction: Vec2Json,
+          /** Seconds one burst lasts, and seconds before the next can start. */
+          duration: PositiveNumber,
+          cooldown: PositiveNumber,
+          heatAtMax: NonNegativeNumber,
+        },
+        strict,
+      ),
+    ),
     reactor: Type.Optional(
       Type.Object(
         {

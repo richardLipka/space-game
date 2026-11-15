@@ -158,6 +158,10 @@ export const HELP: Record<
           ["V", "also close to a distance and keep it; , and . change the distance"],
           ["Shift+V", "lock it: steering only pauses it (press again to unlock)"],
           ["I", "drive: all engines, ion only, chemical only"],
+          [
+            "Shift+A / Shift+D",
+            "burst engines: jolt left / right (Shift+W forward, Shift+S retro burst against your velocity)",
+          ],
         ],
       ],
       [

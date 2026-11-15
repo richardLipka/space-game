@@ -11,6 +11,15 @@ export const ControlIntentJson = Type.Object(
     speedKill: Type.Optional(
       Type.Union([Type.Literal("keep"), Type.Literal("flip"), Type.Literal("cancel")]),
     ),
+    /** One-shot: fire the burst engines that push this way. */
+    burst: Type.Optional(
+      Type.Union([
+        Type.Literal("left"),
+        Type.Literal("right"),
+        Type.Literal("forward"),
+        Type.Literal("back"),
+      ]),
+    ),
     /** Weapons: trigger held, world aim point and selected groups (spec §9.2). */
     fire: Type.Optional(Type.Boolean()),
     aim: Type.Optional(Type.Tuple([Type.Number(), Type.Number()])),

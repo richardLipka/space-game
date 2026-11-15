@@ -7,6 +7,9 @@ import { intercept } from "../combat/lead";
 import type { GroupMode } from "../combat/weapons";
 import type { Ship } from "../ship/ship-entity";
 import type { World } from "../world";
+import { burstKind } from "../flight/burst";
+import type { BurstKind } from "../flight/controller";
+import { toShipDir } from "../ship/ship";
 import { capabilityProfile, type CapabilityProfile } from "./capabilities";
 import { avoidObstacles, steerToIntent, type Steering } from "./steering";
 
@@ -54,6 +57,8 @@ export const AI_TUNING = {
   targetStickiness: 1.2,
   /** Missiles closer to impact than this (s) trigger evasion. */
   evadeHorizon: 6,
+  /** Seconds before a missile arrives when a ship with burst engines jolts sideways out of its path. */
+  burstDodge: 1.2,
   /** Cool down above this heat level, until it drops below `coolExit`. */
   coolEnter: 0.7,
   coolExit: 0.5,
@@ -212,6 +217,26 @@ function incomingMissiles(world: World, ship: Ship, me: Pose) {
     if (t <= AI_TUNING.evadeHorizon) out.push({ pos: m.pos, vel: m.vel, t });
   }
   return out.sort((a, b) => a.t - b.t);
+}
+
+/**
+ * Burst engines: a missile about to hit makes the ship jolt sideways, across the missile's path (the side it
+ * is already on, or the other one when only that engine is ready). Ships without burst engines never do.
+ */
+function burstDodge(world: World, ship: Ship, me: Pose): BurstKind | null {
+  const engines = ship.burstEngines;
+  if (!engines.length) return null;
+  const ready = new Set<BurstKind>();
+  for (const p of engines)
+    if (p.hp > 0 && ship.burstReadyIn(p.uid) <= 0) ready.add(burstKind(toShipDir(p, p.def.burstDir!)));
+  if (!ready.has("left") && !ready.has("right")) return null;
+  const m = incomingMissiles(world, ship, me)[0];
+  if (!m || m.t > AI_TUNING.burstDodge) return null;
+  const mv = length(m.vel) > 1e-6 ? normalize(m.vel) : vec2(1, 0);
+  const side = cross(mv, sub(me.pos, m.pos)) >= 0 ? 1 : -1;
+  const local = rotate(scale(vec2(-mv.y, mv.x), side), -me.angle);
+  const want: BurstKind = local.y >= 0 ? "left" : "right";
+  return ready.has(want) ? want : want === "left" ? "right" : "left";
 }
 
 /** Target choice (spec §11.2): threat ÷ distance, preferring weakened targets; orders narrow the field. */
@@ -618,6 +643,8 @@ export function runAi(world: World, dt: number): void {
     };
     st.debug = { desiredVel: avoided.desiredVel, faceAngle: avoided.faceAngle };
     ship.intent = steerToIntent(world, ship, caps, avoided);
+    const dodge = burstDodge(world, ship, me);
+    if (dodge) ship.intent = { ...ship.intent, burst: dodge };
     fireControl(world, ship, st, me, caps);
   }
 }

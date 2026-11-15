@@ -81,7 +81,7 @@ paste or drop a ship file / `SG1:` code anywhere to import
 
 **Flight:**
 
-W/S thrust · A/D strafe · Q/E rotate · F face cursor · X speed kill (turns to burn if it must) · Shift+X flip and burn ·
+W/S thrust · A/D strafe · Q/E rotate · F face cursor · X speed kill (turns to burn if it must) · Shift+X flip and burn · Shift+A/D/W/S burst engines (S = retro burst) ·
 Tab switch ship · Shift+C camera mode · C match the target's course and speed · V also close to a distance and keep it (, . change it; Shift+V locks it) · wheel zoom · middle-drag pan (free camera) · +/− or [ ] time scale (every flight starts at ×1; numpad +/− work too) ·
 Space pause · T theme · Shift+T overlays · ? help · Esc back to editor ·
 P power priority panel · R radiators in/out · N show resource networks · hold Y + click: destroy a part (debug) ·

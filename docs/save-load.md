@@ -64,6 +64,7 @@ field:
 - levels are clamped to 1–5 and the trained stats are fitted to the level
 - unknown posts are dropped, bad portrait parts are drawn at random, a missing name is generated
 - posts that name an officer the roster does not have are dropped
+- portraits from before layout 2 (no `v`) get their monocle, eyepatch or cigar moved to the accessories
 
 The stored roster is repaired on load (one bad officer no longer empties the roster), and so are imported
 rosters, single officers, and crews in ship and scenario files. Crews are taken out of a file before it is

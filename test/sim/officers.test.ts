@@ -9,7 +9,13 @@ import {
   crewRng,
   crewSlots,
   FOCUS,
+  MAX_LEVEL,
+  migratePortrait,
+  MOVED_ACCESSORY,
   OFF_FOCUS,
+  PORTRAIT_VERSION,
+  promote,
+  promotionOptions,
   officerEffects,
   STRENGTH,
   TRAINING_PCT,
@@ -201,5 +207,67 @@ describe("officer modifiers in the simulation", () => {
     for (const wp of s.weapons) expect(wp.mods?.rate).toBe(s.mods.fireRate);
     s.setCrew([]);
     expect(s.mods.fireRate).toBe(1);
+  });
+});
+
+describe("promotion and portrait layout", () => {
+  it("promotion adds one level that trains the chosen stat; none past level 5", () => {
+    const o = { ...randomOfficer(crewRng(11), "tactical", "t1"), level: 2, training: ["thrust" as const] };
+    const up = promote(o, "cooling")!;
+    expect(up.level).toBe(3);
+    expect(up.training).toEqual([...trainingOf(o), "cooling"]);
+    expect(validateOfficer(up).ok).toBe(true);
+    expect(officerEffects(up, "tactical").cooling ?? 0).toBeGreaterThan(
+      officerEffects(o, "tactical").cooling ?? 0,
+    );
+    expect(
+      promote({ ...o, level: MAX_LEVEL, training: trainingOf({ ...o, level: MAX_LEVEL }) }, "power"),
+    ).toBeNull();
+  });
+
+  it("promotion options list every stat, the post's own stats first", () => {
+    const opts = promotionOptions("navigation");
+    expect(opts).toHaveLength(9);
+    expect(
+      opts
+        .slice(0, 2)
+        .map((x) => x.stat)
+        .sort(),
+    ).toEqual(["thrust", "turning"]);
+    expect(opts[0]!.focus).toBe(true);
+    expect(opts[0]!.gain).toBeCloseTo(TRAINING_PCT * FOCUS, 6);
+    expect(opts[8]!.gain).toBeCloseTo(TRAINING_PCT * OFF_FOCUS, 6);
+  });
+
+  it("old portraits move the monocle, eyepatch and cigar to the accessories", () => {
+    const old = {
+      head: 1,
+      skin: 2,
+      hair: 3,
+      hairColor: 1,
+      eyes: 4,
+      mouth: 8,
+      facialHair: 0,
+      neck: 0,
+      uniform: 0,
+      uniformColor: 0,
+      collar: 0,
+      accessory: 5,
+      suit: false,
+    };
+    const m = migratePortrait(old);
+    expect(m.v).toBe(PORTRAIT_VERSION);
+    expect(m.eyes).toBe(0);
+    expect(m.mouth).toBe(0);
+    expect([m.accessory, ...(m.extras ?? [])]).toEqual([5, MOVED_ACCESSORY.monocle, MOVED_ACCESSORY.cigar]);
+    expect(migratePortrait(m)).toBe(m);
+    expect(migratePortrait({ ...old, eyes: 7, mouth: 2 }).accessory).toBe(5);
+    expect(migratePortrait({ ...old, eyes: 7, mouth: 2, accessory: 0 }).accessory).toBe(
+      MOVED_ACCESSORY.eyepatch,
+    );
+    // Eyes after the moved ones shift down: old spectacles (6) are 5, old welding goggles (12) are 10.
+    expect(migratePortrait({ ...old, eyes: 6 }).eyes).toBe(5);
+    expect(migratePortrait({ ...old, eyes: 12 }).eyes).toBe(10);
+    expect(migratePortrait({ ...old, eyes: 2 }).eyes).toBe(2);
   });
 });

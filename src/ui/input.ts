@@ -1,4 +1,4 @@
-import type { ControlIntent } from "../sim/flight/controller";
+import type { BurstKind, ControlIntent } from "../sim/flight/controller";
 import type { Vec2 } from "../sim/core/vec2";
 
 /** Discrete UI commands raised by key presses (handled by the app, not the sim). */
@@ -87,6 +87,8 @@ export class InputController {
   private pendingSpeedKill: "keep" | "flip" | "cancel" | undefined;
   /** C: match the target's course and speed; V: also keep a distance; Shift+V: lock it. */
   private pendingMatch: "velocity" | "distance" | "lock" | undefined;
+  /** Shift+W/A/S/D: fire the burst engines that push that way (S = retro burst). */
+  private pendingBurst: BurstKind | undefined;
   faceCursor = false;
   /** Mouse position in screen pixels. */
   mouse: Vec2 = { x: 0, y: 0 };
@@ -123,6 +125,10 @@ export class InputController {
         return;
       }
       this.held.add(k);
+      const burst = e.shiftKey
+        ? ({ w: "forward", a: "left", s: "back", d: "right" } as const)[k as "w"]
+        : undefined;
+      if (burst) this.pendingBurst = burst;
       switch (k) {
         case "x":
           this.pendingSpeedKill = e.shiftKey ? "flip" : this.speedKillActive() ? "cancel" : "keep";
@@ -282,8 +288,10 @@ export class InputController {
       rotate,
       faceAngle: this.faceCursor && rotate === 0 ? faceAngle : undefined,
       speedKill: this.pendingSpeedKill,
+      burst: this.pendingBurst,
     };
     this.pendingSpeedKill = undefined;
+    this.pendingBurst = undefined;
     return intent;
   }
 

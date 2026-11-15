@@ -27,6 +27,8 @@ export interface RuntimePartDef {
   readonly engineThrustDir?: Vec2;
   /** Thrusters: unit force direction in part-local frame. */
   readonly thrusterDir?: Vec2;
+  /** Burst engine: the way it pushes the ship (part frame). */
+  readonly burstDir?: Vec2;
 }
 
 const toVec = ([x, y]: readonly [number, number]): Vec2 => vec2(x, y);
@@ -53,6 +55,7 @@ export function buildRuntimePart(def: PartDef): RuntimePartDef {
     unitInertia: info.unitInertia,
     engineThrustDir: nozzle ? neg(nozzle.normal) : undefined,
     thrusterDir: def.thruster ? normalize(toVec(def.thruster.direction)) : undefined,
+    burstDir: def.burst ? normalize(toVec(def.burst.direction)) : undefined,
   };
 }
 

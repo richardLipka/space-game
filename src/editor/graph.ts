@@ -56,7 +56,7 @@ function roles(d: PartDef): Roles {
     (w?.powerPerShot ?? 0) > 0;
   return {
     power: { source: !!d.reactor || !!d.battery, sink: powerSink },
-    fuel: { source: !!d.fuelTank, sink: !!d.engine || !!d.thruster },
+    fuel: { source: !!d.fuelTank, sink: !!d.engine || !!d.thruster || !!d.burst },
     ammoSources: d.magazine ? [d.magazine.ammoType] : [],
     ammoSinks: w?.ammoType && w.internalMagazine > 0 ? [w.ammoType] : [],
   };

@@ -135,6 +135,30 @@ export function levelUpStat(random: () => number, position: Position): Stat {
   return pool[Math.floor(random() * pool.length)]!;
 }
 
+/** Highest experience level. */
+export const MAX_LEVEL = 5;
+
+/**
+ * The officer one level up, the new level training `stat` (promotion dialog; campaigns). Null when the officer
+ * is already at the top level.
+ */
+export function promote<O extends Pick<Officer, "level" | "position" | "training">>(
+  o: O,
+  stat: Stat,
+): O | null {
+  if (o.level >= MAX_LEVEL) return null;
+  return { ...o, level: o.level + 1, training: [...trainingOf(o), stat] };
+}
+
+/** What a new level could train: each stat's gain at `position` (best first) and whether the post stresses it. */
+export function promotionOptions(position: Position): { stat: Stat; gain: number; focus: boolean }[] {
+  return STATS.map((stat) => ({
+    stat,
+    gain: Math.round(TRAINING_PCT * emphasis(position, stat) * 10) / 10,
+    focus: POSITIONS[position].focus.includes(stat),
+  })).sort((a, b) => b.gain - a.gain || STATS.indexOf(a.stat) - STATS.indexOf(b.stat));
+}
+
 /** Positions a ship of this class has, in order. */
 export function crewSlots(cls: ShipClass): Position[] {
   if (cls === "drone") return [];
@@ -190,15 +214,55 @@ export const PORTRAIT_COUNTS: Readonly<Record<PortraitPart, number>> = {
   skin: 9,
   hair: 18,
   hairColor: 11,
-  eyes: 13,
-  mouth: 9,
+  eyes: 11,
+  mouth: 8,
   facialHair: 11,
   neck: 9,
   uniform: 13,
   uniformColor: 10,
   collar: 12,
-  accessory: 15,
+  accessory: 18,
 };
+
+/** Current portrait part layout (`PortraitSpec.v`). */
+export const PORTRAIT_VERSION = 2;
+
+/** Accessories that used to be eyes or a mouth (layout 1). */
+export const MOVED_ACCESSORY = { cigar: 15, monocle: 16, eyepatch: 17 } as const;
+
+/**
+ * A portrait in the current part layout. Layout 1 had the monocle (eyes 4) and eyepatch (eyes 7) among the
+ * eyes and the cigar (mouth 8) among the mouths; they are accessories now, so they can be worn with any eyes
+ * or mouth and with other accessories.
+ */
+export function migratePortrait(p: PortraitSpec): PortraitSpec {
+  if ((p.v ?? 1) >= PORTRAIT_VERSION) return p;
+  const added: number[] = [];
+  let eyes = p.eyes;
+  if (eyes === 4) {
+    eyes = 0;
+    added.push(MOVED_ACCESSORY.monocle);
+  } else if (eyes === 7) {
+    eyes = 0;
+    added.push(MOVED_ACCESSORY.eyepatch);
+  } else if (eyes > 7) eyes -= 2;
+  else if (eyes > 4) eyes -= 1;
+  let mouth = p.mouth;
+  if (mouth === 8) {
+    mouth = 0;
+    added.push(MOVED_ACCESSORY.cigar);
+  }
+  const worn = [...new Set([p.accessory, ...(p.extras ?? []), ...added])].filter((a) => a > 0).slice(0, 9);
+  const { extras: _e, ...rest } = p;
+  return {
+    ...rest,
+    eyes,
+    mouth,
+    accessory: worn[0] ?? 0,
+    ...(worn.length > 1 ? { extras: worn.slice(1) } : {}),
+    v: PORTRAIT_VERSION,
+  };
+}
 
 /** Seeded random numbers (mulberry32). */
 export function crewRng(seed: number): () => number {
@@ -240,6 +304,7 @@ export function randomPortrait(random: () => number): PortraitSpec {
     collar: pick(c.collar),
     accessory: random() < 0.35 ? 0 : pick(c.accessory),
     suit: random() < 0.15,
+    v: PORTRAIT_VERSION,
   };
   // Sometimes a second accessory; often one of the uniform styles.
   if (spec.accessory && random() < 0.3) {

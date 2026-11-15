@@ -1,3 +1,4 @@
+import { listSearch } from "../dialog-chrome";
 import type { Scenario } from "../../data/schemas/scenario";
 import { SCENARIOS } from "../../data/scenarios/index";
 import type { ResultStore } from "../results";
@@ -26,6 +27,7 @@ export class ScenarioDialog {
       "dialog",
       { class: "ed-dialog", "data-testid": "scenario-dialog" },
       el("h2", {}, "Scenarios"),
+      listSearch(this.list, { testid: "scenarios-search", placeholder: "Search scenarios…" }),
       this.list,
       el("div", { class: "actions" }, close),
     ) as HTMLDialogElement;
@@ -49,7 +51,7 @@ export class ScenarioDialog {
       this.list.append(
         el(
           "div",
-          { class: "lib-item" },
+          { class: "lib-item", "data-search": `${s.name} ${s.description}` },
           el("span", { class: "name" }, `${s.order ?? ""}. ${s.name}`),
           el(
             "span",

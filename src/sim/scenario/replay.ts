@@ -22,6 +22,7 @@ export class InputPlayer {
         rotate: f.intent.rotate,
         faceAngle: f.intent.faceAngle !== undefined ? degToRad(f.intent.faceAngle) : undefined,
         speedKill: f.intent.speedKill,
+        burst: f.intent.burst,
       };
       world.setIntent(f.ship, intent);
       const ship = world.getShip(f.ship);
