@@ -1,0 +1,74 @@
+{
+  "id": "s17-hold-the-beacon",
+  "name": "Hold the beacon",
+  "description": "Take the beacon from its guards and hold it for a minute.",
+  "order": 17,
+  "budget": 2000,
+  "maxPlayerShips": 3,
+  "arena": {
+    "width": 10000,
+    "height": 7000,
+    "asteroids": [],
+    "gravityWells": []
+  },
+  "playerSpawns": [
+    {
+      "position": [-4000, 0],
+      "angle": 0
+    },
+    {
+      "position": [-4100, 400],
+      "angle": 0
+    },
+    {
+      "position": [-4100, -400],
+      "angle": 0
+    }
+  ],
+  "enemies": [
+    {
+      "designId": "fleet-maul",
+      "aiProfile": "balanced",
+      "spawn": {
+        "position": [300, 300],
+        "angle": 180
+      },
+      "team": 1
+    },
+    {
+      "designId": "fleet-wasp",
+      "aiProfile": "aggressive",
+      "spawn": {
+        "position": [0, -450],
+        "angle": 180
+      },
+      "team": 1
+    },
+    {
+      "designId": "fleet-wasp",
+      "aiProfile": "aggressive",
+      "spawn": {
+        "position": [450, -200],
+        "angle": 180
+      },
+      "team": 1
+    }
+  ],
+  "objective": {
+    "type": "hold",
+    "zone": {
+      "position": [0, 0],
+      "radius": 700,
+      "label": "Beacon"
+    },
+    "seconds": 60
+  },
+  "timeLimit": 300,
+  "seed": 1701,
+  "hints": [
+    "The beacon counts only while one of your ships is inside it and no enemy ship is.",
+    "Its guards stay on it and fight what comes near: draw them out, or bring enough guns to clear it.",
+    "The time held adds up: losing the beacon for a while does not reset it."
+  ],
+  "referenceDesigns": ["fleet-rapier", "fleet-maul", "fleet-wasp"]
+}

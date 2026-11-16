@@ -3,13 +3,9 @@ import type { Scenario } from "../../data/schemas/scenario";
 import { SCENARIOS } from "../../data/scenarios/index";
 import type { ResultStore } from "../results";
 import { el } from "./dom";
+import { objectiveText } from "../battle-ui";
 
-export function objectiveText(s: Scenario): string {
-  const o = s.objective;
-  if (o.type === "survive") return `Survive ${o.seconds} s`;
-  if (o.type === "protect") return "Protect the escorted ship";
-  return "Destroy every enemy ship";
-}
+export { objectiveText } from "../battle-ui";
 
 /** Scenario select (plan M7 task 2): the list in teaching order with each scenario's best result. */
 export class ScenarioDialog {

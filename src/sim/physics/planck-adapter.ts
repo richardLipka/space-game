@@ -97,6 +97,11 @@ export class PhysicsWorld {
     this.bodies.set(def.id, body);
   }
 
+  /** Takes a body out of the simulation (no motion, no collisions) or puts it back. */
+  setActive(id: string, active: boolean): void {
+    this.get(id).setActive(active);
+  }
+
   destroyBody(id: string): void {
     this.world.destroyBody(this.get(id));
     this.bodies.delete(id);

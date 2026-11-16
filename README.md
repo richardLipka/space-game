@@ -73,6 +73,10 @@ The library is grouped into sections: **Playable** (the symmetric fleet, `src/da
 
 **Skirmish:** Skirmish (toolbar) → two sides, any designs, and a pilot per ship: you (side 1) or an AI type, aggressive, defensive (guards a ship you pick), retreating or cautious, each with 3–5 tunable parameters ([docs/ai-types.md](docs/ai-types.md)). Without a player ship you watch the battle.
 
+**Objectives and strategy orders:** besides destroying the enemy, a scenario can ask you to escort a ship to a zone, hold a zone or break out through a jump point, optionally within a time limit. Ships that stay in a jump point leave the battle alive. In strategy mode, F sets focus fire, R disengages (out through a jump point if there is one), and E sets the rules of engagement: weapons free, return fire only, or hold fire ([docs/objectives.md](docs/objectives.md)).
+
+**Reports and replays:** every battle is recorded. At the end, **Report** shows each side's hull over time, every ship's damage, kills, gunnery, fuel, ammunition and outcome, what the AI spent its time doing, and a timeline. **Watch replay** plays the battle again. **Replays** (toolbar) keeps the newest 20 recordings and saves or loads them as files ([docs/battle-report.md](docs/battle-report.md)).
+
 **Editor:** search the palette or open a category, hover a part for its numbers, click it, then click to place (stays in placing mode; Esc/right-click stops) ·
 green edges = where the part can connect; the status line says what will connect ·
 G connection graph (what power, fuel and ammo flow where) · Q/E rotate (Shift: 15° steps) · Alt: place without snapping · drag to move (parts hanging on it come along; Ctrl+drag moves it alone) · Del delete · M mirror ·

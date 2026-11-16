@@ -7,10 +7,12 @@ import { commanderAi } from "../sim/crew/officers";
 import { Camera } from "../render/camera";
 import { Scene } from "../render/scene";
 import type { ThemeResolver } from "../render/theme";
-import { nextOrder, type AiState, type Order } from "../sim/ai/brain";
+import { nextOrder, type AiState, type Order, type Roe } from "../sim/ai/brain";
 import { FixedStepLoop } from "../sim/core/loop";
 import type { Vec2 } from "../sim/core/vec2";
-import { type Battle, updateBattle } from "../sim/scenario/battle";
+import { type Battle, stepBattle } from "../sim/scenario/battle";
+import { battleZones, objectiveLine } from "./battle-ui";
+import type { ResultAction } from "./flight-screen";
 import type { Ship } from "../sim/ship/ship-entity";
 import type { World } from "../sim/world";
 import { el } from "./editor/dom";
@@ -29,7 +31,14 @@ const profileFor = (s: Ship): AiProfile => {
   return (id && AI_PROFILES.get(id)) || AI_PROFILES.get(DEFAULT_PROFILE)!;
 };
 
-type Mode = "select" | "move" | "attack" | "patrol" | "wait" | "facing" | "aim";
+type Mode = "select" | "move" | "attack" | "patrol" | "wait" | "facing" | "aim" | "focus";
+
+/** Rules of engagement as shown in the panel. */
+const ROE_LABEL: Record<Roe, string> = {
+  free: "Weapons free",
+  return: "Return fire only",
+  hold: "Hold fire",
+};
 
 /** A point of an order that can be dragged on the map: ship, order (-1 = current, else queue index), point. */
 interface HandleRef {
@@ -47,6 +56,10 @@ export interface StrategySetup {
   /** Back to where the battle was set up (scenario editor). */
   readonly exit: () => void;
   readonly retry: () => void;
+  /** Extra buttons on the end-of-battle banner (report, replay). */
+  readonly resultActions?: readonly ResultAction[];
+  /** Called once when the battle ends. */
+  readonly onBattleEnd?: (b: Battle) => void;
 }
 
 function svg(tag: string, attrs: Record<string, string | number> = {}): SVGElement {
@@ -84,6 +97,8 @@ export function describeOrder(o: Order | null, world: World): string {
       return `guarding ${ship(o.target)}`;
     case "wait":
       return `waiting for ${ship(o.ship)} to arrive`;
+    case "retreat":
+      return "disengaging";
   }
 }
 
@@ -212,8 +227,7 @@ export class StrategyScreen {
     this.loop = new FixedStepLoop(
       () => {
         this.scene!.capture(setup.world);
-        setup.world.step();
-        updateBattle(setup.battle);
+        stepBattle(setup.battle);
       },
       undefined,
       16,
@@ -332,6 +346,8 @@ export class StrategyScreen {
           this.orderAt(p.x, p.y, e.shiftKey, "attack");
         } else if (this.mode === "wait") {
           this.waitFor(p.x, p.y, e.shiftKey);
+        } else if (this.mode === "focus") {
+          this.focusAt(p.x, p.y);
         } else if (d.moved) this.boxSelect(d.x0, d.y0, p.x, p.y, e.shiftKey);
         else this.clickSelect(p.x, p.y, e.shiftKey);
       } else if (d.button === 2 && d.moved && this.selected.size) {
@@ -430,6 +446,15 @@ export class StrategyScreen {
         break;
       case "KeyS":
         this.stopSelected();
+        break;
+      case "KeyR":
+        this.disengage(e.shiftKey ? this.mine.map((s) => s.id) : [...this.selected]);
+        break;
+      case "KeyF":
+        this.setMode("focus");
+        break;
+      case "KeyE":
+        this.cycleRoe();
         break;
       case "Space":
         this.paused = !this.paused;
@@ -707,6 +732,57 @@ export class StrategyScreen {
     this.finishPatrol(queue);
   }
 
+  /**
+   * Focus fire: the selected ships fire at the clicked enemy first whenever it is among their targets,
+   * keeping their orders (an attack order would make them chase it). A click on open space clears it.
+   */
+  private focusAt(x: number, y: number): void {
+    const w = this.setup!.world;
+    const team = this.mine[0]?.team ?? 0;
+    const enemy = this.shipAt(x, y, (s) => s.team !== team);
+    for (const id of this.selected) {
+      const st = w.hasShip(id) ? (w.ai.get(id) ?? w.setAi(id, profileFor(w.getShip(id)))) : null;
+      if (!st) continue;
+      st.focus = enemy?.id ?? null;
+      st.nextEval = 0;
+    }
+    this.setMode("select");
+  }
+
+  /** Disengage: the ships get away at full speed, through a jump point if the arena has one. */
+  disengage(ids: readonly string[]): void {
+    const w = this.setup!.world;
+    for (const id of ids) {
+      if (!w.hasShip(id) || w.getShip(id).defeated) continue;
+      const st = w.ai.get(id) ?? w.setAi(id, profileFor(w.getShip(id)));
+      st.queue = [];
+      st.order = { kind: "retreat" };
+      st.nextEval = 0;
+    }
+  }
+
+  /** Rules of engagement for the selection. */
+  private setRoe(roe: Roe): void {
+    const w = this.setup!.world;
+    for (const id of this.selected) {
+      if (!w.hasShip(id)) continue;
+      const st = w.ai.get(id) ?? w.setAi(id, profileFor(w.getShip(id)));
+      st.roe = roe;
+      st.nextEval = 0;
+    }
+    this.panelKey = "";
+  }
+
+  /** E: weapons free → return fire → hold fire → weapons free, from the first selected ship's setting. */
+  private cycleRoe(): void {
+    const w = this.setup!.world;
+    const first = [...this.selected].sort().find((id) => w.hasShip(id));
+    if (!first) return;
+    const order: Roe[] = ["free", "return", "hold"];
+    const cur = w.ai.get(first)?.roe ?? "free";
+    this.setRoe(order[(order.indexOf(cur) + 1) % order.length]!);
+  }
+
   private stopSelected(): void {
     const w = this.setup!.world;
     for (const id of this.selected) {
@@ -740,6 +816,7 @@ export class StrategyScreen {
       if (!setup.world.hasShip(id) || setup.world.getShip(id).defeated) this.selected.delete(id);
     this.scene.targetId = null;
     this.scene.courseIds = [];
+    this.scene.zones = battleZones(setup.battle);
     this.scene.render(setup.world, this.camera, alpha);
     this.renderOverlay();
     this.renderPanel();
@@ -772,6 +849,34 @@ export class StrategyScreen {
     };
     const dot = (p: Vec2, cls: string, r = 4) =>
       this.overlay.append(svg("circle", { cx: p.x, cy: p.y, r, class: cls }));
+    // Zone names (jump points, the objective's zone).
+    for (const z of battleZones(setup.battle)) {
+      const c = at({ x: z.x, y: z.y });
+      const t = svg("text", {
+        x: c.x,
+        y: c.y - z.r * this.camera.zoom - 6,
+        class: `st-zone-label ${z.kind}`,
+        "text-anchor": "middle",
+      });
+      t.textContent =
+        z.progress !== undefined
+          ? `${z.label} ${Math.round(Math.min(1, z.progress) * 100)} %`
+          : (z.label ?? "");
+      this.overlay.append(t);
+    }
+    // Focus-fire targets: a cross-hair on each.
+    const focused = new Set(this.mine.map((s) => w.ai.get(s.id)?.focus).filter((x): x is string => !!x));
+    for (const id of focused) {
+      if (!w.hasShip(id)) continue;
+      const s = w.getShip(id);
+      const c = at(this.scene!.shipCenter(s, w, this.alpha));
+      const r = Math.max(12, s.layout.boundingRadius * this.camera.zoom + 8);
+      this.overlay.append(svg("circle", { cx: c.x, cy: c.y, r, class: "st-focus" }));
+      line({ x: c.x - r - 6, y: c.y }, { x: c.x - r + 4, y: c.y }, "st-focus");
+      line({ x: c.x + r - 4, y: c.y }, { x: c.x + r + 6, y: c.y }, "st-focus");
+      line({ x: c.x, y: c.y - r - 6 }, { x: c.x, y: c.y - r + 4 }, "st-focus");
+      line({ x: c.x, y: c.y + r - 4 }, { x: c.x, y: c.y + r + 6 }, "st-focus");
+    }
     for (const s of this.mine) {
       if (s.defeated) continue;
       const c = at(this.scene!.shipCenter(s, w, this.alpha));
@@ -814,7 +919,7 @@ export class StrategyScreen {
           if (w.hasShip(o.ship))
             line(p, at(this.scene!.shipCenter(w.getShip(o.ship), w, this.alpha)), `st-order wait${cls}`);
           from = p;
-        } else {
+        } else if (o.kind !== "retreat") {
           const id = o.kind === "attack" ? o.target : o.kind === "follow" ? o.leader : o.target;
           if (!w.hasShip(id)) return;
           const p = at(this.scene!.shipCenter(w.getShip(id), w, this.alpha));
@@ -900,18 +1005,26 @@ export class StrategyScreen {
         "Faster (+)",
       ),
       btn("Fit map", "st-fit", () => this.fit(), "Home"),
+      btn(
+        "Disengage all",
+        "st-disengage-all",
+        () => this.disengage(this.mine.map((s) => s.id)),
+        "Shift+R: every ship gets away (through a jump point if there is one)",
+      ),
       el("span", { class: "ed-sep" }),
       btn("? Help", "st-help", () => this.help.show("strategy"), "F1 or ?"),
       btn("Exit", "st-exit", () => setup.exit(), "Back to the scenario editor"),
     );
     const hint: Record<Mode, string> = {
       select:
-        "Click or drag to select · right click: move / attack enemy / follow own ship · Shift queues · M move · A attack · P patrol · W wait for · H hold · S stop · drag order points to edit paths",
+        "Click or drag to select · right click: move / attack enemy / follow own ship · Shift queues · M move · A attack · P patrol · W wait for · H hold · S stop · F focus fire · R disengage · E rules of engagement · drag order points to edit paths",
       move: "Move: click the destination, then the facing (Shift queues) · Esc cancels",
       attack: "Attack: click an enemy ship (Shift queues) · Esc cancels",
       patrol:
         "Patrol: click waypoints, then Enter, P, a double click or a right click to start · or drag an area · Esc cancels",
       wait: "Wait for: click one of your ships; the selected ships hold until it arrives, then go on (Shift queues) · Esc cancels",
+      focus:
+        "Focus fire: click an enemy ship the selected ships fire at first (they keep their orders) · click open space to clear · Esc cancels",
       facing:
         "Move: click which way the attack front should point there · Enter or right click: no facing · Esc cancels",
       aim: "Aim: click the point the attack front turns to on this leg of the route · Esc cancels",
@@ -924,7 +1037,7 @@ export class StrategyScreen {
     const setup = this.setup!;
     const w = setup.world;
     const sel = [...this.selected].filter((id) => w.hasShip(id)).map((id) => w.getShip(id));
-    const key = `${sel.map((s) => `${s.id}:${Math.round(hullShare(s) * 20)}:${describeOrder(w.ai.get(s.id)?.order ?? null, w)}:${w.ai.get(s.id)?.queue.length}:${w.ai.get(s.id)?.profile.id}`).join("|")}|${this.mine.filter((s) => !s.defeated).length}|${this.mode}`;
+    const key = `${sel.map((s) => `${s.id}:${Math.round(hullShare(s) * 20)}:${describeOrder(w.ai.get(s.id)?.order ?? null, w)}:${w.ai.get(s.id)?.queue.length}:${w.ai.get(s.id)?.profile.id}:${w.ai.get(s.id)?.roe}:${w.ai.get(s.id)?.focus}`).join("|")}|${this.mine.filter((s) => !s.defeated).length}|${this.mode}`;
     if (key === this.panelKey) return;
     this.panelKey = key;
     const out: (HTMLElement | string)[] = [];
@@ -937,6 +1050,7 @@ export class StrategyScreen {
       "st-attack": "attack",
       "st-patrol": "patrol",
       "st-wait": "wait",
+      "st-focus": "focus",
     };
     const orderBtn = (label: string, id: string, f: () => void, title: string) => {
       const b = el(
@@ -973,8 +1087,33 @@ export class StrategyScreen {
             "H",
           ),
           orderBtn("Stop", "st-stop", () => this.stopSelected(), "S: drop every order and hold"),
+          orderBtn(
+            "Focus fire",
+            "st-focus",
+            () => this.setMode("focus"),
+            "F, then click an enemy: fire at it first, keeping the orders (click open space to clear)",
+          ),
+          orderBtn(
+            "Disengage",
+            "st-disengage",
+            () => this.disengage([...this.selected]),
+            "R: get away at full speed, out through a jump point if the arena has one",
+          ),
         ),
       );
+      // Rules of engagement of the selection.
+      const roe = el("select", {
+        "data-testid": "st-roe",
+        "aria-label": "Rules of engagement",
+      }) as HTMLSelectElement;
+      const roes = new Set(sel.map((s) => w.ai.get(s.id)?.roe ?? "free"));
+      if (roes.size > 1) roe.append(el("option", { value: "" }, "(mixed)"));
+      for (const [v, label] of Object.entries(ROE_LABEL)) roe.append(el("option", { value: v }, label));
+      roe.value = roes.size === 1 ? [...roes][0]! : "";
+      roe.addEventListener("change", () => {
+        if (roe.value) this.setRoe(roe.value as Roe);
+      });
+      out.push(el("label", { class: "sc-field", title: "E cycles" }, "Fire", roe));
       // AI type of the selection.
       const profiles = el("select", {
         "data-testid": "st-profile",
@@ -1007,7 +1146,7 @@ export class StrategyScreen {
         el(
           "span",
           { class: "dim" },
-          `${Math.round(hullShare(s) * 100)}% · ${describeOrder(st?.order ?? null, w)}${st?.queue.length ? ` · +${st.queue.length} queued` : ""} · ${st?.profile.name ?? "no AI"}`,
+          `${Math.round(hullShare(s) * 100)}% · ${describeOrder(st?.order ?? null, w)}${st?.queue.length ? ` · +${st.queue.length} queued` : ""} · ${st?.profile.name ?? "no AI"}${st && st.roe !== "free" ? ` · ${ROE_LABEL[st.roe].toLowerCase()}` : ""}${st?.focus && w.hasShip(st.focus) ? ` · focus ${name(w.getShip(st.focus))}` : ""}`,
         ),
       );
       row.addEventListener("click", (e) => {
@@ -1016,8 +1155,15 @@ export class StrategyScreen {
       });
       out.push(row);
     }
-    const enemies = setup.battle.enemyShips.filter((s) => !s.defeated).length;
+    const enemies = setup.battle.enemyShips.filter((s) => !s.defeated && !s.escaped).length;
     out.push(el("p", { class: "dim" }, `Enemy ships left: ${enemies}`));
+    out.push(
+      el(
+        "p",
+        { class: "st-objective", "data-testid": "st-objective" },
+        `Objective: ${objectiveLine(setup.battle)}`,
+      ),
+    );
     this.panel.replaceChildren(...out);
   }
 
@@ -1115,15 +1261,21 @@ export class StrategyScreen {
     const setup = this.setup!;
     this.bannerShown = true;
     const b = setup.battle;
+    setup.onBattleEnd?.(b);
     const exit = el("button", { "data-testid": "st-banner-exit" }, "Back to the editor");
     exit.addEventListener("click", () => setup.exit());
     const retry = el("button", { "data-testid": "st-banner-retry" }, "Play again");
     retry.addEventListener("click", () => setup.retry());
+    const extra = (setup.resultActions ?? []).map((a) => {
+      const btn = el("button", { "data-testid": a.testid }, a.label);
+      btn.addEventListener("click", a.run);
+      return btn;
+    });
     this.banner.replaceChildren(
       el("h2", {}, b.status === "won" ? "Victory" : "Defeat"),
       el("p", {}, b.reason ?? ""),
       el("p", { class: "dim" }, `${Math.round(b.endTime ?? setup.world.time)} s`),
-      el("div", { class: "actions" }, retry, exit),
+      el("div", { class: "actions" }, ...extra, retry, exit),
     );
     this.banner.hidden = false;
   }

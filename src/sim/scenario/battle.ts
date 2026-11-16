@@ -1,6 +1,8 @@
 import { missingPartsNote, resolveDesign } from "../ship/resolve";
 import type { ShipDesign } from "../../data/schemas/design";
-import type { Scenario } from "../../data/schemas/scenario";
+import type { Scenario, Zone } from "../../data/schemas/scenario";
+import { SIM_DT } from "../core/loop";
+import { BattleLog, type BattleReport, type Side } from "./report";
 import type { AiProfile } from "../../data/schemas/ai";
 import { degToRad, vec2 } from "../core/vec2";
 import type { PartCatalogue } from "../ship/catalogue";
@@ -54,6 +56,12 @@ export interface BattleTally {
   partsLost: number;
 }
 
+/** Called around every world step of a battle (the replay recorder). */
+export interface StepHooks {
+  beforeStep(world: World): void;
+  afterStep(world: World): void;
+}
+
 export interface Battle {
   readonly scenario: Scenario;
   readonly world: World;
@@ -61,7 +69,16 @@ export interface Battle {
   readonly enemyShips: Ship[];
   /** Allied AI ships from the scenario (team 0), e.g. the ship to protect. */
   readonly allyShips: Ship[];
+  /** The ship to protect (protect) or to bring to the zone (escort). */
   readonly protectId: string | null;
+  /** Zone of an escort, hold or breakout objective. */
+  readonly zone: Zone | null;
+  /** Hold objective: seconds the zone has been held so far. */
+  held: number;
+  /** Battle log for the after-action report (docs/battle-report.md). */
+  readonly log: BattleLog;
+  /** Replay recorder, when the battle is being recorded. */
+  recorder: StepHooks | null;
   /** The ship spawned for each `scenario.enemies` entry (undefined where it could not be built). */
   readonly scenarioShips: readonly (Ship | undefined)[];
   /** What could not be loaded as written (unknown designs, parts or AI profiles) and what was done instead. */
@@ -136,8 +153,13 @@ export function startBattle(
     if (e.team === 0) {
       allyShips.push(s);
       if (profile) world.setAi(s.id, profile, { kind: "hold", point: world.physics.getWorldCenter(s.id) });
-      if (scenario.objective.type === "protect" && e.designId === scenario.objective.designId && !protectId)
+      const o = scenario.objective;
+      if ((o.type === "protect" || o.type === "escort") && e.designId === o.designId && !protectId) {
         protectId = s.id;
+        // The escorted ship makes for the zone on its own.
+        if (o.type === "escort" && profile)
+          world.setAi(s.id, profile, { kind: "move", point: vec2(o.zone.position[0], o.zone.position[1]) });
+      }
     } else {
       enemyShips.push(s);
       if (profile) world.setAi(s.id, profile);
@@ -154,12 +176,47 @@ export function startBattle(
   });
   // Nothing to protect (its design is unknown): fight to destroy every enemy instead.
   let goal = scenario;
-  if (scenario.objective.type === "protect" && !protectId) {
-    warnings.push(
-      `No ship to protect ("${scenario.objective.designId}"); the goal is to destroy every enemy.`,
-    );
+  const o = scenario.objective;
+  if ((o.type === "protect" || o.type === "escort") && !protectId) {
+    warnings.push(`No ship to ${o.type} ("${o.designId}"); the goal is to destroy every enemy.`);
     goal = { ...scenario, objective: { type: "destroyAll" } };
   }
+  const g = goal.objective;
+  const zone = g.type === "escort" || g.type === "hold" || g.type === "breakout" ? g.zone : null;
+  if (zone && g.type === "hold") {
+    // The enemy holds the beacon: ships without guard orders stay on it and fight what comes near.
+    const point = vec2(zone.position[0], zone.position[1]);
+    for (const s of enemyShips) {
+      const st = world.ai.get(s.id);
+      if (st && !st.order) st.order = { kind: "hold", point };
+    }
+  }
+  // Raiders go for the convoy: escort enemies fire at the escorted ship first whenever they can.
+  if (g.type === "escort" && protectId)
+    for (const s of enemyShips) {
+      const st = world.ai.get(s.id);
+      if (st) st.focus = protectId;
+    }
+  if (zone && g.type === "breakout") {
+    // A blockade: enemies without orders hold where they are placed and fight what comes near.
+    for (const s of enemyShips) {
+      const st = world.ai.get(s.id);
+      if (st && !st.order) st.order = { kind: "hold", point: world.physics.getWorldCenter(s.id) };
+    }
+  }
+  if (zone && g.type === "breakout")
+    world.exits.push({
+      position: vec2(zone.position[0], zone.position[1]),
+      radius: zone.radius,
+      team: 0,
+      label: zone.label ?? "Jump point",
+    });
+  const sides: { ship: Ship; side: Side }[] = [
+    ...playerShips.map((ship) => ({ ship, side: "yours" as const })),
+    // Without a player fleet (strategy mode, watching) the team-0 ships are the player's side.
+    ...allyShips.map((ship) => ({ ship, side: playerShips.length ? ("ally" as const) : ("yours" as const) })),
+    ...enemyShips.map((ship) => ({ ship, side: "enemy" as const })),
+  ];
   return {
     scenario: goal,
     scenarioShips: spawned,
@@ -169,6 +226,10 @@ export function startBattle(
     enemyShips,
     allyShips,
     protectId,
+    zone,
+    held: 0,
+    log: new BattleLog(sides),
+    recorder: null,
     status: "running",
     reason: "",
     endTime: null,
@@ -185,6 +246,7 @@ const maxHull = (s: Ship) => s.parts.reduce((t, p) => t + p.def.def.hp, 0);
  */
 export function updateBattle(b: Battle): BattleStatus {
   const w = b.world;
+  b.log.update(w);
   const playerIds = new Set(b.playerShips.map((s) => s.id));
   let dealt = 0;
   for (const [attacker, row] of Object.entries(w.combat.damage))
@@ -203,31 +265,93 @@ export function updateBattle(b: Battle): BattleStatus {
     b.status = status;
     b.reason = reason;
     b.endTime = w.time;
+    b.log.note(w, reason);
   };
+  const gone = (s: Ship) => s.defeated || s.escaped;
   // A watched battle (no player ships) is decided by the player side's AI ships.
   const ours = b.playerShips.length ? b.playerShips : b.allyShips;
-  if (ours.length > 0 && ours.every((s) => s.defeated)) {
-    end("lost", "All your ships were defeated.");
+  const o = b.scenario.objective;
+  const out = ours.filter((s) => s.escaped).length;
+  // Breakout: enough ships through the jump point wins, too few left to make it loses.
+  if (o.type === "breakout") {
+    const need = Math.min(o.count ?? ours.length, ours.length);
+    if (need > 0 && out >= need) {
+      end("won", `${out} ship${out === 1 ? "" : "s"} broke out.`);
+      return b.status;
+    }
+    if (ours.filter((s) => !s.defeated).length < need) {
+      end("lost", "Too few ships are left to break out.");
+      return b.status;
+    }
+  }
+  if (ours.length > 0 && ours.every(gone)) {
+    end("lost", out > 0 ? "Your fleet withdrew from the battle." : "All your ships were defeated.");
     return b.status;
   }
-  const o = b.scenario.objective;
-  const enemiesDown = b.enemyShips.every((s) => s.defeated);
-  if (o.type === "protect") {
-    const p = b.protectId && w.hasShip(b.protectId) ? w.getShip(b.protectId) : null;
-    if (!p || p.defeated) end("lost", `${p?.design.name ?? "The escorted ship"} was destroyed.`);
-    else if (enemiesDown) end("won", `${p.design.name} is safe.`);
+  const enemiesDown = b.enemyShips.every(gone);
+  const enemyFled = b.enemyShips.some((s) => s.escaped);
+  if (o.type === "protect" || o.type === "escort") {
+    const p = b.protectId ? w.getShip(b.protectId) : null;
+    const name = p ? shortName(p) : "The escorted ship";
+    if (!p || p.defeated) end("lost", `${name} was destroyed.`);
+    else if (o.type === "protect" && enemiesDown) end("won", `${name} is safe.`);
+    else if (o.type === "escort" && (p.escaped || inZone(w, p, o.zone)))
+      end("won", `${name} reached ${o.zone.label ?? "the zone"}.`);
   } else if (o.type === "survive") {
     if (w.time >= o.seconds) end("won", `You held out for ${o.seconds} s.`);
-  } else if (enemiesDown) end("won", "Every enemy ship was defeated.");
+  } else if (o.type === "hold") {
+    const mine = ours.some((s) => !gone(s) && !s.drone && inZone(w, s, o.zone));
+    const contested = b.enemyShips.some((s) => !gone(s) && !s.inert && inZone(w, s, o.zone));
+    if (mine && !contested) {
+      if (b.held === 0) b.log.note(w, `${o.zone.label ?? "The zone"} is yours`);
+      const before = b.held;
+      b.held += SIM_DT;
+      if (before < o.seconds / 2 && b.held >= o.seconds / 2) b.log.note(w, "Halfway held");
+    }
+    if (b.held >= o.seconds - 1e-9) end("won", `You held ${o.zone.label ?? "the zone"} for ${o.seconds} s.`);
+  } else if (o.type === "breakout") {
+    // Decided above.
+  } else if (enemiesDown)
+    end("won", enemyFled ? "Every enemy ship was destroyed or fled." : "Every enemy ship was defeated.");
+  if (
+    b.status === "running" &&
+    b.scenario.timeLimit &&
+    w.time >= b.scenario.timeLimit &&
+    o.type !== "survive"
+  )
+    end("lost", "Time ran out.");
   return b.status;
+}
+
+/** A ship's centre is inside a zone. */
+export function inZone(world: World, s: Ship, zone: Zone): boolean {
+  const c = world.physics.getWorldCenter(s.id);
+  return Math.hypot(c.x - zone.position[0], c.y - zone.position[1]) <= zone.radius;
+}
+
+const shortName = (s: Ship) => s.design.name.split(" (")[0]!;
+
+/** One battle tick: the recorder around the world step, then the objective check. */
+export function stepBattle(b: Battle): BattleStatus {
+  b.recorder?.beforeStep(b.world);
+  b.world.step();
+  b.recorder?.afterStep(b.world);
+  return updateBattle(b);
+}
+
+/** The after-action report as it stands (docs/battle-report.md). */
+export function battleReport(b: Battle): BattleReport {
+  return b.log.report(b.world, {
+    scenario: b.scenario.name,
+    status: b.status,
+    reason: b.reason,
+    time: b.endTime ?? b.world.time,
+  });
 }
 
 /** Steps the battle until it ends or `maxSeconds` pass (headless runs, tests). */
 export function runBattle(b: Battle, maxSeconds: number): BattleStatus {
   const ticks = Math.round(maxSeconds * 60);
-  for (let i = 0; i < ticks && b.status === "running"; i++) {
-    b.world.step();
-    updateBattle(b);
-  }
+  for (let i = 0; i < ticks && b.status === "running"; i++) stepBattle(b);
   return b.status;
 }

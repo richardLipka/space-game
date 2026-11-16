@@ -1,0 +1,101 @@
+{
+  "id": "s16-convoy-run",
+  "name": "Convoy run",
+  "description": "Escort an unarmed Mule hauler across the field to the Haven gate while raiders close in.",
+  "order": 16,
+  "budget": 1400,
+  "maxPlayerShips": 3,
+  "arena": {
+    "width": 10000,
+    "height": 7000,
+    "asteroids": [],
+    "gravityWells": []
+  },
+  "playerSpawns": [
+    {
+      "position": [-4300, -1100],
+      "angle": 0
+    },
+    {
+      "position": [-4500, -800],
+      "angle": 0
+    },
+    {
+      "position": [-4500, -1400],
+      "angle": 0
+    }
+  ],
+  "enemies": [
+    {
+      "designId": "demo-hauler",
+      "aiProfile": "balanced",
+      "spawn": {
+        "position": [-4400, -1600],
+        "angle": 0
+      },
+      "team": 0
+    },
+    {
+      "designId": "fleet-maul",
+      "aiProfile": "aggressive",
+      "spawn": {
+        "position": [-600, 2300],
+        "angle": -90
+      },
+      "team": 1
+    },
+    {
+      "designId": "fleet-wasp",
+      "aiProfile": "aggressive",
+      "spawn": {
+        "position": [-900, 2500],
+        "angle": -90
+      },
+      "team": 1
+    },
+    {
+      "designId": "fleet-wasp",
+      "aiProfile": "aggressive",
+      "spawn": {
+        "position": [-300, 2500],
+        "angle": -90
+      },
+      "team": 1
+    },
+    {
+      "designId": "fleet-rapier",
+      "aiProfile": "aggressive",
+      "spawn": {
+        "position": [2600, -2800],
+        "angle": 90
+      },
+      "team": 1
+    },
+    {
+      "designId": "fleet-wasp",
+      "aiProfile": "aggressive",
+      "spawn": {
+        "position": [3100, -2700],
+        "angle": 90
+      },
+      "team": 1
+    }
+  ],
+  "objective": {
+    "type": "escort",
+    "designId": "demo-hauler",
+    "zone": {
+      "position": [4400, 2300],
+      "radius": 600,
+      "label": "Haven gate"
+    }
+  },
+  "timeLimit": 300,
+  "seed": 1601,
+  "hints": [
+    "The Mule flies to the Haven gate on its own: you only need to keep the raiders off it.",
+    "Raiders come from the north, and a destroyer with a fighter waits south of the gate. Meet them before they reach the hauler.",
+    "In strategy mode, Focus fire (F) puts every gun on one raider at a time without leaving the escort."
+  ],
+  "referenceDesigns": ["fleet-rapier", "fleet-wasp", "fleet-wasp"]
+}

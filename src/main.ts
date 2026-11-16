@@ -38,7 +38,13 @@ import {
   skirmishBattle,
   type SkirmishSetup,
 } from "./sim/scenario/skirmish";
-import { startBattle } from "./sim/scenario/battle";
+import { battleReport, startBattle } from "./sim/scenario/battle";
+import { BattleRecorder, ReplayPlayer, type ReplayData } from "./sim/scenario/record";
+import type { AiProfile } from "./data/schemas/ai";
+import { ReplayStore } from "./ui/replays";
+import { ReportDialog } from "./ui/report-dialog";
+import { downloadReplay, ReplaysDialog } from "./ui/replays-dialog";
+import type { ResultAction } from "./ui/flight-screen";
 import type { Scenario } from "./data/schemas/scenario";
 import { ResultStore } from "./ui/results";
 import { createWorldFromScenario } from "./sim/scenario/setup";
@@ -185,6 +191,7 @@ async function main(): Promise<void> {
   /** Where Exit from a flight returns to: the scenario editor when the battle was started there. */
   let returnTo: "editor" | "scenario" = "editor";
   const toEditor = () => {
+    finishRecording();
     flight.stop();
     if (returnTo === "scenario") {
       mode = "scenario";
@@ -232,6 +239,87 @@ async function main(): Promise<void> {
   };
 
   const results = new ResultStore();
+
+  // ---------- replays and reports (docs/battle-report.md) ----------
+  const replays = new ReplayStore();
+  const reportDialog = new ReportDialog();
+  const showReport = (d: ReplayData) => {
+    if (!d.report) return toast("This replay has no report.", "error");
+    reportDialog.show(d.report, { watch: () => watchReplay(d), download: () => downloadReplay(d) });
+  };
+  /** The battle being recorded: saved when it ends, or when the player leaves it. */
+  let recording: { finish: () => ReplayData } | null = null;
+  const finishRecording = () => {
+    recording?.finish();
+    recording = null;
+  };
+  /** Starts recording a battle; returns the end-screen buttons (report, replay). */
+  const record = (
+    battle: Battle,
+    title: string,
+    fleet: readonly ShipDesign[],
+    designs: ReadonlyMap<string, ShipDesign>,
+    profiles: ReadonlyMap<string, AiProfile>,
+  ): { actions: ResultAction[]; finish: () => ReplayData } => {
+    finishRecording();
+    const rec = new BattleRecorder(battle, {
+      title,
+      fleet,
+      designs,
+      droneDesigns: [...droneDesigns.values()],
+      profiles,
+      id: `replay-${randomId()}`,
+      createdAt: new Date().toISOString(),
+    });
+    let saved: ReplayData | null = null;
+    // Saved once: at the end of the battle (later flying around is not part of it) or on leaving.
+    const finish = () => {
+      if (!saved) {
+        saved = rec.data(battleReport(battle));
+        void replays.put(saved);
+      }
+      return saved;
+    };
+    const handle = { finish };
+    recording = handle;
+    return {
+      finish,
+      actions: [
+        { label: "Report", testid: "btn-report", run: () => showReport(finish()) },
+        { label: "Watch replay", testid: "btn-replay", run: () => watchReplay(finish()) },
+      ],
+    };
+  };
+  /** Plays a recording back in the flight view (watch mode). */
+  const watchReplay = (d: ReplayData) => {
+    finishRecording();
+    let player: ReplayPlayer;
+    try {
+      player = new ReplayPlayer(d, catalogue, AI_PROFILES);
+    } catch (e) {
+      toast(`Cannot play this replay: ${e instanceof Error ? e.message : String(e)}`, "error");
+      return;
+    }
+    const b = player.battle;
+    if (mode === "strategy" || mode === "scenario") returnTo = "scenario";
+    reportDialog.close();
+    replaysDialog.close();
+    strategy.stop();
+    scenarioEditor.hide();
+    editor.hide();
+    mode = "flight";
+    flight.start({
+      world: b.world,
+      playerShips: [...b.playerShips, ...b.allyShips, ...b.enemyShips],
+      title: `Replay: ${d.title}`,
+      battle: b,
+      spectate: true,
+      replay: player,
+      resultActions: [{ label: "Report", testid: "btn-report", run: () => showReport(d) }],
+      retry: () => watchReplay(d),
+    });
+  };
+  const replaysDialog = new ReplaysDialog({ store: replays, watch: watchReplay, report: showReport, toast });
   /** Scenario battle (spec §12): enemies from bundled and library designs, results saved locally. */
   const startScenario = (scenario: Scenario, fleet: ShipDesign[], spectate = false) => {
     void library.listDesigns().then((saved) => {
@@ -244,10 +332,18 @@ async function main(): Promise<void> {
         droneDesigns: [...droneDesigns.values()],
       });
       prepareBattle(battle);
+      const rec = record(
+        battle,
+        `${scenario.order ? `${scenario.order}. ` : ""}${scenario.name}`,
+        fleet,
+        designs,
+        AI_PROFILES,
+      );
       editor.hide();
       mode = "flight";
       flight.start({
         world: battle.world,
+        resultActions: rec.actions,
         // Watching without a fleet (scenario editor): follow the AI ships instead.
         playerShips:
           battle.playerShips.length > 0 ? battle.playerShips : [...battle.allyShips, ...battle.enemyShips],
@@ -255,6 +351,7 @@ async function main(): Promise<void> {
         battle,
         spectate,
         onBattleEnd: (b) => {
+          rec.finish();
           if (spectate) return;
           results.add({
             scenarioId: scenario.id,
@@ -297,6 +394,7 @@ async function main(): Promise<void> {
       battle.world.flightModel = setup.flightModel ?? "newtonian";
       prepareBattle(battle);
       const watch = battle.playerShips.length === 0;
+      const rec = record(battle, watch ? "Skirmish (watched)" : "Skirmish", sk.fleet, designs, sk.profiles);
       editor.hide();
       mode = "flight";
       flight.start({
@@ -305,6 +403,8 @@ async function main(): Promise<void> {
         title: watch ? "Watching: skirmish" : "Skirmish",
         battle,
         spectate: watch,
+        resultActions: rec.actions,
+        onBattleEnd: () => rec.finish(),
         retry: () => startSkirmish(setup),
       });
     });
@@ -352,6 +452,7 @@ async function main(): Promise<void> {
     },
     showHelp: () => help.show("ship-editor"),
     openRoster: (id) => void rosterDialog.open(id),
+    openReplays: () => void replaysDialog.open(),
     crewForDesign: (d) => crewEntries(roster, d, catalogue),
     adoptCrew: (id, crew) => {
       roster = adoptCrew(roster, id, crew);
@@ -379,6 +480,7 @@ async function main(): Promise<void> {
         droneDesigns: [...droneDesigns.values()],
       });
       prepareBattle(battle);
+      const rec = record(battle, `Command: ${scenario.name}`, [], designs, AI_PROFILES);
       scenarioEditor.hide();
       editor.hide();
       flight.stop();
@@ -387,7 +489,10 @@ async function main(): Promise<void> {
         world: battle.world,
         battle,
         title: scenario.name,
+        resultActions: rec.actions,
+        onBattleEnd: () => rec.finish(),
         exit: () => {
+          finishRecording();
           strategy.stop();
           mode = "scenario";
           void scenarioEditor.show();

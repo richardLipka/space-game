@@ -30,15 +30,50 @@ export const GravityWell = Type.Object(
 );
 export type GravityWell = Static<typeof GravityWell>;
 
+/** A circular area of the arena: a jump point, a beacon to hold (docs/objectives.md). */
+export const Zone = Type.Object(
+  {
+    position: Vec2Json,
+    radius: PositiveNumber,
+    /** Shown on the map. */
+    label: Type.Optional(Type.String({ maxLength: 40 })),
+  },
+  strict,
+);
+export type Zone = Static<typeof Zone>;
+
+/** A jump point: ships of `team` (absent = every team) that stay inside it for a few seconds leave the battle. */
+export const Exit = Type.Object(
+  {
+    position: Vec2Json,
+    radius: PositiveNumber,
+    label: Type.Optional(Type.String({ maxLength: 40 })),
+    team: Type.Optional(Type.Integer({ minimum: 0 })),
+  },
+  strict,
+);
+export type Exit = Static<typeof Exit>;
+
 /**
- * Win condition (spec §12). destroyAll: every enemy ship (not drones) defeated. survive: hold out for
- * `seconds`. protect: the allied ship spawned from `designId` (an `enemies` entry on team 0) must live
- * until every enemy is defeated. Losing all player ships always loses.
+ * Win condition (spec §12, docs/objectives.md). Losing every player ship always loses.
+ * - destroyAll: every enemy ship (not drones) defeated or fled.
+ * - survive: hold out for `seconds`.
+ * - protect: the allied ship spawned from `designId` (an `enemies` entry on team 0) must live until every
+ *   enemy is defeated.
+ * - escort: that allied ship must reach `zone` (it flies there on its own).
+ * - hold: keep a ship of yours inside `zone`, with no enemy ship in it, for `seconds` in all.
+ * - breakout: get `count` of your ships (default: every one) out through the jump point `zone`.
  */
 export const Objective = Type.Union([
   Type.Object({ type: Type.Literal("destroyAll") }, strict),
   Type.Object({ type: Type.Literal("survive"), seconds: PositiveNumber }, strict),
   Type.Object({ type: Type.Literal("protect"), designId: Uuidish }, strict),
+  Type.Object({ type: Type.Literal("escort"), designId: Uuidish, zone: Zone }, strict),
+  Type.Object({ type: Type.Literal("hold"), zone: Zone, seconds: PositiveNumber }, strict),
+  Type.Object(
+    { type: Type.Literal("breakout"), zone: Zone, count: Type.Optional(Type.Integer({ minimum: 1 })) },
+    strict,
+  ),
 ]);
 
 export type Objective = Static<typeof Objective>;
@@ -57,6 +92,8 @@ export const Scenario = Type.Object(
         height: PositiveNumber,
         asteroids: Type.Array(AsteroidSpawn),
         gravityWells: Type.Array(GravityWell),
+        /** Jump points (docs/objectives.md): retreating ships leave the battle through them. */
+        exits: Type.Optional(Type.Array(Exit)),
       },
       strict,
     ),
@@ -78,6 +115,8 @@ export const Scenario = Type.Object(
       ),
     ),
     objective: Objective,
+    /** Battle time limit (s): an objective not met by then is lost (survive is met by then). */
+    timeLimit: Type.Optional(PositiveNumber),
     seed: Type.Integer(),
     /** Flight model of every ship in the battle (absent = Newtonian). */
     flightModel: Type.Optional(Type.Union([Type.Literal("newtonian"), Type.Literal("arcade")])),

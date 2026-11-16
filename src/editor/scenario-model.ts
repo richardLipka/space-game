@@ -2,7 +2,7 @@ import { lenient, repairCrew } from "../data/repair";
 import { ShipDesign as ShipDesignSchema } from "../data/schemas/design";
 import { Scenario as ScenarioSchema } from "../data/schemas/scenario";
 import type { ShipDesign } from "../data/schemas/design";
-import type { AsteroidSpawn, GravityWell, Scenario } from "../data/schemas/scenario";
+import type { AsteroidSpawn, GravityWell, Objective, Scenario, Zone } from "../data/schemas/scenario";
 import { validateDesign, validateScenario } from "../data/validate";
 
 /**
@@ -13,7 +13,8 @@ import { validateDesign, validateScenario } from "../data/validate";
 /** AI profile meaning "no pilot": the ship stays where it is placed; automatic weapon groups still fire. */
 export const NO_AI = "none";
 
-export type ItemKind = "ship" | "asteroid" | "well" | "spawn";
+/** "exit": a jump point (arena.exits); "zone": the objective's zone (escort, hold, breakout; index 0). */
+export type ItemKind = "ship" | "asteroid" | "well" | "spawn" | "exit" | "zone";
 export interface ItemRef {
   readonly kind: ItemKind;
   readonly index: number;
@@ -42,6 +43,48 @@ export function emptyScenario(id: string, now = new Date()): Scenario {
 }
 
 const round = (v: number, step = 1) => Math.round(v / step) * step;
+
+/** Objective types and their names (scenario editor). */
+export const OBJECTIVES: readonly (readonly [Objective["type"], string])[] = [
+  ["destroyAll", "Destroy every enemy"],
+  ["survive", "Survive"],
+  ["protect", "Protect an allied ship"],
+  ["escort", "Escort a ship to a zone"],
+  ["hold", "Hold a zone"],
+  ["breakout", "Break out through a jump point"],
+];
+
+/** The objective's zone, if it has one. */
+export function objectiveZone(s: Scenario): Zone | null {
+  const o = s.objective;
+  return o.type === "escort" || o.type === "hold" || o.type === "breakout" ? o.zone : null;
+}
+
+/**
+ * A new objective of `type`, keeping what carries over from the current one (zone, seconds, the allied ship).
+ * Protect and escort take the first allied (team 0) ship of the scenario.
+ */
+export function makeObjective(s: Scenario, type: Objective["type"]): Objective {
+  const zone: Zone = objectiveZone(s) ?? { position: [round(s.arena.width * 0.3), 0], radius: 500 };
+  const ally = s.enemies.find((e) => e.team === 0)?.designId ?? "";
+  const old = s.objective;
+  const designId = old.type === "protect" || old.type === "escort" ? old.designId : ally;
+  const seconds = old.type === "survive" || old.type === "hold" ? old.seconds : 120;
+  switch (type) {
+    case "survive":
+      return { type, seconds };
+    case "protect":
+      return { type, designId };
+    case "escort":
+      return { type, designId, zone: { ...zone, label: zone.label ?? "Rendezvous" } };
+    case "hold":
+      return { type, zone: { ...zone, label: zone.label ?? "Beacon" }, seconds: Math.min(seconds, 90) };
+    case "breakout":
+      return { type, zone: { ...zone, label: zone.label ?? "Jump point" } };
+    case "destroyAll":
+      return { type };
+  }
+}
 const clone = (s: Scenario): Scenario => structuredClone(s);
 
 /** Convex, counter-clockwise asteroid outline of about `radius` metres (deterministic for a seed). */
@@ -141,8 +184,17 @@ export class ScenarioModel {
     return { kind: "spawn", index: this.scenario.playerSpawns.length - 1 };
   }
 
+  addExit(x: number, y: number): ItemRef {
+    this.change((s) =>
+      (s.arena.exits ??= []).push({ position: [round(x), round(y)], radius: 400, label: "Jump point" }),
+    );
+    return { kind: "exit", index: (this.scenario.arena.exits?.length ?? 1) - 1 };
+  }
+
   position(r: ItemRef): [number, number] {
     const s = this.scenario;
+    if (r.kind === "exit") return s.arena.exits![r.index]!.position as [number, number];
+    if (r.kind === "zone") return objectiveZone(s)!.position as [number, number];
     if (r.kind === "ship") return s.enemies[r.index]!.spawn.position as [number, number];
     if (r.kind === "asteroid") return s.arena.asteroids[r.index]!.position as [number, number];
     if (r.kind === "well") return s.arena.gravityWells[r.index]!.position as [number, number];
@@ -154,7 +206,11 @@ export class ScenarioModel {
     const apply = (s: Scenario) => {
       const p: [number, number] = [round(x), round(y)];
       if (r.kind === "ship") s.enemies[r.index]!.spawn.position = p;
-      else if (r.kind === "asteroid") s.arena.asteroids[r.index]!.position = p;
+      else if (r.kind === "exit") s.arena.exits![r.index]!.position = p;
+      else if (r.kind === "zone") {
+        const z = objectiveZone(s);
+        if (z) z.position = p;
+      } else if (r.kind === "asteroid") s.arena.asteroids[r.index]!.position = p;
       else if (r.kind === "well") s.arena.gravityWells[r.index]!.position = p;
       else s.playerSpawns[r.index]!.position = p;
     };
@@ -193,6 +249,10 @@ export class ScenarioModel {
         }
       } else if (r.kind === "asteroid") s.arena.asteroids.splice(r.index, 1);
       else if (r.kind === "well") s.arena.gravityWells.splice(r.index, 1);
+      else if (r.kind === "exit") {
+        s.arena.exits!.splice(r.index, 1);
+        if (!s.arena.exits!.length) delete s.arena.exits;
+      } else if (r.kind === "zone") s.objective = { type: "destroyAll" };
       else s.playerSpawns.splice(r.index, 1);
     });
   }
@@ -201,6 +261,8 @@ export class ScenarioModel {
   items(): ItemRef[] {
     const s = this.scenario;
     return [
+      ...(objectiveZone(s) ? [{ kind: "zone" as const, index: 0 }] : []),
+      ...(s.arena.exits ?? []).map((_, index) => ({ kind: "exit" as const, index })),
       ...s.arena.gravityWells.map((_, index) => ({ kind: "well" as const, index })),
       ...s.arena.asteroids.map((_, index) => ({ kind: "asteroid" as const, index })),
       ...s.playerSpawns.map((_, index) => ({ kind: "spawn" as const, index })),
@@ -224,8 +286,14 @@ export class ScenarioModel {
       if (Math.abs(x) > width / 2 || Math.abs(y) > height / 2)
         out.push(`${r.kind} ${r.index + 1} is outside the arena`);
     }
-    if (this.scenario.objective.type === "destroyAll" && !this.scenario.enemies.some((e) => e.team !== 0))
+    const o = this.scenario.objective;
+    if (o.type === "destroyAll" && !this.scenario.enemies.some((e) => e.team !== 0))
       out.push("No enemy ship (team 1 or higher): the battle would be won at once.");
+    if (
+      (o.type === "protect" || o.type === "escort") &&
+      !this.scenario.enemies.some((e) => e.team === 0 && e.designId === o.designId)
+    )
+      out.push(`No allied ship (team 0) of design "${o.designId || "?"}" to ${o.type}.`);
     return out;
   }
 }

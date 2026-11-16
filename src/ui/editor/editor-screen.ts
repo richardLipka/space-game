@@ -72,6 +72,8 @@ export interface EditorServices {
   showHelp(): void;
   /** Opens the crew roster (officers and their posts), on this design when given. */
   openRoster(designId?: string): void;
+  /** Recorded battles (docs/battle-report.md). */
+  openReplays(): void;
   /** The roster's officers at this design's posts (saved into ship files). */
   crewForDesign(design: ShipDesign): CrewEntry[];
   /** Officers that came with an imported ship: they join the roster at the design's posts. */
@@ -363,6 +365,12 @@ export class EditorScreen {
         "btn-crew",
         () => this.services.openRoster(this.model.design.id),
         "Officers of your ships: posts, traits, portraits",
+      ),
+      this.button(
+        "Replays",
+        "btn-replays",
+        () => this.services.openReplays(),
+        "Recorded battles: watch them again, read the after-action report",
       ),
       this.button("Theme", "btn-theme", () => this.services.cycleTheme()),
       this.button("? Help", "btn-help", () => this.services.showHelp(), "Controls (F1 or ?)"),

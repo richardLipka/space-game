@@ -1,0 +1,92 @@
+{
+  "id": "s18-breakout",
+  "name": "Breakout",
+  "description": "A stronger squadron and its fighters hold the jump point. Get all three ships out.",
+  "order": 18,
+  "budget": 1600,
+  "maxPlayerShips": 3,
+  "arena": {
+    "width": 10000,
+    "height": 7000,
+    "asteroids": [],
+    "gravityWells": []
+  },
+  "playerSpawns": [
+    {
+      "position": [-4000, 0],
+      "angle": 0
+    },
+    {
+      "position": [-4100, 400],
+      "angle": 0
+    },
+    {
+      "position": [-4100, -400],
+      "angle": 0
+    }
+  ],
+  "enemies": [
+    {
+      "designId": "fleet-anvil",
+      "aiProfile": "balanced",
+      "spawn": {
+        "position": [2900, 0],
+        "angle": 180
+      },
+      "team": 1
+    },
+    {
+      "designId": "fleet-rapier",
+      "aiProfile": "sniper",
+      "spawn": {
+        "position": [3300, 1400],
+        "angle": 180
+      },
+      "team": 1
+    },
+    {
+      "designId": "fleet-rapier",
+      "aiProfile": "sniper",
+      "spawn": {
+        "position": [3300, -1400],
+        "angle": 180
+      },
+      "team": 1
+    },
+    {
+      "designId": "fleet-wasp",
+      "aiProfile": "aggressive",
+      "spawn": {
+        "position": [3900, 700],
+        "angle": 180
+      },
+      "team": 1
+    },
+    {
+      "designId": "fleet-wasp",
+      "aiProfile": "aggressive",
+      "spawn": {
+        "position": [3900, -700],
+        "angle": 180
+      },
+      "team": 1
+    }
+  ],
+  "objective": {
+    "type": "breakout",
+    "zone": {
+      "position": [4300, 0],
+      "radius": 500,
+      "label": "Jump point"
+    },
+    "count": 3
+  },
+  "timeLimit": 240,
+  "seed": 1801,
+  "hints": [
+    "You cannot beat this squadron: get past it. A ship that stays in the jump point for 3 seconds jumps out.",
+    "Fast ships and a wide berth around the cruiser work better than a straight run.",
+    "In strategy mode, Disengage (R) sends a ship to the jump point at full speed; Hold fire (E) keeps it from stopping to trade shots."
+  ],
+  "referenceDesigns": ["fleet-rapier", "fleet-wasp", "fleet-wasp"]
+}

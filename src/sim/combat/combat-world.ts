@@ -87,6 +87,10 @@ export class CombatState {
   events: CombatEvent[] = [];
   /** Totals for tests and debugging. */
   stats = { shots: 0, hits: 0, missilesLaunched: 0, missilesDown: 0, missileHits: 0 };
+  /** Gun rounds fired and rounds that hit a ship, by firing ship (not point defense; battle report). */
+  gunnery: Record<string, { shots: number; hits: number }> = {};
+  /** Hull damage by attacking ship (drones: their carrier) and target ship (kill credit, return fire). */
+  dealtTo: Record<string, Record<string, number>> = {};
   /**
    * Hull damage dealt, by attacking ship and weapon part id (drone damage counts for the carrier, as
    * "drone:<part>"). Read by the balance harness; not part of the simulation state.
@@ -103,7 +107,12 @@ export interface DamageSource {
 const hullHp = (ship: Ship) => ship.parts.reduce((s, p) => s + Math.max(0, p.hp), 0);
 
 /** Credits hull damage to its source; drones credit their carrier. */
-export function recordDamage(world: World, src: DamageSource | undefined, amount: number): void {
+export function recordDamage(
+  world: World,
+  src: DamageSource | undefined,
+  amount: number,
+  target?: string,
+): void {
   if (!src || amount <= 0) return;
   let attacker = src.ship ?? "environment";
   let source = src.source;
@@ -116,6 +125,10 @@ export function recordDamage(world: World, src: DamageSource | undefined, amount
   }
   const row = (world.combat.damage[attacker] ??= {});
   row[source] = (row[source] ?? 0) + amount;
+  if (target) {
+    const to = (world.combat.dealtTo[attacker] ??= {});
+    to[target] = (to[target] ?? 0) + amount;
+  }
 }
 
 interface ShipRayHit {
@@ -237,7 +250,7 @@ function damageShipAlongRay(
     if (ship.applyDamage(a.uid, a.damage))
       pushEvent(world, "destroyed", worldPartCenter(world, ship, a.uid), 2);
   for (const a of res.absorbed) ship.damageWreck(a.uid, a.damage);
-  recordDamage(world, src, before - hullHp(ship));
+  recordDamage(world, src, before - hullHp(ship), ship.id);
   return res.stoppedBy;
 }
 
@@ -300,7 +313,7 @@ export function blast(
       !world.hasShip(opts.source.ship) ||
       world.getShip(opts.source.ship).team !== ship.team
     )
-      recordDamage(world, opts.source, before - hullHp(ship));
+      recordDamage(world, opts.source, before - hullHp(ship), ship.id);
   }
   if (opts.missiles) {
     for (const m of world.combat.missiles) {
@@ -357,7 +370,7 @@ export function warhead(
       remaining = Math.max(0, dmg - hp);
     }
     if (!source?.ship || !world.hasShip(source.ship) || world.getShip(source.ship).team !== ship.team)
-      recordDamage(world, source, before - hullHp(ship));
+      recordDamage(world, source, before - hullHp(ship), ship.id);
   }
   blast(world, center, radius, damage * (1 - MISSILE.directShare), {
     ...(source ? { source } : {}),
@@ -604,6 +617,8 @@ function resolveOrder(world: World, ship: Ship, o: FireOrder, dt: number): void 
       o.muzzle,
     );
     world.combat.stats.shots++;
+    if (!COMBAT.pdAmmo.includes(def.ammoType ?? def.kind))
+      (world.combat.gunnery[ship.id] ??= { shots: 0, hits: 0 }).shots++;
     pushEvent(world, "fire", o.muzzle, 1);
     return;
   }
@@ -702,6 +717,8 @@ export function stepProjectiles(world: World, dt: number): void {
             source: pr.source ?? pr.kind,
           });
           world.combat.stats.hits++;
+          if (!COMBAT.pdAmmo.includes(pr.kind) && !hit.ship.drone && hit.ship.team !== pr.team)
+            (world.combat.gunnery[pr.owner] ??= { shots: 0, hits: 0 }).hits++;
         } else if (hit.kind === "missile") {
           damageMissile(world, hit.missile, pr.damage);
           world.combat.stats.hits++;

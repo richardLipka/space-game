@@ -1916,6 +1916,43 @@ body {
   fill: #5fb4ff;
   stroke: #5fb4ff;
 }
+.sc-exit {
+  fill: #3dffa0;
+  fill-opacity: 0.08;
+  stroke: #3dffa0;
+}
+.sc-zone {
+  fill: #ffc04d;
+  fill-opacity: 0.1;
+  stroke: #ffc04d;
+}
+.sc-exit.selected,
+.sc-zone.selected {
+  fill-opacity: 0.25;
+}
+.st-order.retreat {
+  stroke: #ffb347;
+}
+.st-focus {
+  fill: none;
+  stroke: #ff5a5f;
+  stroke-width: 1.5;
+}
+.st-zone-label {
+  font:
+    12px system-ui,
+    sans-serif;
+  pointer-events: none;
+}
+.st-zone-label.exit {
+  fill: #3dffa0;
+}
+.st-zone-label.objective {
+  fill: #ffc04d;
+}
+.st-objective {
+  font-weight: 600;
+}
 .st-order.faint,
 .st-patrol.faint,
 .st-point.faint {
@@ -2478,4 +2515,88 @@ dialog > .dialog-x:hover {
 }
 .promotion-option.focus {
   color: var(--accent);
+}
+
+/* ---- After-action report (docs/battle-report.md) ---- */
+.ed-dialog.report-dialog {
+  width: min(1040px, 96vw);
+}
+.report-dialog h2.won {
+  color: #3dbf7a;
+}
+.report-dialog h2.lost {
+  color: #ff5a5f;
+}
+.report-chart {
+  display: block;
+  width: 100%;
+  max-width: 640px;
+  height: auto;
+}
+.report-chart text {
+  fill: currentColor;
+  font-size: 10px;
+  opacity: 0.7;
+}
+.report-chart .grid {
+  stroke: currentColor;
+  stroke-opacity: 0.15;
+}
+.report-chart .line {
+  fill: none;
+  stroke-width: 2;
+}
+.report-chart .line.yours,
+.report-legend .yours {
+  stroke: #3dbf7a;
+  color: #3dbf7a;
+}
+.report-chart .line.enemy,
+.report-legend .enemy {
+  stroke: #ff5a5f;
+  color: #ff5a5f;
+}
+.report-chart .mark {
+  stroke: currentColor;
+  stroke-opacity: 0.35;
+  stroke-dasharray: 2 3;
+}
+.report-chart .mark.escaped {
+  stroke: #3dbf7a;
+}
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+}
+.report-table th,
+.report-table td {
+  text-align: left;
+  padding: 2px 8px 2px 0;
+  border-bottom: 1px solid var(--panel-border);
+  white-space: nowrap;
+}
+.report-table td:last-child {
+  white-space: normal;
+}
+.report-table tr.destroyed td:first-child {
+  text-decoration: line-through;
+}
+.report-table tr.escaped td:first-child {
+  color: #3dbf7a;
+}
+.report-table .alert {
+  color: #ff5a5f;
+}
+.report-timeline {
+  padding-left: 18px;
+}
+.report-timeline li.destroyed {
+  color: #ff8a8d;
+}
+.report-timeline li.escaped {
+  color: #3dbf7a;
+}
+.report-timeline li.objective {
+  font-weight: 600;
 }

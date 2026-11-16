@@ -53,6 +53,17 @@ export interface Arena {
   readonly height: number;
 }
 
+/** A jump point (docs/objectives.md): ships of `team` (null = any) leave the battle through it. */
+export interface ExitState {
+  readonly position: Vec2;
+  readonly radius: number;
+  readonly team: number | null;
+  readonly label?: string;
+}
+
+/** Jump points: seconds a ship must stay inside one before it jumps out. */
+export const EXIT = { dwell: 3 } as const;
+
 export interface GravityWellState {
   readonly position: Vec2;
   readonly mu: number;
@@ -119,6 +130,12 @@ export class World {
   readonly designs = new Map<string, ShipDesign>();
   /** Jettisoned parts, oldest first. */
   debris: Debris[] = [];
+  /** Jump points (docs/objectives.md). */
+  readonly exits: ExitState[] = [];
+  /** Seconds each ship has spent inside a jump point it may use, by ship id. */
+  readonly exitDwell = new Map<string, number>();
+  /** Ships that jumped out, in the order they left. */
+  readonly escaped: Ship[] = [];
 
   readonly combat = new CombatState();
   enforceDefeat: boolean;
@@ -135,8 +152,10 @@ export class World {
     this.flightModel = config.flightModel ?? "newtonian";
   }
 
+  /** A ship in play (ships that jumped out are gone, though `getShip` still finds them). */
   hasShip(id: string): boolean {
-    return this.ships.has(id);
+    const s = this.ships.get(id);
+    return !!s && !s.escaped;
   }
 
   get time(): number {
@@ -289,9 +308,64 @@ export class World {
 
   private sortedShips: Ship[] | null = null;
 
-  /** Ships sorted by id (deterministic iteration). Cached until a ship is added; callers must not mutate it. */
+  /**
+   * Ships in play sorted by id (deterministic iteration), without those that jumped out. Cached until a ship
+   * is added or leaves; callers must not mutate it.
+   */
   allShips(): readonly Ship[] {
-    return (this.sortedShips ??= [...this.ships.values()].sort((a, b) => compareIds(a.id, b.id)));
+    return (this.sortedShips ??= [...this.ships.values()]
+      .filter((s) => !s.escaped)
+      .sort((a, b) => compareIds(a.id, b.id)));
+  }
+
+  /**
+   * The ship leaves the battle through a jump point: it is out of play (not drawn, not hit, not targeted;
+   * `hasShip` is false) but not destroyed. Its body stays, frozen and without collisions, so a view still
+   * pointing at it does not fail.
+   */
+  jumpOut(shipId: string): void {
+    const ship = this.ships.get(shipId);
+    if (!ship || ship.escaped) return;
+    ship.escaped = true;
+    ship.escapedAt = this.time;
+    ship.makeInert("jumped");
+    this.ai.delete(shipId);
+    this.exitDwell.delete(shipId);
+    this.physics.setActive(shipId, false);
+    this.escaped.push(ship);
+    this.sortedShips = null;
+    this.combat.events.push({
+      tick: this.tick,
+      kind: "explosion",
+      pos: this.physics.getWorldCenter(shipId),
+      size: 0.5,
+    });
+  }
+
+  /** Whether a ship in a jump point goes through: player-flown ships do, AI ships only when getting away. */
+  private wantsOut(ship: Ship): boolean {
+    const st = this.ai.get(ship.id);
+    if (!st) return true;
+    return st.order?.kind === "retreat" || (st.behaviour === "retreat" && st.retreatMode === "escape");
+  }
+
+  /** Jump points: ships that stay inside one for EXIT.dwell seconds and want out leave the battle. */
+  private updateExits(dt: number): void {
+    if (!this.exits.length) return;
+    for (const ship of this.allShips()) {
+      if (ship.drone || ship.defeated || ship.inert) continue;
+      const pos = this.physics.getWorldCenter(ship.id);
+      const inside = this.exits.some(
+        (e) => (e.team === null || e.team === ship.team) && length(sub(pos, e.position)) <= e.radius,
+      );
+      if (!inside) {
+        this.exitDwell.delete(ship.id);
+        continue;
+      }
+      const t = (this.exitDwell.get(ship.id) ?? 0) + dt;
+      this.exitDwell.set(ship.id, t);
+      if (t >= EXIT.dwell - 1e-9 && this.wantsOut(ship)) this.jumpOut(ship.id);
+    }
   }
 
   setIntent(shipId: string, intent: ControlIntent): void {
@@ -433,6 +507,8 @@ export class World {
     }
     // 14: defeat checks.
     for (const ship of this.allShips()) ship.evaluateDefeat();
+    // 15: jump points.
+    this.updateExits(dt);
     pruneEvents(this);
     this.tick++;
   }
@@ -449,6 +525,13 @@ export class World {
       ids: this.ids.getState(),
       bodies: this.physics.getState(),
       ships: this.allShips().map((s) => s.snapshot()),
+      // Only battles with jump points carry this (older golden hashes stay valid).
+      ...(this.exits.length
+        ? {
+            escaped: this.escaped.map((s) => s.id),
+            dwell: [...this.exitDwell].sort((a, b) => compareIds(a[0], b[0])),
+          }
+        : {}),
       debris: this.debris.map((d) => d.id),
       ai: [...this.ai]
         .sort((a, b) => compareIds(a[0], b[0]))

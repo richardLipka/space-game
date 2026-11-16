@@ -126,6 +126,26 @@
   --glow-width: 6;
   --glow-alpha: 0.15;
 }
+.zone-exit {
+  --stroke: #3dffa0;
+  --stroke-width: 1.5;
+  --fill: #3dffa0;
+  --fill-alpha: 0.06;
+  --glow-width: 10;
+  --glow-alpha: 0.25;
+}
+.zone-objective {
+  --stroke: #ffc04d;
+  --stroke-width: 1.5;
+  --fill: #ffc04d;
+  --fill-alpha: 0.07;
+  --glow-width: 10;
+  --glow-alpha: 0.25;
+}
+.zone-progress {
+  --stroke: #ffc04d;
+  --stroke-width: 5;
+}
 .gravity-well {
   --stroke: #b48cff;
   --stroke-width: 1.5;

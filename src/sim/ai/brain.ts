@@ -70,7 +70,18 @@ export type Order =
    * is gone); then the next order starts. "When A arrives, B departs or attacks" is B: wait for A, then
    * move or attack.
    */
-  | { readonly kind: "wait"; readonly ship: string; readonly point: Vec2 };
+  | { readonly kind: "wait"; readonly ship: string; readonly point: Vec2 }
+  /**
+   * Strategy mode, disengage: get away at full speed, through the nearest jump point if the arena has one
+   * (the ship then leaves the battle), else away from the enemy. Guns still answer on the way.
+   */
+  | { readonly kind: "retreat" };
+
+/**
+ * Rules of engagement (strategy mode): "free" fires at will; "return" only at ships that have hit this side;
+ * "hold" keeps guns, beams, missiles and drones quiet (point defense still fires).
+ */
+export type Roe = "free" | "return" | "hold";
 
 export const AI_TUNING = {
   /** Seconds between behaviour and target evaluations. */
@@ -128,6 +139,10 @@ export const AI_TUNING = {
   formationTurnSpeed: 5,
   /** A move order or patrol waypoint counts as reached within this distance (m), or 3 ship radii. */
   arriveDistance: 120,
+  /** Target score multiplier for the focus-fire target. */
+  focusBonus: 20,
+  /** Return-fire rules: target score multiplier for ships that have not hit this side. */
+  roeQuietTarget: 0.1,
 } as const;
 
 export interface AiState {
@@ -169,6 +184,10 @@ export interface AiState {
    * slow. Not its heading: a leader that flips to burn would swing every slot through itself.
    */
   formationAngle: number | null;
+  /** Enemy ship the player told this ship to fire at first, whenever it is among its targets (focus fire). */
+  focus: string | null;
+  /** Rules of engagement (strategy mode). */
+  roe: Roe;
   /** Weapon group modes before the AI took over, restored when the player takes control. */
   readonly savedModes: [number, GroupMode][];
   /** Last steering request, for the debug view. */
@@ -198,6 +217,8 @@ export function createAiState(ship: Ship, profile: AiProfile, order: Order | nul
     targetRadius: 3,
     slot,
     formationAngle: null,
+    focus: null,
+    roe: "free",
     savedModes: [...ship.groupModes],
     debug: { desiredVel: vec2(0, 0), faceAngle: null },
     caps: null,
@@ -311,6 +332,30 @@ function burstDodge(world: World, ship: Ship, me: Pose): BurstKind | null {
   return ready.has(want) ? want : want === "left" ? "right" : "left";
 }
 
+/** Whether ship `id` (or its drones) has damaged any ship of `team` (return-fire rules). */
+export function hasHitSide(world: World, id: string, team: number): boolean {
+  const row = world.combat.dealtTo[id];
+  if (!row) return false;
+  for (const [victim, v] of Object.entries(row))
+    if (v > 0 && world.hasShip(victim) && world.getShip(victim).team === team) return true;
+  return false;
+}
+
+/** The nearest jump point this ship may use, if the arena has any. */
+export function nearestExit(world: World, ship: Ship, pos: Vec2): Vec2 | null {
+  let best: Vec2 | null = null;
+  let bestD = Infinity;
+  for (const e of world.exits) {
+    if (e.team !== null && e.team !== ship.team) continue;
+    const d = length(sub(e.position, pos));
+    if (d < bestD) {
+      bestD = d;
+      best = e.position;
+    }
+  }
+  return best;
+}
+
 /** Target choice (spec §11.2): threat ÷ distance, preferring weakened targets; orders narrow the field. */
 function chooseTarget(world: World, ship: Ship, st: AiState, me: Pose): string | null {
   const order = st.order;
@@ -341,6 +386,8 @@ function chooseTarget(world: World, ship: Ship, st: AiState, me: Pose): string |
     const dist = Math.max(100, length(sub(pos, guarded && anchor ? anchor : me.pos)));
     let score = ((caps.threat + 1) / dist) * (1 + st.profile.preferWeakened * (1 - caps.hp));
     if (s.drone) score *= 0.3;
+    if (s.id === st.focus) score *= AI_TUNING.focusBonus;
+    if (st.roe === "return" && !hasHitSide(world, s.id, ship.team)) score *= AI_TUNING.roeQuietTarget;
     if (s.id === st.targetId) score *= AI_TUNING.targetStickiness;
     if (score > bestScore || (score === bestScore && best !== null && compareIds(s.id, best) < 0)) {
       bestScore = score;
@@ -414,6 +461,7 @@ function scoreBehaviours(
     if (st.profile.stance === "retreating" && dist < R * AI_TUNING.withdrawReach)
       s.retreat = Math.max(s.retreat ?? 0, w.retreat * 3);
   } else if (st.order?.kind === "follow" || st.order?.kind === "guard") s.follow = 0.5;
+  else if (st.order?.kind === "retreat") s.retreat = 1;
   else if (
     st.order?.kind === "hold" ||
     st.order?.kind === "move" ||
@@ -440,6 +488,11 @@ function scoreBehaviours(
     escape = true;
   }
   if (st.cooling) s.cool = w.cool * 1.4;
+  // Ordered to disengage: nothing else matters.
+  if (st.order?.kind === "retreat") {
+    s.retreat = 10;
+    escape = true;
+  }
   st.retreatMode = escape ? "escape" : "fight";
   return s;
 }
@@ -661,6 +714,13 @@ function behaviourSteering(
         : null;
       // Escaping (disarmed or outgunned): full speed, nose along the way to burn hardest.
       if (st.retreatMode === "escape") {
+        // Through the nearest jump point when there is one: fly in and stop there until the jump.
+        const exit = nearestExit(world, ship, me.pos);
+        if (exit) {
+          const off = sub(exit, me.pos);
+          const cap = Math.min(p.maxSpeed * AI_TUNING.escapeSpeed, arrivalSpeed(caps, length(off)));
+          return { desiredVel: clampLen(scale(off, AI_TUNING.gain), cap), faceAngle: null, mayBurn: true };
+        }
         const run = slideAlongEdge(world, me.pos, away, t ? sub(t.pos, me.pos) : null);
         return { desiredVel: scale(run, p.maxSpeed * AI_TUNING.escapeSpeed), faceAngle: null, mayBurn: true };
       }
@@ -744,6 +804,21 @@ function fireControl(world: World, ship: Ship, st: AiState, me: Pose, caps: Capa
   let launch = false;
   const t = st.targetId && world.hasShip(st.targetId) ? world.getShip(st.targetId) : null;
   const dist = t ? length(sub(world.physics.getWorldCenter(t.id), me.pos)) : Infinity;
+  // Rules of engagement: holding fire, or return fire at a ship that has not fired on this side.
+  const quiet = st.roe === "hold" || (st.roe === "return" && !!t && !hasHitSide(world, t.id, ship.team));
+  if (quiet) {
+    ship.weaponCommand = {
+      trigger: false,
+      aimPoint: null,
+      selected: new Set(),
+      targetId: st.targetId,
+      launch: false,
+      holdBeams: true,
+      holdGuns: true,
+      missileVolleys: true,
+    };
+    return;
+  }
   if (
     t &&
     caps.missiles.launchers > 0 &&

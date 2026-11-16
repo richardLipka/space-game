@@ -31,6 +31,13 @@ export function createWorldFromScenario(scenario: Scenario, options: ScenarioOpt
       tag: id,
     });
   }
+  for (const e of scenario.arena.exits ?? [])
+    world.exits.push({
+      position: vec2(e.position[0], e.position[1]),
+      radius: e.radius,
+      team: e.team ?? null,
+      ...(e.label ? { label: e.label } : {}),
+    });
   for (const g of scenario.arena.gravityWells) {
     world.gravityWells.push({
       position: vec2(g.position[0], g.position[1]),

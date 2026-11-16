@@ -213,7 +213,12 @@ export class Ship {
   drone: DroneLink | null = null;
   /** Drone that lost fuel, link or decoy lifetime: no control, no weapons (spec §9.7). Never cleared. */
   inert = false;
-  inertReason: "no-fuel" | "out-of-range" | "mother-lost" | "expired" | "self-destruct" | null = null;
+  inertReason: "no-fuel" | "out-of-range" | "mother-lost" | "expired" | "self-destruct" | "jumped" | null =
+    null;
+  /** Left the battle through a jump point (docs/objectives.md): out of play, but not destroyed. */
+  escaped = false;
+  /** Battle time it jumped out (s). */
+  escapedAt: number | null = null;
   /** Missile type (magazine ammunition id) the launchers load; null = smart missiles first, then rockets. */
   missileType: string | null = null;
   /** Drone type H launches; null = any hangar. */

@@ -22,6 +22,20 @@ const opts = (seed: number) => ({
   droneDesigns: CORE_DRONES,
 });
 const design = (id: string): ShipDesign => BUNDLED_DESIGNS.get(id)!;
+
+/**
+ * The reference fleet flown by the AI, with the order a player would give for the objective: into the zone
+ * to hold it, out through the jump point to break out; otherwise every ship fights on its own.
+ */
+function pilotFleet(b: ReturnType<typeof startBattle>): void {
+  const o = b.scenario.objective;
+  for (const p of b.playerShips) {
+    const st = b.world.setAi(p.id, aiProfile("balanced"));
+    if (o.type === "hold")
+      st.order = { kind: "move", point: { x: o.zone.position[0], y: o.zone.position[1] } };
+    if (o.type === "breakout") st.order = { kind: "retreat" };
+  }
+}
 const base = SCENARIOS[0]!;
 
 describe("M7 scenarios", () => {
@@ -63,8 +77,7 @@ describe("M7 scenarios", () => {
         let won = false;
         for (let seed = 1; seed <= 20 && !won; seed++) {
           const b = startBattle(s, (s.referenceDesigns ?? []).map(design), cat, opts(seed));
-          // Every ship of the reference fleet fights on its own, like the enemy ships do.
-          for (const p of b.playerShips) b.world.setAi(p.id, aiProfile("balanced"));
+          pilotFleet(b);
           won = runBattle(b, 400) === "won"; // fights last 1–5 minutes (balance pass 2)
         }
         expect(won, s.id).toBe(true);

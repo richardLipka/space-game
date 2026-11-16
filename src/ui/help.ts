@@ -71,6 +71,10 @@ export const HELP: Record<
         [
           ["Test flight", "fly the ship against dummies"],
           ["Scenarios / Skirmish / Sandbox", "fight scenarios, a skirmish, or free flight"],
+          [
+            "Replays",
+            "every battle is recorded: watch it again, read its after-action report, save it as a file or load one",
+          ],
           ["Scenario editor", "build scenarios and play them, as a pilot or in strategy mode"],
           [
             "Crew",
@@ -96,6 +100,10 @@ export const HELP: Record<
           ["Press and drag when placing a ship", "turn it: the drag sets which way its attack front points"],
           ["AI “No AI”", "the ship stays where it is placed; its automatic weapons still fire"],
           ["Asteroid / Black hole / Player spawn", "pick the tool, then click on the map"],
+          [
+            "Jump point",
+            "an exit: ships that stay inside it for 3 s leave the battle (player-flown ships, AI ships getting away or told to disengage); it can be for every side or one team",
+          ],
           ["Esc", "back to Select / move"],
         ],
       ],
@@ -109,7 +117,11 @@ export const HELP: Record<
           ["Ctrl+Z / Ctrl+Y", "undo / redo"],
           [
             "Right panel",
-            "arena size, budget, objective, seed, flight model (Newtonian or arcade, for watch, play and command); problems that would stop the battle",
+            "arena size, budget, objective, time limit, seed, flight model (Newtonian or arcade, for watch, play and command); problems that would stop the battle",
+          ],
+          [
+            "Objectives",
+            "destroy every enemy, survive, protect an allied ship, escort one to a zone, hold a zone, break out through a jump point. Escort, hold and breakout put a zone on the map: drag it, click it to set its size and name",
           ],
           ["Crew… (ship selected)", "officers of that ship"],
         ],
@@ -264,6 +276,19 @@ export const HELP: Record<
           ],
           ["H", "hold where the ships are"],
           ["S", "stop: drop every order and hold"],
+          [
+            "F, then click an enemy",
+            "focus fire: the selected ships fire at it first whenever it is among their targets, keeping their orders (click open space to clear)",
+          ],
+          [
+            "R / Disengage",
+            "get away at full speed, out through a jump point if the arena has one (the ship leaves the battle, not destroyed)",
+          ],
+          ["Shift+R / Disengage all", "every ship disengages"],
+          [
+            "E / Fire (panel)",
+            "rules of engagement: weapons free, return fire only (at ships that have hit your side), hold fire (point defense still fires)",
+          ],
           ["AI type (panel)", "change how the selected ships fight"],
         ],
       ],
@@ -305,6 +330,9 @@ export const HELP: Record<
           ["Red line", "attack target"],
           ["Grey line", "follow or guard"],
           ["Square", "hold point"],
+          ["Green circle", "jump point"],
+          ["Amber circle", "the objective's zone; the arc round it shows how long it has been held"],
+          ["Red cross-hair", "focus-fire target"],
           ["Red arrow at a point", "facing: where the attack front points on arrival"],
           ["Orange dashed line", "aim of a route leg"],
           [

@@ -216,11 +216,15 @@ interface Scenario {
   maxPlayerShips: number;
   allowedParts?: string[];           // default: all
   arena: { width: number; height: number;
-           asteroids: AsteroidSpawn[]; gravityWells: GravityWell[] };
+           asteroids: AsteroidSpawn[]; gravityWells: GravityWell[]; exits?: Exit[] };
   playerSpawns: Transform[];
   enemies: { designId: string; aiProfile: string; spawn: Transform; team: number }[];
   objective: { type: "destroyAll" } | { type: "survive"; seconds: number }
-           | { type: "protect"; designId: string };
+           | { type: "protect"; designId: string }
+           | { type: "escort"; designId: string; zone: Zone }
+           | { type: "hold"; zone: Zone; seconds: number }
+           | { type: "breakout"; zone: Zone; count?: number };
+  timeLimit?: number;
   seed: number;
 }
 ```
@@ -609,7 +613,7 @@ Orders replace an ally's top-level goal. Its utility AI still handles evasion, c
 - **Arena:** a rectangle. Near the edge the HUD shows a warning, and a soft boundary force pushes inward, growing quadratically with distance past the edge.
 - **Asteroids:** static or slowly drifting convex polygons with mass. They serve as cover and as collision hazards. They are indestructible in the prototype.
 - **Gravity wells:** supported (Section 6.9) but not used in the default scenarios.
-- **Scenarios:** a handmade list (target about 6–10) with a growing budget, a defined set of enemies and an objective (`destroyAll`, `survive`, `protect`). All parts are unlocked. A scenario is complete when its objective is met, and the result is saved locally.
+- **Scenarios:** a handmade list (target about 6–10) with a growing budget, a defined set of enemies and an objective (`destroyAll`, `survive`, `protect`, `escort`, `hold`, `breakout`; docs/objectives.md). All parts are unlocked. A scenario is complete when its objective is met, and the result is saved locally.
 - Enemy designs are made in the same editor and stored as `ShipDesign` JSON.
 
 ---
@@ -762,7 +766,7 @@ The `sim` module never imports `render`, `ui` or `editor`. Rendering reads a sim
 | Turret missile defense | AI-mode turrets shoot at missiles homing on their own ship when impact is less than 4 s away (`COMBAT.turretMissileDefense`), before engaging ships |
 | Hangar cost | A hangar's cost includes the drones it holds |
 | Scenarios | Eight scenarios in `src/data/scenarios/` teach the mechanics in order: first flight, fixed vs. turret, armor, heat (survive 60 s), power, missiles and PD, escort (protect), mixed fleet. Each has tips and suggested reference designs; a test checks that every scenario's reference fleet, flown by the AI, wins at least one of 20 seeds |
-| Objectives | destroyAll: every enemy ship (drones excluded) defeated. survive: the time passes. protect: the team-0 ship spawned from the objective's design must outlive the enemies. Losing every player ship always loses. The result is decided once and does not change |
+| Objectives | destroyAll: every enemy ship (drones excluded) defeated or fled. survive: the time passes. protect: the team-0 ship spawned from the objective's design must outlive the enemies. escort: that ship reaches a zone. hold: a zone held for a time. breakout: ships out through a jump point. An optional time limit loses an unfinished battle. Losing every player ship always loses. The result is decided once and does not change (docs/objectives.md) |
 | Fleet and budget | A fleet is one or more designs added in the editor's scenario panel. It may not exceed the scenario's budget (sum of part costs) or ship count, nor use parts outside `allowedParts`; Start stays disabled until it fits. Results (win/loss, time, damage dealt and taken, parts lost) are kept per browser, and the scenario list shows the best one |
 | Editor drag | Moving or rotating a part carries everything that hangs on it, by the same rule as jettison: every part that would lose its connection to the command module without it. The group keeps its shape (rotation turns it about the moved part) and is one undo step. Ctrl+drag moves the part alone; the command module always moves alone |
 | Weapon bar | The flight screen shows every weapon group along the bottom: number, mode, weapons alive and loaded rounds, with the selected groups highlighted. Clicking a group selects it, Shift+click adds it |

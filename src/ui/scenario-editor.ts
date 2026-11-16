@@ -18,6 +18,9 @@ import {
   parseGameFile,
   parseGithubFolder,
   ScenarioModel,
+  makeObjective,
+  objectiveZone,
+  OBJECTIVES,
 } from "../editor/scenario-model";
 import { layoutOf } from "../editor/placement";
 import type { PartCatalogue } from "../sim/ship/catalogue";
@@ -46,7 +49,7 @@ export interface ScenarioEditorServices {
   toast(message: string, kind?: "info" | "error"): void;
 }
 
-type Tool = "select" | "ship" | "asteroid" | "well" | "spawn";
+type Tool = "select" | "ship" | "asteroid" | "well" | "spawn" | "exit";
 const SAVED_KEY = "space-game.scenarios.v1";
 export const DEFAULT_GITHUB_FOLDER =
   "https://github.com/richardLipka/space-game/tree/main/src/data/scenarios/tests";
@@ -303,7 +306,11 @@ export class ScenarioEditor {
           ? asteroidRadius(s.arena.asteroids[r.index]!)
           : r.kind === "well"
             ? s.arena.gravityWells[r.index]!.coreRadius
-            : 0;
+            : r.kind === "exit"
+              ? s.arena.exits![r.index]!.radius
+              : r.kind === "zone"
+                ? (objectiveZone(s)?.radius ?? 0)
+                : 0;
       if (d <= Math.max(radius, tol)) return r;
     }
     return null;
@@ -413,6 +420,7 @@ export class ScenarioEditor {
     if (this.tool === "ship") return this.model.addShip(p.design, x, y, p.team, p.ai);
     if (this.tool === "asteroid") return this.model.addAsteroid(x, y, p.asteroid);
     if (this.tool === "well") return this.model.addWell(x, y);
+    if (this.tool === "exit") return this.model.addExit(x, y);
     return this.model.addSpawn(x, y);
   }
 
@@ -432,6 +440,8 @@ export class ScenarioEditor {
         return "Click to place a black hole.";
       case "spawn":
         return "Click to place a player spawn point.";
+      case "exit":
+        return "Click to place a jump point: retreating ships leave the battle through it.";
       default:
         return "Drag items to move them, drag empty space to pan, wheel to zoom. Q/E rotate, Delete removes.";
     }
@@ -487,6 +497,27 @@ export class ScenarioEditor {
       }),
     );
     const isSel = (r: ItemRef) => this.selected?.kind === r.kind && this.selected.index === r.index;
+    const zoneCircle = (pos: readonly number[], r: number, cls: string, sel: boolean) =>
+      g.append(
+        svg("circle", {
+          cx: pos[0]!,
+          cy: pos[1]!,
+          r,
+          class: `${cls}${sel ? " selected" : ""}`,
+          "stroke-width": 2 * px,
+        }),
+      );
+    (s.arena.exits ?? []).forEach((e, i) =>
+      zoneCircle(e.position, e.radius, "sc-exit", isSel({ kind: "exit", index: i })),
+    );
+    const oz = objectiveZone(s);
+    if (oz)
+      zoneCircle(
+        oz.position,
+        oz.radius,
+        s.objective.type === "breakout" ? "sc-exit" : "sc-zone",
+        isSel({ kind: "zone", index: 0 }),
+      );
     s.arena.gravityWells.forEach((well, i) => {
       const sel = isSel({ kind: "well", index: i });
       const [x, y] = well.position;
@@ -567,6 +598,24 @@ export class ScenarioEditor {
     });
     this.map.append(g);
     // Labels in screen space (not mirrored).
+    const label = (pos: readonly number[], r: number, text: string) => {
+      const t = svg("text", {
+        x: w / 2 + (pos[0]! - v.x) / v.mpp,
+        y: h / 2 - (pos[1]! + r - v.y) / v.mpp - 6,
+        class: "sc-label",
+        "text-anchor": "middle",
+      });
+      t.textContent = text;
+      this.map.append(t);
+    };
+    (s.arena.exits ?? []).forEach((e) =>
+      label(
+        e.position,
+        e.radius,
+        `${e.label ?? "Jump point"}${e.team !== undefined ? ` (team ${e.team})` : ""}`,
+      ),
+    );
+    if (oz) label(oz.position, oz.radius, `${oz.label ?? "Zone"} (objective)`);
     s.enemies.forEach((e) => {
       const [x, y] = e.spawn.position;
       const sx = w / 2 + (x - v.x) / v.mpp;
@@ -590,6 +639,7 @@ export class ScenarioEditor {
       ["asteroid", "Asteroid"],
       ["well", "Black hole"],
       ["spawn", "Player spawn"],
+      ["exit", "Jump point"],
     ];
     const items: (HTMLElement | string)[] = [el("h3", {}, "Tools")];
     for (const [t, label] of tools) {
@@ -789,7 +839,14 @@ export class ScenarioEditor {
         el(
           "h3",
           {},
-          { ship: "Ship", asteroid: "Asteroid", well: "Black hole", spawn: "Player spawn" }[r.kind],
+          {
+            ship: "Ship",
+            asteroid: "Asteroid",
+            well: "Black hole",
+            spawn: "Player spawn",
+            exit: "Jump point",
+            zone: "Objective zone",
+          }[r.kind],
         ),
       );
       out.push(this.numberField("X (m)", x, (v) => this.model.move(r, v, y), "sc-prop-x"));
@@ -860,6 +917,57 @@ export class ScenarioEditor {
             `Pull at 1 km: ${(wl.mu / 1e6).toFixed(0)} m/s². Ships may orbit it; whatever enters the core is destroyed.`,
           ),
         );
+      } else if (r.kind === "exit" || r.kind === "zone") {
+        const z = r.kind === "exit" ? s.arena.exits![r.index]! : objectiveZone(s)!;
+        const zoneOf = (t: Scenario) => (r.kind === "exit" ? t.arena.exits![r.index]! : objectiveZone(t)!);
+        out.push(
+          this.numberField(
+            "Radius (m)",
+            z.radius,
+            (v) => edit((t) => (zoneOf(t).radius = Math.max(50, v))),
+            "sc-prop-radius",
+          ),
+        );
+        out.push(
+          this.textField(
+            "Name",
+            z.label ?? "",
+            (v) =>
+              edit((t) => {
+                const zz = zoneOf(t);
+                if (v.trim()) zz.label = v.trim().slice(0, 40);
+                else delete zz.label;
+              }),
+            "sc-prop-label",
+          ),
+        );
+        if (r.kind === "exit") {
+          const ex = s.arena.exits![r.index]!;
+          const team = el("select", { "data-testid": "sc-prop-exit-team" }) as HTMLSelectElement;
+          for (const [v, l] of [
+            ["", "Every side"],
+            ["0", "Team 0 (yours)"],
+            ["1", "Team 1"],
+            ["2", "Team 2"],
+          ] as const)
+            team.append(el("option", { value: v }, l));
+          team.value = ex.team === undefined ? "" : String(ex.team);
+          team.addEventListener("change", () =>
+            edit((t) => {
+              const e = t.arena.exits![r.index]!;
+              if (team.value === "") delete e.team;
+              else e.team = Number(team.value);
+            }),
+          );
+          out.push(el("label", { class: "sc-field" }, "Used by", team));
+          out.push(
+            el(
+              "p",
+              { class: "dim" },
+              "Ships that stay inside for 3 s leave the battle: player-flown ships, and AI ships getting away or told to disengage.",
+            ),
+          );
+        }
       } else if (r.kind === "asteroid") {
         const ast = s.arena.asteroids[r.index]!;
         out.push(
@@ -927,20 +1035,70 @@ export class ScenarioEditor {
     );
     out.push(this.numberField("Seed", s.seed, (v) => edit((t) => (t.seed = Math.round(v))), "sc-seed"));
     const obj = el("select", { "data-testid": "sc-objective" }) as HTMLSelectElement;
-    for (const [v, label] of [
-      ["destroyAll", "Destroy every enemy"],
-      ["survive", "Survive"],
-    ] as const)
-      obj.append(el("option", { value: v }, label));
-    obj.value = s.objective.type === "survive" ? "survive" : "destroyAll";
+    for (const [v, label] of OBJECTIVES) obj.append(el("option", { value: v }, label));
+    obj.value = s.objective.type;
     obj.addEventListener("change", () =>
-      edit(
-        (t) =>
-          (t.objective =
-            obj.value === "survive" ? { type: "survive", seconds: 120 } : { type: "destroyAll" }),
-      ),
+      edit((t) => (t.objective = makeObjective(t, obj.value as Scenario["objective"]["type"]))),
     );
     out.push(el("label", { class: "sc-field" }, "Objective", obj));
+    const o = s.objective;
+    if (o.type === "protect" || o.type === "escort") {
+      // The allied ship: a team-0 ship of the scenario, by design.
+      const pick = el("select", { "data-testid": "sc-objective-ship" }) as HTMLSelectElement;
+      const allies = [...new Set(s.enemies.filter((e) => e.team === 0).map((e) => e.designId))];
+      if (!allies.includes(o.designId))
+        pick.append(el("option", { value: o.designId }, o.designId || "(place a team 0 ship)"));
+      for (const id of allies) pick.append(el("option", { value: id }, this.designs.get(id)?.name ?? id));
+      pick.value = o.designId;
+      pick.addEventListener("change", () =>
+        edit((t) => {
+          const oo = t.objective;
+          if (oo.type === "protect" || oo.type === "escort") oo.designId = pick.value;
+        }),
+      );
+      out.push(
+        el("label", { class: "sc-field" }, o.type === "escort" ? "Ship to escort" : "Ship to protect", pick),
+      );
+    }
+    if (o.type === "hold")
+      out.push(
+        this.numberField(
+          "Hold for (s)",
+          o.seconds,
+          (v) => edit((t) => t.objective.type === "hold" && (t.objective.seconds = Math.max(1, v))),
+          "sc-hold-seconds",
+        ),
+      );
+    if (o.type === "breakout")
+      out.push(
+        this.numberField(
+          "Ships to get out (0 = all)",
+          o.count ?? 0,
+          (v) =>
+            edit((t) => {
+              if (t.objective.type !== "breakout") return;
+              if (v >= 1) t.objective.count = Math.round(v);
+              else delete t.objective.count;
+            }),
+          "sc-breakout-count",
+        ),
+      );
+    if (objectiveZone(s))
+      out.push(
+        el("p", { class: "dim" }, "Drag the objective's zone on the map; click it to set its size and name."),
+      );
+    out.push(
+      this.numberField(
+        "Time limit (s, 0 = none)",
+        s.timeLimit ?? 0,
+        (v) =>
+          edit((t) => {
+            if (v > 0) t.timeLimit = v;
+            else delete t.timeLimit;
+          }),
+        "sc-time-limit",
+      ),
+    );
     // Flight model of every ship (strategy, play and watch).
     out.push(
       flightModelSelect("sc-flight-model", s.flightModel ?? "newtonian", (m) =>

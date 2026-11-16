@@ -18,7 +18,9 @@ import { AI_PROFILES, aiProfile } from "../data/ai/index";
 import { commanderAi } from "../sim/crew/officers";
 import type { AiProfile } from "../data/schemas/ai";
 import type { Order } from "../sim/ai/brain";
-import { GUARD_RADIUS, updateBattle, type Battle } from "../sim/scenario/battle";
+import { GUARD_RADIUS, stepBattle, type Battle } from "../sim/scenario/battle";
+import type { ReplayPlayer } from "../sim/scenario/record";
+import { battleZones, objectiveLine } from "./battle-ui";
 import { el } from "./editor/dom";
 
 export interface FlightSetup {
@@ -38,6 +40,17 @@ export interface FlightSetup {
    * next ship), pauses and changes the time scale.
    */
   readonly spectate?: boolean;
+  /** Playing a recording back (docs/battle-report.md): watched, with the recorded controls applied. */
+  readonly replay?: ReplayPlayer;
+  /** Extra buttons on the results panel (report, replay). */
+  readonly resultActions?: readonly ResultAction[];
+}
+
+/** A button on the results panel. */
+export interface ResultAction {
+  readonly label: string;
+  readonly testid: string;
+  readonly run: () => void;
 }
 
 /** Commands that still work while watching: they change only the view or the clock. */
@@ -576,6 +589,7 @@ export class FlightScreen {
 
   private readonly resultsPanel: HTMLElement;
   private battleShown = false;
+  private divergenceShown = false;
 
   /** Results screen (plan M7 task 2): win or loss, time, damage dealt and taken, parts lost. */
   private showResults(b: Battle): void {
@@ -595,7 +609,17 @@ export class FlightScreen {
       row("Damage dealt", Math.round(t.dealt).toString(), "dealt"),
       row("Damage taken", Math.round(t.taken).toString(), "taken"),
       row("Parts lost", t.partsLost.toString(), "parts"),
-      el("div", { class: "actions" }, retry, back),
+      el(
+        "div",
+        { class: "actions" },
+        ...(this.setup?.resultActions ?? []).map((a) => {
+          const btn = el("button", { "data-testid": a.testid }, a.label);
+          btn.addEventListener("click", a.run);
+          return btn;
+        }),
+        ...(this.setup?.retry ? [retry] : []),
+        back,
+      ),
     );
     this.resultsPanel.hidden = false;
   }
@@ -905,6 +929,7 @@ export class FlightScreen {
     if (ship) this.camera.center = setup.world.physics.getWorldCenter(ship.id);
     this.input.speedKillActive = () => this.controlledShip?.flight.speedKill !== "off";
     this.battleShown = false;
+    this.divergenceShown = false;
     // Every flight starts at real time (a left-over ×8 made the game look uncontrollably fast).
     this.timeScaleIndex = TIME_SCALES.indexOf(1);
     this.paused = false;
@@ -915,8 +940,10 @@ export class FlightScreen {
       // Keep AI that the battle already set up (skirmish types and guard orders). Ships the battle spawned
       // without a pilot (scenario AI "none": test platforms) stay that way.
       const scripted = new Set([...(setup.battle?.allyShips ?? []), ...(setup.battle?.enemyShips ?? [])]);
-      for (const s of setup.playerShips)
-        if (!setup.world.ai.has(s.id) && !scripted.has(s)) setup.world.setAi(s.id, this.profileFor(s));
+      // A replay applies the recorded controls instead: a ship the player flew stays without AI.
+      if (!setup.replay)
+        for (const s of setup.playerShips)
+          if (!setup.world.ai.has(s.id) && !scripted.has(s)) setup.world.setAi(s.id, this.profileFor(s));
     } else this.assignAllies();
     this.input.enabled = true;
     this.input.takeCommands();
@@ -927,8 +954,13 @@ export class FlightScreen {
         const w = setup.world;
         this.scene!.capture(w);
         if (setup.spectate) {
-          w.step();
-          if (setup.battle) updateBattle(setup.battle);
+          // A replay stops where the recording ends.
+          if (setup.replay?.done) {
+            this.paused = true;
+            return;
+          }
+          if (setup.battle) stepBattle(setup.battle);
+          else w.step();
           return;
         }
         const s = this.controlledShip!;
@@ -945,8 +977,8 @@ export class FlightScreen {
           launch: this.pendingLaunch,
         };
         this.pendingLaunch = false;
-        w.step();
-        if (setup.battle) updateBattle(setup.battle);
+        if (setup.battle) stepBattle(setup.battle);
+        else w.step();
       },
       undefined,
       // ×8 time needs 8 ticks per 60 Hz frame; allow slower frames to catch up too.
@@ -1172,6 +1204,22 @@ export class FlightScreen {
     if (this.priorityId && (!world.hasShip(this.priorityId) || world.getShip(this.priorityId).defeated))
       this.priorityId = null;
     const battle = setup.battle;
+    scene.zones = battle ? battleZones(battle) : [];
+    // The pilot's ship jumped out: take the next one still in the battle.
+    if (!setup.spectate && this.controlledShip?.escaped) {
+      const next = setup.playerShips.findIndex((s) => !s.escaped && !s.defeated);
+      if (next >= 0) {
+        this.controlled = next;
+        this.assignAllies();
+      }
+    }
+    if (setup.replay?.diverged != null && !this.divergenceShown) {
+      this.divergenceShown = true;
+      this.matchNote = {
+        text: `This replay no longer matches the recording from ${Math.round(setup.replay.diverged / 60)} s on (the game has changed since it was recorded).`,
+        until: performance.now() + 8000,
+      };
+    }
     if (battle && battle.status !== "running" && !this.battleShown) {
       this.battleShown = true;
       setup.onBattleEnd?.(battle);
@@ -1225,20 +1273,4 @@ export class FlightScreen {
     this.renderWeaponBar();
     this.crewStrip.update(this.setup?.spectate ? null : this.controlledShip);
   }
-}
-
-/** HUD objective line: what to do and how far along (survive: time left; protect: escort hull). */
-function objectiveLine(b: Battle): string {
-  const o = b.scenario.objective;
-  const left = b.enemyShips.filter((s) => !s.defeated).length;
-  if (b.status !== "running") return b.status === "won" ? "complete" : "failed";
-  if (o.type === "survive")
-    return `survive ${Math.max(0, o.seconds - b.world.time).toFixed(0)} s more · ${left} enemies`;
-  if (o.type === "protect" && b.protectId && b.world.hasShip(b.protectId)) {
-    const p = b.world.getShip(b.protectId);
-    const hp =
-      p.parts.reduce((t, x) => t + Math.max(0, x.hp), 0) / p.parts.reduce((t, x) => t + x.def.def.hp, 0);
-    return `protect ${p.design.name.split(" (")[0]} (hull ${Math.round(hp * 100)} %) · ${left} enemies left`;
-  }
-  return `destroy all enemies · ${left} left`;
 }

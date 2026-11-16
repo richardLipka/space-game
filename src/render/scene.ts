@@ -60,6 +60,17 @@ const RADIATOR_GLOW_FULL = 0.8;
  * Pixi renderer. Reads world state only; never mutates the simulation (spec §13.2).
  * Static geometry (hulls, asteroids) is built once per ship and rebuilt when the theme or zoom bucket changes.
  */
+/** A circle drawn on the battle map: a jump point or the objective's zone. */
+export interface SceneZone {
+  readonly x: number;
+  readonly y: number;
+  readonly r: number;
+  readonly kind: "exit" | "objective";
+  /** Hold objective: share of the time held. */
+  readonly progress?: number;
+  readonly label?: string;
+}
+
 export class Scene {
   /** Root container of this scene on the shared Pixi stage. */
   readonly root = new Container();
@@ -328,6 +339,28 @@ export class Scene {
     }
   }
 
+  /**
+   * Battle zones drawn on the map (docs/objectives.md): jump points and the objective's zone, with how far a
+   * hold has got (0..1) as an arc.
+   */
+  zones: readonly SceneZone[] = [];
+
+  private drawZones(g: Graphics, z: number): void {
+    for (const zone of this.zones) {
+      const s = this.theme.resolve(zone.kind === "exit" ? "zone-exit" : "zone-objective");
+      g.circle(zone.x, zone.y, zone.r);
+      g.fill({ color: s.fill, alpha: s.fillAlpha });
+      strokeStyled(g, s, z);
+      if (zone.progress !== undefined && zone.progress > 0) {
+        const p = this.theme.resolve("zone-progress");
+        const start = Math.PI / 2;
+        g.moveTo(zone.x, zone.y + zone.r);
+        g.arc(zone.x, zone.y, zone.r, start, start - Math.min(1, zone.progress) * Math.PI * 2, true);
+        strokeStyled(g, p, z);
+      }
+    }
+  }
+
   private drawGrid(world: World, camera: Camera): void {
     const g = this.gridG;
     const z = camera.zoom;
@@ -351,6 +384,7 @@ export class Scene {
       g.rect(-hw, -hh, hw * 2, hh * 2);
       strokeStyled(g, this.theme.resolve("arena-edge"), z);
     }
+    this.drawZones(g, z);
     for (const w of world.gravityWells) {
       g.circle(w.position.x, w.position.y, w.coreRadius);
       const s = this.theme.resolve("gravity-well");

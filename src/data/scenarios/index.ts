@@ -15,6 +15,9 @@ import s12 from "./s12-mirror-escort.json";
 import s13 from "./s13-mirror-carriers.json";
 import s14 from "./s14-mirror-battle-line.json";
 import s15 from "./s15-mirror-rearguard.json";
+import s16 from "./s16-convoy-run.json";
+import s17 from "./s17-hold-the-beacon.json";
+import s18 from "./s18-breakout.json";
 
 /** The scenario list (spec §12), validated at load and sorted by `order`. */
 export const SCENARIOS: readonly Scenario[] = [
@@ -33,6 +36,9 @@ export const SCENARIOS: readonly Scenario[] = [
   s13,
   s14,
   s15,
+  s16,
+  s17,
+  s18,
 ]
   .map((j) => {
     const r = validateScenario(j);

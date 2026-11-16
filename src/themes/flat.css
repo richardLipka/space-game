@@ -73,6 +73,22 @@
   --fill: #a39fb5;
   --fill-alpha: 1;
 }
+.zone-exit {
+  --stroke: #1a7f4b;
+  --stroke-width: 2;
+  --fill: #1a7f4b;
+  --fill-alpha: 0.08;
+}
+.zone-objective {
+  --stroke: #b06a00;
+  --stroke-width: 2;
+  --fill: #e0a030;
+  --fill-alpha: 0.1;
+}
+.zone-progress {
+  --stroke: #b06a00;
+  --stroke-width: 6;
+}
 .gravity-well {
   --stroke: #5a3d8a;
   --fill: #c9b8e8;
